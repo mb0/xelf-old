@@ -13,11 +13,11 @@ type Writer interface {
 	WriteBfr(Ctx) error
 }
 
-// String writes w and returns the result as string or an error
-func String(w Writer) (string, error) {
+// String writes w and returns the result as string ignoring any error
+func String(w Writer) string {
 	var b strings.Builder
-	err := w.WriteBfr(Ctx{B: &b})
-	return b.String(), err
+	_ = w.WriteBfr(Ctx{B: &b})
+	return b.String()
 }
 
 // JSON writes w with the json flag and returns the result as bytes or an error
