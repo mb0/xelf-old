@@ -25,11 +25,7 @@ type Error struct {
 // Error builds and returns an error string of e
 func (e *Error) Error() string {
 	var b strings.Builder
-	if e.Err != nil {
-		b.WriteString(e.Err.Error())
-	} else {
-		b.WriteString("unexpected token")
-	}
+	b.WriteString(e.Cause().Error())
 	if e.Want != 0 {
 		b.WriteString(" want token ")
 		b.WriteString(TokStr(e.Want))
@@ -40,4 +36,12 @@ func (e *Error) Error() string {
 		b.WriteString(fmt.Sprintf(" :%d:%d", e.Line, e.Col))
 	}
 	return b.String()
+}
+
+// Cause returns the underlying error
+func (e *Error) Cause() error {
+	if e.Err == nil {
+		return ErrUnexpected
+	}
+	return e.Err
 }
