@@ -10,7 +10,7 @@ Overview
 
  * cor: minimal runtime utilities for generated code
  * bfr: common interface for buffered writers and bytes buffer pool
- * lex: token lexer, tree scanner and string quoting code
+ * lex: token and tree lexer as well as string quoting code
  * typ: composable type system and a parser, reflection and comparison
  * lit: literal parser, adapters and support comparison and conversion
  * xpr: simple expression language, standard built-ins and resolvers
