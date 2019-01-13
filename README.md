@@ -13,7 +13,8 @@ Overview
  * lex: token and tree lexer as well as string quoting code
  * typ: composable type system and a parser, reflection and comparison
  * lit: literal parser, adapters and support comparison and conversion
- * xpr: simple expression language, standard built-ins and resolvers
+ * exp: simple expression language, standard built-ins and resolvers
+ * dom: domain model definition extension to the typ and exp packages
 
 Motivation
 ----------
