@@ -40,10 +40,11 @@ const (
 	KindReal = BaseNum | Spec3
 
 	KindStr  = BaseChar | Spec1
-	KindUUID = BaseChar | Spec2
-	KindTime = BaseChar | Spec3
+	KindRaw  = BaseChar | Spec2
+	KindUUID = BaseChar | Spec3
 
-	KindSpan = BaseChar | BaseNum | Spec3
+	KindTime = BaseChar | BaseNum | Spec1
+	KindSpan = BaseChar | BaseNum | Spec2
 
 	KindArr = BaseList | Spec1
 	KindMap = BaseDict | Spec1

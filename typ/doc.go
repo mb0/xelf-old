@@ -9,8 +9,8 @@ The base types are use when a specific type is not known or required. Base types
 obj field, list or map declarations, but can be use in variable or parameter declarations.
 
 There is a number of specific types for each base type:
-    bool, int, real and span are numeric types
-    str, uuid, time and span are character types
+    bool, int, real, time and span are numeric types
+    str, raw, uuid, time and span are character types
     arr and obj are list types
     map and obj are dictionary types
 
@@ -18,8 +18,9 @@ The character, numeric and the special types any and void are represented by the
 
     bool, any, time
 
-The span type represents a time duration/interval/delta that can either be represented as
-numeric value in milliseconds or in the character formats '-1234h5m6s789ms' or '-1234:05:06.789'.
+The time and span type represents a time or a time duration/interval/delta that can either be
+represented as numeric value in milliseconds since epoch or ms delta or in a character format
+as specified in the cor package.
 
 The arr and map types have a type slot and can be nested at most seven times. These types are
 represented by their name appended by a colon and the slot type:
@@ -27,8 +28,8 @@ represented by their name appended by a colon and the slot type:
     arr:int, arr:arr:arr:int, map:arr:map:arr:map:arr:str
 
 
-The obj type has sequence of field, that can be accessed by name or index, therefor an obj is both
-a list and dictionary type. The obj type must have field declarations and be enclosed in
+The obj type has a sequence of field, that can be accessed by name or index, therefor an obj is
+both a list and dictionary type. The obj type must have field declarations and be enclosed in
 parenthesis. A field declaration consists of the declaration name starting with plus sign and the
 field type definition. Optional fields have names ending with a question mark, otherwise a field is
 required.
