@@ -23,9 +23,9 @@ represented as numeric value in milliseconds since epoch or ms delta or in a cha
 as specified in the cor package.
 
 The arr and map types have a type slot and can be nested at most seven times. These types are
-represented by their name appended by a colon and the slot type:
+represented by their name appended by a pipe and the slot type:
 
-    arr:int, arr:arr:arr:int, map:arr:map:arr:map:arr:str
+    arr|int, map|bool, arr|arr|arr|int, map|arr|map|arr|map|arr|str
 
 
 The obj type has a sequence of field, that can be accessed by name or index, therefor an obj is
@@ -34,13 +34,13 @@ parenthesis. A field declaration consists of the declaration name starting with 
 field type definition. Optional fields have names ending with a question mark, otherwise a field is
 required.
 
-    (obj +x +y +z? int), (arr:obj +name str +val any +extra? any)
+    (obj +x +y +z? int), (arr|obj +name str +val any +extra? any)
 
 Optional types are nullable type-variants. The any, list, dict, arr and map types are always
 optional and the void type never is. All other types can be marked as optional by a question mark
 suffix.
 
-    (obj +top10 (arr:obj? +name str +score int?) +err str?)
+    (obj +top10 (arr|obj? +name str +score int?) +err str?)
 
 
 Type references start with an at sign '@name' and represent the type of what 'name' resolves to.
@@ -56,7 +56,7 @@ in the reference name.
     (let
         +kind  int
     	+named (obj +id uuid +name str?)
-	+cat   (obj + @named @kind? +prods arr:@named)
+	+cat   (obj + @named @kind? +prods arr|@named)
     )
 
 There are more quasi-reference types, that are treated as a specific type in most cases, but carry
@@ -85,7 +85,7 @@ But when they need to be serialized, it should look like this:
 	"cat":  {"typ": "obj", "fields": [
 		{"typ": "ref", "ref": "named"},
 		{"typ": "ref?", "ref": "kind"},
-		{"name": "prods", "typ": "arr:ref", "ref": "named"}
+		{"name": "prods", "typ": "arr|ref", "ref": "named"}
     	]}
     }
 
