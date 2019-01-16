@@ -1,5 +1,7 @@
 package typ
 
+import "github.com/mb0/xelf/bfr"
+
 // Kind is a bit-set describing a type. It represents all type information except reference names
 // and object fields. It is a handy implementation detail, but not part of the xelf specification.
 type Kind uint64
@@ -9,6 +11,7 @@ type Kind uint64
 const (
 	SlotCount = 7
 	SlotSize  = 8
+	SlotMask  = 0xff
 )
 
 // Each bit in a slot has a certain meaning. The first four bits specify a base type, next two bits
@@ -28,6 +31,7 @@ const (
 	MaskCont = BaseList | BaseDict // 0000 1100
 	MaskBase = MaskPrim | MaskCont // 0000 1111
 	MaskElem = MaskBase | Spec3    // 0011 1111
+	MaskRef  = MaskElem | FlagRef  // 0111 1111
 )
 
 const (
@@ -54,3 +58,162 @@ const (
 	KindEnum = FlagRef | KindStr
 	KindRec  = FlagRef | KindObj
 )
+
+func ParseKind(str string) (Kind, error) {
+	if len(str) == 0 {
+		return KindVoid, ErrInvalid
+	}
+	if len(str) > 4 && str[3] == '|' {
+		kk, err := ParseKind(str[4:])
+		switch str[:3] {
+		case "arr":
+			return KindArr | kk<<SlotSize, err
+		case "map":
+			return KindMap | kk<<SlotSize, err
+		}
+	}
+	switch str {
+	case "void":
+		return KindVoid, nil
+	case "any":
+		return KindAny, nil
+	case "list":
+		return BaseList, nil
+	case "dict":
+		return BaseDict, nil
+	}
+	var kk Kind
+	if str[len(str)-1] == '?' {
+		str = str[:len(str)-1]
+		kk = FlagOpt
+	}
+	if len(str) > 4 {
+		return KindVoid, ErrInvalid
+	}
+	switch str {
+	case "ref":
+		return kk | KindRef, nil
+	case "num":
+		return kk | BaseNum, nil
+	case "char":
+		return kk | BaseChar, nil
+	case "bool":
+		return kk | KindBool, nil
+	case "int":
+		return kk | KindInt, nil
+	case "real":
+		return kk | KindReal, nil
+	case "str":
+		return kk | KindStr, nil
+	case "raw":
+		return kk | KindRaw, nil
+	case "uuid":
+		return kk | KindUUID, nil
+	case "time":
+		return kk | KindTime, nil
+	case "span":
+		return kk | KindSpan, nil
+	case "obj":
+		return kk | KindObj, nil
+	case "flag":
+		return kk | KindFlag, nil
+	case "enum":
+		return kk | KindEnum, nil
+	case "rec":
+		return kk | KindRec, nil
+	}
+	return KindVoid, ErrInvalid
+}
+
+func (k Kind) WriteBfr(b bfr.Ctx) (err error) {
+	str := simpleStr(k)
+	if str != "" {
+		_, err = b.WriteString(str)
+		if k != KindAny && k&FlagOpt != 0 {
+			err = b.WriteByte('?')
+		}
+		return err
+	}
+	switch k & SlotMask {
+	case KindArr:
+		b.WriteString("arr|")
+	case KindMap:
+		b.WriteString("map|")
+	default:
+		return ErrInvalid
+	}
+	return (k >> SlotSize).WriteBfr(b)
+}
+
+func (k Kind) String() string {
+	str := simpleStr(k)
+	if str != "" {
+		if k != KindAny && k&FlagOpt != 0 {
+			return str + "?"
+		}
+		return str
+	}
+	switch k & SlotMask {
+	case KindArr:
+		return "arr|" + (k >> SlotSize).String()
+	case KindMap:
+		return "map|" + (k >> SlotSize).String()
+	}
+	return "invalid"
+}
+
+func (k Kind) MarshalText() ([]byte, error) {
+	return []byte(k.String()), nil
+}
+
+func (k *Kind) UnmarshalText(txt []byte) error {
+	kk, err := ParseKind(string(txt))
+	*k = kk
+	return err
+}
+
+func simpleStr(k Kind) string {
+	switch k & SlotMask {
+	case KindVoid:
+		return "void"
+	case KindAny:
+		return "any"
+	}
+	switch k & MaskRef {
+	case KindRef:
+		return "ref"
+	case BaseNum:
+		return "num"
+	case BaseChar:
+		return "char"
+	case BaseList:
+		return "list"
+	case BaseDict:
+		return "dict"
+	case KindBool:
+		return "bool"
+	case KindInt:
+		return "int"
+	case KindReal:
+		return "real"
+	case KindStr:
+		return "str"
+	case KindRaw:
+		return "raw"
+	case KindUUID:
+		return "uuid"
+	case KindTime:
+		return "time"
+	case KindSpan:
+		return "span"
+	case KindObj:
+		return "obj"
+	case KindFlag:
+		return "flag"
+	case KindEnum:
+		return "enum"
+	case KindRec:
+		return "rec"
+	}
+	return ""
+}
