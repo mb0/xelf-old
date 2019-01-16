@@ -16,6 +16,9 @@ func FormatTime(v time.Time) string {
 	return v.Format("2006-01-02T15:04:05.999Z07:00")
 }
 
+// UnixMilli returns a timestamp since unix epoch in milliseconds
+func UnixMilli(v time.Time) int64 { return v.Unix()*1000 + int64(v.Nanosecond()/1000000) }
+
 // ParseTime parses s and return a time or error
 // It accepts variations of the RFC3339 format:
 //     2006-01-02([T ]15:04(:05:999999999)?)?(Z|[+-]07([:]?00)?)?
