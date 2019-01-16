@@ -2,7 +2,6 @@ package lit
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/lex"
@@ -92,12 +91,20 @@ func (v *Dict) WriteBfr(b bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
-func writeKey(b bfr.Ctx, key string) error {
+func writeKey(b bfr.Ctx, key string) (err error) {
 	if !b.JSON && lex.IsName(key) {
 		b.WriteByte('+')
 		b.WriteString(key)
 		return b.WriteByte(' ')
 	}
-	b.WriteString(strconv.Quote(key))
+	if b.JSON {
+		key, err = lex.Quote(key, '"')
+	} else {
+		key, err = lex.Quote(key, '\'')
+	}
+	if err != nil {
+		return err
+	}
+	b.WriteString(key)
 	return b.WriteByte(':')
 }
