@@ -16,8 +16,8 @@ type (
 func (Time) Typ() typ.Type { return typ.Time }
 func (Span) Typ() typ.Type { return typ.Span }
 
-func (v Time) IsZero() bool { return time.Time(v) == time.Time{} }
-func (v Span) IsZero() bool { return v == 0 }
+func (v Time) IsZero() bool { return v == ZeroTime }
+func (v Span) IsZero() bool { return v == ZeroSpan }
 
 func (v Time) Num() float64 { return float64(cor.UnixMilli(time.Time(v))) }
 func (v Span) Num() float64 { return float64(v / 1000000) }

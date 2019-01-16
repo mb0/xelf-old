@@ -22,7 +22,7 @@ func (UUID) Typ() typ.Type { return typ.UUID }
 func (v Char) IsZero() bool { return v == "" }
 func (v Str) IsZero() bool  { return v == "" }
 func (v Raw) IsZero() bool  { return len(v) == 0 }
-func (v UUID) IsZero() bool { return v == [16]byte{} }
+func (v UUID) IsZero() bool { return v == ZeroUUID }
 
 func (v Char) Char() string { return string(v) }
 func (v Str) Char() string  { return string(v) }
