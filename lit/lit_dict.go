@@ -1,0 +1,103 @@
+package lit
+
+import (
+	"errors"
+	"strconv"
+
+	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/lex"
+	"github.com/mb0/xelf/typ"
+)
+
+var ErrNilMap = errors.New("nil map")
+
+// Dict is a generic container implementing Keyer
+type Dict struct {
+	List []Keyed
+}
+
+// Keyed is a key associated with a literal
+type Keyed struct {
+	Key string
+	Lit
+}
+
+func (*Dict) Typ() typ.Type  { return typ.Dict }
+func (d *Dict) IsZero() bool { return d == nil || len(d.List) == 0 }
+
+func (d *Dict) Len() int {
+	if d == nil {
+		return 0
+	}
+	return len(d.List)
+}
+func (d *Dict) Keys() []string {
+	if d == nil {
+		return nil
+	}
+	res := make([]string, 0, len(d.List))
+	for _, v := range d.List {
+		res = append(res, v.Key)
+	}
+	return res
+}
+func (d *Dict) Key(k string) (Lit, error) {
+	if d == nil {
+		return Nil, nil
+	}
+	for _, v := range d.List {
+		if v.Key == k {
+			return v.Lit, nil
+		}
+	}
+	return Nil, nil
+}
+func (d *Dict) SetKey(k string, el Lit) error {
+	if d == nil {
+		return ErrNilMap
+	}
+	for i, v := range d.List {
+		if v.Key == k {
+			d.List[i].Lit = el
+			return nil
+		}
+	}
+	d.List = append(d.List, Keyed{k, el})
+	return nil
+}
+
+func (d *Dict) IterKey(it func(string, Lit) bool) error {
+	if d == nil {
+		return nil
+	}
+	for _, el := range d.List {
+		if !it(el.Key, el.Lit) {
+			break
+		}
+	}
+	return nil
+}
+
+func (v *Dict) String() string               { return bfr.String(v) }
+func (v *Dict) MarshalJSON() ([]byte, error) { return bfr.JSON(v) }
+func (v *Dict) WriteBfr(b bfr.Ctx) error {
+	b.WriteByte('{')
+	for i, e := range v.List {
+		if i > 0 {
+			writeSep(b)
+		}
+		writeKey(b, e.Key)
+		writeLit(b, e.Lit)
+	}
+	return b.WriteByte('}')
+}
+
+func writeKey(b bfr.Ctx, key string) error {
+	if !b.JSON && lex.IsName(key) {
+		b.WriteByte('+')
+		b.WriteString(key)
+		return b.WriteByte(' ')
+	}
+	b.WriteString(strconv.Quote(key))
+	return b.WriteByte(':')
+}
