@@ -20,7 +20,7 @@ func (v Time) IsZero() bool { return v == ZeroTime }
 func (v Span) IsZero() bool { return v == ZeroSpan }
 
 func (v Time) Num() float64 { return float64(cor.UnixMilli(time.Time(v))) }
-func (v Span) Num() float64 { return float64(v / 1000000) }
+func (v Span) Num() float64 { return float64(cor.Milli(time.Duration(v))) }
 
 func (v Time) Char() string { return cor.FormatTime(time.Time(v)) }
 func (v Span) Char() string { return cor.FormatSpan(time.Duration(v)) }

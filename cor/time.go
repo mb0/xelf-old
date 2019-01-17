@@ -2,6 +2,12 @@ package cor
 
 import "time"
 
+// UnixMilli returns a integer timestamp since unix epoch in milliseconds
+func UnixMilli(v time.Time) int64 { return v.Unix()*1000 + int64(v.Nanosecond()/1000000) }
+
+// UnixMilliTime constructs and returns a time from the millisecond timestamp since unix epoch
+func UnixMilliTime(n int64) time.Time { return time.Unix(n/1000, (n%1000)*1000000) }
+
 // Time parses s and returns a pointer to a time or nil on error
 func Time(s string) *time.Time {
 	v, err := ParseTime(s)
@@ -15,9 +21,6 @@ func Time(s string) *time.Time {
 func FormatTime(v time.Time) string {
 	return v.Format("2006-01-02T15:04:05.999Z07:00")
 }
-
-// UnixMilli returns a timestamp since unix epoch in milliseconds
-func UnixMilli(v time.Time) int64 { return v.Unix()*1000 + int64(v.Nanosecond()/1000000) }
 
 // ParseTime parses s and return a time or error
 // It accepts variations of the RFC3339 format:
