@@ -26,7 +26,7 @@ type Field struct {
 }
 
 func (a Type) IsZero() bool  { return a.Kind == 0 && a.Info.IsZero() }
-func (a *Info) IsZero() bool { return a == nil || a.Ref == "" && len(a.Fields) > 0 }
+func (a *Info) IsZero() bool { return a == nil || a.Ref == "" && len(a.Fields) == 0 }
 func (a Field) IsZero() bool { return a.Name == "" && a.Type.IsZero() }
 
 func (a Type) Equal(b Type) bool { return a.Kind == b.Kind && a.Info.Equal(b.Info) }

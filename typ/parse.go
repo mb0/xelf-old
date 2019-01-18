@@ -132,7 +132,7 @@ func parseFields(seq []*lex.Tree) ([]Field, error) {
 	}
 	naked := 0
 	fs := make([]Field, 0, len(keyed))
-	for i, n := range keyed {
+	for _, n := range keyed {
 		name := n.Key[1:]
 		if len(n.Seq) == 0 {
 			fs = append(fs, Field{Name: name})
@@ -160,8 +160,8 @@ func parseFields(seq []*lex.Tree) ([]Field, error) {
 			return nil, err
 		}
 		for naked > 0 {
+			fs[len(fs)-naked].Type = ft
 			naked--
-			fs[i-naked].Type = ft
 		}
 		fs = append(fs, Field{Name: name, Type: ft})
 	}
