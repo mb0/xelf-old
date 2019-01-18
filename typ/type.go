@@ -17,12 +17,39 @@ type Type struct {
 type Info struct {
 	Ref    string  `json:"ref,omitempty"`
 	Fields []Field `json:"fields,omitempty"`
+	key    string
+}
+
+// Key returns the lowercase ref key
+func (a *Info) Key() string {
+	if a == nil {
+		return ""
+	}
+	if a.Ref != "" && a.key == "" {
+		a.key = strings.ToLower(a.Ref)
+	}
+	return a.key
 }
 
 // Field represents an obj field with a name and type.
 type Field struct {
 	Name string `json:"name,omitempty"`
 	Type
+	key string
+}
+
+// Opt returns true if the field is optional, indicated by its name ending in a question mark
+func (a Field) Opt() bool { n := a.Name; return n != "" && n[len(n)-1] == '?' }
+
+// Key returns the lowercase field key
+func (a Field) Key() string {
+	if n := a.Name; n != "" && a.key == "" {
+		if a.Opt() {
+			n = n[:len(n)-1]
+		}
+		a.key = strings.ToLower(n)
+	}
+	return a.key
 }
 
 func (a Type) IsZero() bool  { return a.Kind == 0 && a.Info.IsZero() }
