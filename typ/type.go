@@ -13,6 +13,11 @@ type Type struct {
 	*Info
 }
 
+func (a Type) Sub() Type {
+	a.Kind = a.Kind >> SlotSize
+	return a
+}
+
 // Info represents the reference name and obj fields for the ref and obj types.
 type Info struct {
 	Ref    string  `json:"ref,omitempty"`
@@ -128,19 +133,25 @@ func (a *Info) WriteBfr(b bfr.Ctx) error {
 		}
 		b.WriteString(name)
 	}
-	for _, f := range a.Fields {
+	for i := 0; i < len(a.Fields); i++ {
 		b.WriteByte(' ')
-		err := f.WriteBfr(b)
+		f := a.Fields[i]
+		b.WriteByte('+')
+		b.WriteString(f.Name)
+		b.WriteByte(' ')
+		for _, o := range a.Fields[i+1:] {
+			if !f.Type.Equal(o.Type) {
+				break
+			}
+			b.WriteByte('+')
+			b.WriteString(o.Name)
+			b.WriteByte(' ')
+			i++
+		}
+		err := f.Type.WriteBfr(b)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (a Field) WriteBfr(b bfr.Ctx) error {
-	b.WriteByte('+')
-	b.WriteString(a.Name)
-	b.WriteByte(' ')
-	return a.Type.WriteBfr(b)
 }

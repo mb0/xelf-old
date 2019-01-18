@@ -19,6 +19,10 @@ func TestString(t *testing.T) {
 			{Name: "Name", Type: Str},
 		})), `(obj? +Name str)`},
 		{Obj([]Field{
+			{Name: "x", Type: Int},
+			{Name: "y", Type: Int},
+		}), `(obj +x +y int)`},
+		{Obj([]Field{
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
 		}), `(obj + @Other +Name str)`},
