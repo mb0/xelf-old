@@ -70,8 +70,8 @@ const (
 // of the source type to arrive at the destination type.
 // The flag, enum and rec are treated as their corresponding literal type
 func Compare(src, dst Type) Cmp {
-	s, so := deopt(src)
-	d, do := deopt(dst)
+	s, so := src.Deopt()
+	d, do := dst.Deopt()
 	res := compare(s, d)
 	if res > LvlCheck && so != do {
 		if so {
@@ -81,16 +81,6 @@ func Compare(src, dst Type) Cmp {
 		}
 	}
 	return res
-}
-
-func deopt(t Type) (_ Type, ok bool) {
-	if ok = isOpt(t); ok {
-		t.Kind = t.Kind &^ FlagOpt
-	}
-	return t, ok
-}
-func isOpt(t Type) bool {
-	return t.Kind&FlagOpt != 0 && t.Kind&MaskRef != 0
 }
 
 func compare(src, dst Type) Cmp {
