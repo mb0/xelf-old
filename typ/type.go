@@ -85,7 +85,7 @@ func (a Type) String() string {
 }
 
 func (a Type) WriteBfr(b bfr.Ctx) error {
-	switch elemType(a).Kind & MaskRef {
+	switch a.Last().Kind & MaskRef {
 	case KindRef:
 		k := a.Kind
 	Loop:

@@ -44,3 +44,16 @@ func (t Type) Deopt() (_ Type, ok bool) {
 	}
 	return t, ok
 }
+
+// Last returns the last sub type of t if t is a arr or map type
+// otherwise t is returned as is
+func (t Type) Last() Type {
+	for k := t.Kind; ; k = k >> SlotSize {
+		switch k & MaskElem {
+		case KindArr, KindMap:
+			continue
+		}
+		return Type{k, t.Info}
+	}
+	return t
+}

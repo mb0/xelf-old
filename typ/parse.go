@@ -69,50 +69,60 @@ func parseSeq(tree *lex.Tree) (Type, error) {
 	if err != nil {
 		return Void, fst.Err(err)
 	}
-	elm := elemType(res)
-	switch elm.Kind & MaskRef {
-	case KindObj:
-		res.Info = &Info{}
-	case KindRef:
-		if res.Info != nil && res.Ref != "" {
-			if len(args) > 0 {
-				return Void, fst.Err(ErrArgCount)
-			}
-			return res, nil
-		}
-		fallthrough
-	case KindFlag, KindEnum, KindRec:
-		if len(args) < 1 {
-			return Void, tree.Err(ErrArgCount)
-		}
-		res.Info = &Info{}
-		res.Ref, err = parseRef(args[0])
-		if err != nil {
-			return Void, err
-		}
-		if elm.Kind != KindRec {
-			if len(args) != 1 {
-				return Void, tree.Err(ErrArgCount)
-			}
-			return res, nil
-		}
-		args = args[1:]
-	default:
+	needRef, needFields := NeedsInfo(res)
+	if !needRef && !needFields {
 		if len(args) > 0 {
 			return Void, args[0].Err(ErrArgCount)
 		}
 		return res, nil
 	}
-	res.Fields, err = parseFields(args)
+	res.Info, err = ParseInfo(tree, needRef, needFields)
 	if err != nil {
 		return Void, err
 	}
 	return res, nil
 }
 
+func NeedsInfo(t Type) (ref, fields bool) {
+	switch t.Last().Kind & MaskRef {
+	case KindFlag, KindEnum:
+		return t.Info == nil || len(t.Ref) == 0, false
+	case KindObj:
+		return false, t.Info == nil || len(t.Fields) == 0
+	case KindRec:
+		return t.Info == nil || len(t.Ref) == 0, t.Info == nil || len(t.Fields) == 0
+	}
+	return false, false
+}
+
+func ParseInfo(t *lex.Tree, ref, fields bool) (n *Info, err error) {
+	if !(ref || fields) {
+		return nil, nil
+	}
+	args := t.Seq[1:]
+	n = &Info{}
+	if ref {
+		if len(args) < 1 {
+			return nil, ErrArgCount
+		}
+		n.Ref, err = parseRef(args[0])
+		if err != nil {
+			return nil, args[0].Err(err)
+		}
+		args = args[1:]
+	}
+	if fields {
+		n.Fields, err = parseFields(args)
+		if err != nil {
+			return nil, args[0].Err(err)
+		}
+	}
+	return n, nil
+}
+
 func parseRef(t *lex.Tree) (string, error) {
 	if t.Tok != lex.Str {
-		return "", t.Err(ErrRefName)
+		return "", ErrRefName
 	}
 	return lex.Unquote(t.Val)
 }
@@ -125,10 +135,10 @@ func parseFields(seq []*lex.Tree) ([]Field, error) {
 	}
 	head, tail, keyed := lex.SplitKeyed(seq, true, isFieldDecl)
 	if len(head) > 0 {
-		return nil, head[0].Err(ErrFieldName)
+		return nil, ErrFieldName
 	}
 	if len(tail) > 0 {
-		return nil, tail[0].Err(ErrFieldName)
+		return nil, ErrFieldName
 	}
 	naked := 0
 	fs := make([]Field, 0, len(keyed))
@@ -141,19 +151,19 @@ func parseFields(seq []*lex.Tree) ([]Field, error) {
 		}
 		if name == "" {
 			if naked > 0 {
-				return nil, keyed[len(keyed)-naked].Tree.Err(ErrNakedField)
+				return nil, ErrNakedField
 			}
 			for _, a := range n.Seq {
 				ft, err := Parse(a)
 				if err != nil {
-					return nil, a.Err(err)
+					return nil, err
 				}
 				fs = append(fs, Field{Type: ft})
 			}
 			continue
 		}
 		if len(n.Seq) > 1 {
-			n.Seq[1].Err(ErrFieldType)
+			return nil, ErrFieldType
 		}
 		ft, err := Parse(n.Seq[0])
 		if err != nil {
@@ -166,18 +176,7 @@ func parseFields(seq []*lex.Tree) ([]Field, error) {
 		fs = append(fs, Field{Name: name, Type: ft})
 	}
 	if naked > 0 {
-		return nil, keyed[len(keyed)-naked].Tree.Err(ErrNakedField)
+		return nil, ErrNakedField
 	}
 	return fs, nil
-}
-
-func elemType(t Type) Type {
-	for k := t.Kind; ; k = k >> SlotSize {
-		switch k & MaskElem {
-		case KindArr, KindMap:
-			continue
-		}
-		return Type{k, t.Info}
-	}
-	return t
 }
