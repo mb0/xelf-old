@@ -48,3 +48,12 @@ func Split(seq []*Tree, pred func(*Tree) bool) (head, tail []*Tree) {
 	}
 	return seq, nil
 }
+
+// SplitAfter splits seq and returns the head and tail after the matching tree
+func SplitAfter(seq []*Tree, pred func(*Tree) bool) (head, tail []*Tree) {
+	head, tail = Split(seq, pred)
+	if len(tail) > 0 {
+		return head, tail[1:]
+	}
+	return head, nil
+}
