@@ -9,6 +9,7 @@ type Cmp uint64
 const (
 	LvlCheck Cmp = 1 << (iota + 24)
 	LvlConv
+	LvlComp
 	LvlEqual
 	LvlMask Cmp = 0x7 << 24
 	CmpNone Cmp = 0
@@ -29,17 +30,20 @@ const (
 )
 const (
 	// convert src to the any type
-	CmpConvAny = LvlConv | (1 << iota)
+	CmpCompAny = LvlComp | (1 << iota)
 	// convert src from spec to base type
-	CmpConvBase
+	CmpCompBase
 	// convert src from base to spec type
-	CmpConvSpec
+	CmpCompSpec
 	// convert idxer to list
-	CmpConvList
+	CmpCompList
 	// convert keyer to dict
-	CmpConvDict
+	CmpCompDict
+)
+
+const (
 	// convert from arr to another arr
-	CmpConvArr
+	CmpConvArr = LvlConv | (1 << iota)
 	// convert from map to another map
 	CmpConvMap
 	// convert from obj to another obj
@@ -107,7 +111,7 @@ func compare(src, dst Type) Cmp {
 	}
 	// handle any, type
 	if d == KindAny {
-		return CmpConvAny
+		return CmpCompAny
 	}
 	if s == KindAny {
 		return CmpCheckAny
@@ -117,7 +121,7 @@ func compare(src, dst Type) Cmp {
 		if s&d == 0 {
 			return CmpNone
 		}
-		return CmpConvBase
+		return CmpCompBase
 	}
 	if s == BaseNum || s == BaseChar {
 		if d&s == 0 {
@@ -129,20 +133,20 @@ func compare(src, dst Type) Cmp {
 				return CmpCheckSpec
 			}
 		}
-		return CmpConvSpec
+		return CmpCompSpec
 	}
 	// handle container base type list and dict
 	if d == BaseList {
 		if s&BaseList == 0 {
 			return CmpNone
 		}
-		return CmpConvList
+		return CmpCompList
 	}
 	if d == BaseDict {
 		if s&BaseDict == 0 {
 			return CmpNone
 		}
-		return CmpConvDict
+		return CmpCompDict
 	}
 	if s == BaseList {
 		switch d & MaskElem {
