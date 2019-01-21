@@ -20,14 +20,14 @@ type Lit interface {
 	MarshalJSON() ([]byte, error)
 }
 
-// Opter represents a literal with an optional type
+// Opter is the interface for literals with an optional type
 type Opter interface {
 	Lit
 	// Some returns the wrapped literal or nil
 	Some() Lit
 }
 
-// Numer represents a literal with a numeric type
+// Numer is the common interface for numeric literals
 type Numer interface {
 	Lit
 	// Num returns the numeric value of the literal as float64
@@ -37,7 +37,7 @@ type Numer interface {
 	Val() interface{}
 }
 
-// Charer represents a literal with a character type
+// Charer is the common interface for character literals
 type Charer interface {
 	Lit
 	// Char returns the character format of the literal as string
@@ -47,7 +47,7 @@ type Charer interface {
 	Val() interface{}
 }
 
-// Idxer represents a containter literal with elements accessible by index
+// Idxer is the common interface for container literals with elements accessible by index
 type Idxer interface {
 	Lit
 	// Len returns the number of contained elements
@@ -61,7 +61,7 @@ type Idxer interface {
 	IterIdx(f func(int, Lit) bool) error
 }
 
-// Keyer represents a containter literal with elements accessible by key
+// Keyer is the common interface for container literals with elements accessible by key
 type Keyer interface {
 	Lit
 	// Len returns the number of contained elements
@@ -75,4 +75,41 @@ type Keyer interface {
 	// IterKey iterates over elements, calling iter with the elements key and literal value
 	// If iter returns false the iteration is aborted
 	IterKey(iter func(string, Lit) bool) error
+}
+
+// Arr is the interface for arr literals
+type Arr interface {
+	Idxer
+	// Elem returns the arr element type
+	Elem() typ.Type
+}
+
+// Map is the interface for map literals
+type Map interface {
+	Keyer
+	// Elem returns the map element type
+	Elem() typ.Type
+}
+
+// Obj is the interface for obj literals
+type Obj interface {
+	Lit
+	// Len returns the number of fields
+	Len() int
+	// Keys returns a string slice of all field keys
+	Keys() []string
+	// Key returns the literal of the field with key k or an error
+	Key(k string) (Lit, error)
+	// SetKey sets the fields value with key k to l or returns an error
+	SetKey(k string, l Lit) error
+	// Idx returns the literal of the field at idx or an error
+	Idx(idx int) (Lit, error)
+	// SetIdx sets the field value at idx to l or returns an error
+	SetIdx(idx int, l Lit) error
+	// IterKey iterates over fields, calling iter with the fields key and literal value
+	// If iter returns false the iteration is aborted
+	IterKey(iter func(string, Lit) bool) error
+	// IterIdx iterates over fields, calling iter with the fields index and literal value
+	// If iter returns false the iteration is aborted
+	IterIdx(f func(int, Lit) bool) error
 }
