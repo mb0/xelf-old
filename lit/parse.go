@@ -11,9 +11,10 @@ var (
 	ErrKey     = errors.New("expect key name")
 	ErrKeySep  = errors.New("expect key separator")
 	ErrKeyVal  = errors.New("expect key value")
-	ErrUnknown = errors.New("unknown literal symbol")
+	ErrUnknown = errors.New("unknown literal")
 )
 
+// ParseString scans and parses string s and returns a literal or an error
 func ParseString(s string) (Lit, error) {
 	a, err := lex.Scan(s)
 	if err != nil {
@@ -22,6 +23,7 @@ func ParseString(s string) (Lit, error) {
 	return Parse(a)
 }
 
+// Parse parses the syntax tree a and returns a literal or an error
 func Parse(a *lex.Tree) (Lit, error) {
 	switch a.Tok {
 	case lex.Num:
@@ -50,6 +52,7 @@ func Parse(a *lex.Tree) (Lit, error) {
 	return nil, a.Err(lex.ErrUnexpected)
 }
 
+// ParseSym returns the literal represented by the symbol s or an error
 func ParseSym(s string) (Lit, error) {
 	switch s {
 	case "null":

@@ -15,6 +15,7 @@ var (
 	ErrNakedField = errors.New("naked field declaration")
 )
 
+// ParseString scans and parses string s and returns a type or an error
 func ParseString(s string) (Type, error) {
 	a, err := lex.Scan(s)
 	if err != nil {
@@ -23,6 +24,7 @@ func ParseString(s string) (Type, error) {
 	return Parse(a)
 }
 
+// Parse parses the syntax tree a and returns a type or an error
 func Parse(a *lex.Tree) (Type, error) {
 	if len(a.Seq) > 0 && a.Tok == '(' {
 		return parseSeq(a)
@@ -37,26 +39,27 @@ func Parse(a *lex.Tree) (Type, error) {
 	return Void, a.Err(ErrInvalid)
 }
 
-func ParseSym(str string) (Type, error) {
-	if len(str) == 0 {
+// ParseSym returns the type represented by the symbol s or an error
+func ParseSym(s string) (Type, error) {
+	if len(s) == 0 {
 		return Void, ErrInvalid
 	}
-	if str[0] == '@' {
-		if str[len(str)-1] == '?' {
-			return Opt(Ref(str[1 : len(str)-1])), nil
+	if s[0] == '@' {
+		if s[len(s)-1] == '?' {
+			return Opt(Ref(s[1 : len(s)-1])), nil
 		}
-		return Ref(str[1:]), nil
+		return Ref(s[1:]), nil
 	}
-	if len(str) > 4 && str[3] == '|' {
-		t, err := ParseSym(str[4:])
-		switch str[:3] {
+	if len(s) > 4 && s[3] == '|' {
+		t, err := ParseSym(s[4:])
+		switch s[:3] {
 		case "arr":
 			return Arr(t), err
 		case "map":
 			return Map(t), err
 		}
 	}
-	k, err := ParseKind(str)
+	k, err := ParseKind(s)
 	return Type{Kind: k}, err
 }
 
@@ -83,6 +86,7 @@ func parseSeq(tree *lex.Tree) (Type, error) {
 	return res, nil
 }
 
+// NeedsInfo returns whether type t is missing addition reference or fields info
 func NeedsInfo(t Type) (ref, fields bool) {
 	switch t.Last().Kind & MaskRef {
 	case KindFlag, KindEnum:
@@ -95,11 +99,12 @@ func NeedsInfo(t Type) (ref, fields bool) {
 	return false, false
 }
 
-func ParseInfo(t *lex.Tree, ref, fields bool) (n *Info, err error) {
+// ParseInfo parses arguments of tree a for reference and/or fields info and returns it or an error
+func ParseInfo(a *lex.Tree, ref, fields bool) (n *Info, err error) {
 	if !(ref || fields) {
 		return nil, nil
 	}
-	args := t.Seq[1:]
+	args := a.Seq[1:]
 	n = &Info{}
 	if ref {
 		if len(args) < 1 {
