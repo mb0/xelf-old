@@ -57,7 +57,11 @@ func (d *Dict) SetKey(k string, el Lit) error {
 	}
 	for i, v := range d.List {
 		if v.Key == k {
-			d.List[i].Lit = el
+			if el != nil {
+				d.List[i].Lit = el
+			} else {
+				d.List = append(d.List[:i], d.List[i+1:]...)
+			}
 			return nil
 		}
 	}
