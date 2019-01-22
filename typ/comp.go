@@ -87,6 +87,37 @@ func Compare(src, dst Type) Cmp {
 	return res
 }
 
+// Mirror returns the approximate mirror result of a comparison with switched arguments
+func (c Cmp) Mirror() (m Cmp) {
+	switch m = c &^ (BitWrap | BitUnwrap); m {
+	case CmpCompAny:
+		m = CmpCheckAny
+	case CmpCompBase:
+		m = CmpCheckSpec
+	case CmpCompSpec:
+		m = CmpCompBase
+	case CmpCompList:
+		m = CmpCheckList
+	case CmpCompDict:
+		m = CmpCheckDict
+	case CmpCheckAny:
+		m = CmpCompAny
+	case CmpCheckSpec:
+		m = CmpCompBase
+	case CmpCheckList:
+		m = CmpCompList
+	case CmpCheckDict:
+		m = CmpCompDict
+	}
+	if c&BitWrap != 0 {
+		m = m | BitUnwrap
+	}
+	if c&BitUnwrap != 0 {
+		m = m | BitWrap
+	}
+	return m
+}
+
 func compare(src, dst Type) Cmp {
 	s, d := src.Kind, dst.Kind
 	if s == d {
