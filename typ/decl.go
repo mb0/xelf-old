@@ -45,6 +45,16 @@ func (t Type) Deopt() (_ Type, ok bool) {
 	return t, ok
 }
 
+// Next returns the next sub type of t if t is a arr or map type
+// otherwise t is returned as is
+func (t Type) Next() Type {
+	switch t.Kind & MaskElem {
+	case KindArr, KindMap:
+		t.Kind = t.Kind >> SlotSize
+	}
+	return t
+}
+
 // Last returns the last sub type of t if t is a arr or map type
 // otherwise t is returned as is
 func (t Type) Last() Type {
