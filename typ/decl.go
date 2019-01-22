@@ -67,3 +67,15 @@ func (t Type) Last() Type {
 	}
 	return t
 }
+
+// Ordered returns whether type t supports ordering
+func (t Type) Ordered() bool {
+	if t.Kind&BaseNum != 0 {
+		return true
+	}
+	switch t.Kind & MaskRef {
+	case BaseChar, KindStr, KindEnum:
+		return true
+	}
+	return false
+}
