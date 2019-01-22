@@ -3,18 +3,24 @@ xelf
 
 xelf is a cross-environment expression language framework.
 
+
 It is currently a work in progress.
 
-Overview
+Overview [![GoDoc](https://godoc.org/github.com/mb0/xelf?status.svg)](https://godoc.org/github.com/mb0/xelf)
 --------
 
- * cor: minimal runtime utilities for generated code
- * bfr: common interface for buffered writers and bytes buffer pool
- * lex: token and tree lexer as well as string quoting code
- * typ: composable type system and a parser, reflection and comparison
- * lit: literal parser, adapters and support comparison and conversion
- * exp: simple expression language, standard built-ins and resolvers
- * dom: domain model definition extension to the typ and exp packages
+ * [cor](https://godoc.org/github.com/mb0/xelf/cor):
+   minimal runtime utilities for generated code
+ * [bfr](https://godoc.org/github.com/mb0/xelf/bfr):
+   common interface for buffered writers and bytes buffer pool
+ * [lex](https://godoc.org/github.com/mb0/xelf/lex):
+   token and tree lexer as well as string quoting code
+ * [typ](https://godoc.org/github.com/mb0/xelf/typ):
+   composable type system and a parser, reflection and comparison
+ * [lit](https://godoc.org/github.com/mb0/xelf/lit):
+   literal parser, adapters and support for comparison and conversion
+ * [exp](https://godoc.org/github.com/mb0/xelf/exp):
+   simple expression language, standard built-ins and resolvers
 
 Motivation
 ----------
@@ -36,7 +42,7 @@ Or really any situation where you need to share data and behaviour between diffe
 The resulting hacked up adapters and solutions continue to grow and keep you busy writing similar
 boilerplate all over in each environment for each change.
 
-It usually starts with repetitive pattern on either the client or the server, after some
+It usually starts with a repetitive pattern on either the client or the server, after some
 abstraction you have a small package API that is needed on the other side as well.
 Now you rewrite that code in another programming language and add an ugly JSON based data format.
 After some time you have multiple tiny DSLs that are neither well-defined, pretty to look at nor
@@ -55,6 +61,8 @@ liberally change or extend the language.
 The result is not a Lisp and is much more restricted than one, primarily to make it as easy as
 possible to translate expressions to idiomatic code in different languages, even SQL.
 
+License
+-------
 
 Copyright (c) 2019 Martin Schnabel. All rights reserved.
 Use of the source code is governed by a BSD-style license that can found in the LICENSE file.
