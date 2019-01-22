@@ -7,7 +7,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// ErrUnconv is the default conversion error
+// ErrUnconv is the default conversion error.
 var ErrUnconv = errors.New("cannot convert literal")
 
 // Convert converts l to the dst type and returns the result or an error.

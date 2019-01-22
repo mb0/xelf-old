@@ -15,7 +15,7 @@ var (
 	ErrNakedField = errors.New("naked field declaration")
 )
 
-// ParseString scans and parses string s and returns a type or an error
+// ParseString scans and parses string s and returns a type or an error.
 func ParseString(s string) (Type, error) {
 	a, err := lex.Scan(s)
 	if err != nil {
@@ -24,7 +24,7 @@ func ParseString(s string) (Type, error) {
 	return Parse(a)
 }
 
-// Parse parses the syntax tree a and returns a type or an error
+// Parse parses the syntax tree a and returns a type or an error.
 func Parse(a *lex.Tree) (Type, error) {
 	if len(a.Seq) > 0 && a.Tok == '(' {
 		return parseSeq(a)
@@ -39,7 +39,7 @@ func Parse(a *lex.Tree) (Type, error) {
 	return Void, a.Err(ErrInvalid)
 }
 
-// ParseSym returns the type represented by the symbol s or an error
+// ParseSym returns the type represented by the symbol s or an error.
 func ParseSym(s string) (Type, error) {
 	if len(s) == 0 {
 		return Void, ErrInvalid
@@ -86,7 +86,7 @@ func parseSeq(tree *lex.Tree) (Type, error) {
 	return res, nil
 }
 
-// NeedsInfo returns whether type t is missing addition reference or fields info
+// NeedsInfo returns whether type t is missing reference or field information.
 func NeedsInfo(t Type) (ref, fields bool) {
 	switch t.Last().Kind & MaskRef {
 	case KindFlag, KindEnum:
@@ -99,7 +99,7 @@ func NeedsInfo(t Type) (ref, fields bool) {
 	return false, false
 }
 
-// ParseInfo parses arguments of tree a for reference and/or fields info and returns it or an error
+// ParseInfo parses arguments of a for ref and field information and returns it or an error.
 func ParseInfo(a *lex.Tree, ref, fields bool) (n *Info, err error) {
 	if !(ref || fields) {
 		return nil, nil

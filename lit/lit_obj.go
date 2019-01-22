@@ -4,7 +4,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeObj return a new abstract obj literal with the given type or an error
+// MakeObj return a new abstract obj literal with the given type or an error.
 func MakeObj(t typ.Type) (Obj, error) {
 	if t.Kind&typ.MaskElem != typ.KindObj || t.Info == nil || len(t.Fields) == 0 {
 		return nil, typ.ErrInvalid

@@ -69,10 +69,10 @@ const (
 	CmpCheckObj
 )
 
-// Compare returns compatibility details for a source and destination type
+// Compare returns compatibility details for a source and destination type.
 // When the result is not none or equal, it informs what to do with a value
 // of the source type to arrive at the destination type.
-// The flag, enum and rec are treated as their corresponding literal type
+// The flag, enum and rec are treated as their corresponding literal type.
 func Compare(src, dst Type) Cmp {
 	s, so := src.Deopt()
 	d, do := dst.Deopt()
@@ -87,7 +87,7 @@ func Compare(src, dst Type) Cmp {
 	return res
 }
 
-// Mirror returns the approximate mirror result of a comparison with switched arguments
+// Mirror returns the approximate mirror result of a comparison with switched arguments.
 func (c Cmp) Mirror() (m Cmp) {
 	switch m = c &^ (BitWrap | BitUnwrap); m {
 	case CmpCompAny:

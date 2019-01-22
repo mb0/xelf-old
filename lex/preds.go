@@ -1,21 +1,21 @@
 package lex
 
-// IsSpace tests whether r is a space, tab or newline
+// IsSpace tests whether r is a space, tab or newline.
 func IsSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\n' || r == '\r'
 }
 
-// IsDigit tests whether r is an ascii digit
+// IsDigit tests whether r is an ascii digit.
 func IsDigit(r rune) bool {
 	return r >= '0' && r <= '9'
 }
 
-// IsLetter tests whether r is an ascii letter
+// IsLetter tests whether r is an ascii letter.
 func IsLetter(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
 }
 
-// IsPunct tests whether r is one of the ascii punctuations allowed in symbols
+// IsPunct tests whether r is one of the ascii punctuations allowed in symbols.
 func IsPunct(r rune) bool {
 	switch r {
 	case ':', '!', '#', '$', '%', '&', '*', '+', '-', '.', '/', '@', '=', '?', '|', '~', '_':
@@ -24,17 +24,17 @@ func IsPunct(r rune) bool {
 	return false
 }
 
-// IsNamePart tests whether r is ascii letter, digit or underscore
+// IsNamePart tests whether r is ascii letter, digit or underscore.
 func IsNamePart(r rune) bool {
 	return IsLetter(r) || IsDigit(r) || r == '_'
 }
 
-// IsSign tests whether r is a plus or minus sign
+// IsSign tests whether r is a plus or minus sign.
 func IsSign(r byte) bool {
 	return r == '+' || r == '-'
 }
 
-// IsName tests whether s is a valid name
+// IsName tests whether s is a valid name.
 func IsName(s string) bool {
 	if len(s) == 0 || !IsLetter(rune(s[0])) {
 		return false
@@ -47,32 +47,32 @@ func IsName(s string) bool {
 	return true
 }
 
-// IsTag tests whether s starts with a colon
+// IsTag tests whether s starts with a colon.
 func IsTag(s string) bool {
 	return s != "" && s[0] == ':'
 }
 
-// IsTag tests whether s starts with a plus or minus sign
+// IsTag tests whether s starts with a plus or minus sign.
 func IsDecl(s string) bool {
 	return s != "" && IsSign(s[0])
 }
 
-// IsExp tests whether t is a non-empty expression tree
+// IsExp tests whether t is a non-empty expression tree.
 func IsExp(t *Tree) bool {
 	return t.Tok == '(' && len(t.Seq) > 0
 }
 
-// IsSym tests whether t is a non-empty sym token tree
+// IsSym tests whether t is a non-empty sym token tree.
 func IsSym(t *Tree) bool {
 	return t.Tok == Sym && len(t.Val) > 0
 }
 
-// SymPred returns a tree predicated that checks for symbols nested up to depth
+// SymPred returns a tree predicated that checks for symbols nested up to depth.
 func SymPred(depth int, pred func(string) bool) func(*Tree) bool {
 	return func(t *Tree) bool { _, ok := CheckSym(t, depth, pred); return ok }
 }
 
-// CheckSym checks t or the nested first trees up to depth whether it is a symbol that matches pred
+// CheckSym checks t or the nested first trees up to depth whether it is a symbol that matches pred.
 func CheckSym(t *Tree, depth int, pred func(string) bool) (string, bool) {
 	if IsSym(t) && pred(t.Val) {
 		return t.Val, true

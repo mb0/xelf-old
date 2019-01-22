@@ -4,15 +4,16 @@ import (
 	"fmt"
 )
 
+// Special token runes. If not in this list the token rune represent an input rune.
 const (
-	_ rune = -iota
-	EOF
-	Num
-	Str
-	Sym
+	_   rune = -iota
+	EOF      // EOF rune indicates the end of file or another error.
+	Num      // Num rune indicates a numeric token.
+	Str      // Str rune indicates a character string token.
+	Sym      // Sym rune indicates a character symbol token.
 )
 
-// TokStr returns a string representation of token rune t
+// TokStr returns a string representation of token rune t.
 func TokStr(r rune) string {
 	switch r {
 	case EOF:
@@ -27,7 +28,7 @@ func TokStr(r rune) string {
 	return fmt.Sprintf("%q", r)
 }
 
-// Pos represents a file position by line number and column in bytes
+// Pos represents a file position by line number and column in bytes.
 type Pos struct {
 	Line, Col int
 }

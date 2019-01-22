@@ -8,7 +8,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Equal returns whether the literals a and b are strictly equal
+// Equal returns whether the literals a and b are strictly equal.
 func Equal(a, b Lit) bool {
 	if res, ok := checkNil(a, b); !ok {
 		return res
@@ -33,7 +33,7 @@ func Equal(a, b Lit) bool {
 	return false
 }
 
-// Equiv returns whether a and b are equivalent, that is if they are either equal or comparable
+// Equiv returns whether a and b are equivalent, that is if they are either equal or comparable.
 func Equiv(a, b Lit) bool {
 	if res, ok := checkNil(a, b); !ok {
 		return res
@@ -42,7 +42,7 @@ func Equiv(a, b Lit) bool {
 	return ok && Equal(a, b)
 }
 
-// Less returns whether a is less than b and whether both types are comparable and ordered
+// Less returns whether a is less than b and whether both types are comparable and ordered.
 func Less(a, b Lit) (res, ok bool) {
 	if a == nil {
 		a = Nil

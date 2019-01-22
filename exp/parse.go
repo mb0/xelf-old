@@ -8,7 +8,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// ParseString scans and parses string s and returns an element or an error
+// ParseString scans and parses string s and returns an element or an error.
 func ParseString(s string) (El, error) {
 	a, err := lex.Scan(s)
 	if err != nil {
@@ -17,7 +17,7 @@ func ParseString(s string) (El, error) {
 	return Parse(a)
 }
 
-// Parse parses the syntax tree a and returns an element or an error
+// Parse parses the syntax tree a and returns an element or an error.
 func Parse(a *lex.Tree) (El, error) {
 	switch a.Tok {
 	case lex.Num, lex.Str, '[', '{':

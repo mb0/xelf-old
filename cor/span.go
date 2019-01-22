@@ -8,16 +8,16 @@ import (
 	"time"
 )
 
-// ErrSpan indicates an ivalid input format when parsing a span
+// ErrSpan indicates an invalid input format when parsing a span.
 var ErrSpan = errors.New("invalid span format")
 
-// Milli returns the milliseconds in v as integer
+// Milli returns the milliseconds in v as integer.
 func Milli(v time.Duration) int64 { return int64(v / time.Millisecond) }
 
-// MilliSpan returns milliseconds n as time duration
+// MilliSpan returns milliseconds n as time duration.
 func MilliSpan(n int64) time.Duration { return time.Duration(n) * time.Millisecond }
 
-// Span parses s and return a pointer to a time duration or nil on error
+// Span parses s and return a pointer to a time duration or nil on error.
 func Span(s string) *time.Duration {
 	v, err := ParseSpan(s)
 	if err != nil {
@@ -26,7 +26,7 @@ func Span(s string) *time.Duration {
 	return &v
 }
 
-// FormatSpan returns v in the string format '-123:04:05.678'
+// FormatSpan returns v in the string format '-123:04:05.678'.
 func FormatSpan(v time.Duration) string {
 	var b strings.Builder
 	var d = int64(v)
@@ -63,8 +63,8 @@ func FormatSpan(v time.Duration) string {
 	return b.String()
 }
 
-// ParseSpan parses s and returns a time duration or an error
-// It accepts two formats '-123h4m5s678ms' and '-123:04:05.678'
+// ParseSpan parses s and returns a time duration or an error.
+// It accepts two formats '-123h4m5s678ms' and '-123:04:05.678'.
 func ParseSpan(s string) (time.Duration, error) {
 	if s == "" {
 		return 0, nil

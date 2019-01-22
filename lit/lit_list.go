@@ -9,7 +9,7 @@ import (
 
 var ErrIdxBounds = errors.New("idx out of bounds")
 
-// List is a generic container implementing Idxer
+// List is a generic container implementing Idxer.
 type List []Lit
 
 func (List) Typ() typ.Type  { return typ.List }

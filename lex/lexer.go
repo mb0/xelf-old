@@ -1,4 +1,4 @@
-// Package lex provides a token and tree lexer as well as string quoting code
+// Package lex provides a token and tree lexer, tree slitter and string quoting code.
 package lex
 
 import (
@@ -8,12 +8,12 @@ import (
 	"strings"
 )
 
-// Scan returns a Tree scanned from s or an error
+// Scan returns a Tree scanned from s or an error.
 func Scan(s string) (*Tree, error) {
 	return New(strings.NewReader(s)).Scan()
 }
 
-// Lexer is simple token lexer
+// Lexer is simple token lexer.
 type Lexer struct {
 	src      io.RuneScanner
 	cur, nxt rune
@@ -22,7 +22,7 @@ type Lexer struct {
 	lines    []int
 }
 
-// New returns a new Lexer for Reader r
+// New returns a new Lexer for Reader r.
 func New(r io.Reader) *Lexer {
 	l := &Lexer{idx: -1}
 	if src, ok := r.(io.RuneScanner); ok {
@@ -34,7 +34,7 @@ func New(r io.Reader) *Lexer {
 	return l
 }
 
-// Lex reads and returns the next token or an error
+// Lex reads and returns the next token or an error.
 // If punct is true symbols can only be simple names optionally prefixed by a plus or minus sign.
 func (l *Lexer) Lex(punct bool) (Token, error) {
 	r := l.next()
@@ -66,7 +66,7 @@ func (l *Lexer) Lex(punct bool) (Token, error) {
 	return t, &Error{t, ErrUnexpected, 0}
 }
 
-// Scan scans and returns the next tree or an error
+// Scan scans and returns the next tree or an error.
 // Symbols nested in sequences with curly or square brackets are read with the punct set to true.
 func (l *Lexer) Scan() (*Tree, error) {
 	t, err := l.Lex(false)
@@ -76,7 +76,7 @@ func (l *Lexer) Scan() (*Tree, error) {
 	return l.scanTree(t)
 }
 
-// next proceeds to and returns the next rune, updating the look-ahead
+// next proceeds to and returns the next rune, updating the look-ahead.
 func (l *Lexer) next() rune {
 	if l.err != nil {
 		return EOF
@@ -90,7 +90,7 @@ func (l *Lexer) next() rune {
 	return l.cur
 }
 
-// tok returns a new token at the current offset
+// tok returns a new token at the current offset.
 func (l *Lexer) tok(r rune, val string) Token {
 	if r == 0 {
 		r = l.cur
@@ -104,7 +104,7 @@ func (l *Lexer) tok(r rune, val string) Token {
 	return Token{r, l.idx, n, c, val}
 }
 
-// lexChar reads and returns a char token starting at the current offset
+// lexChar reads and returns a char token starting at the current offset.
 func (l *Lexer) lexChar() (Token, error) {
 	q := l.cur
 	var b strings.Builder
@@ -124,7 +124,7 @@ func (l *Lexer) lexChar() (Token, error) {
 	return l.tok(Str, b.String()), nil
 }
 
-// lexSym reads and returns a sym token starting at the current offset
+// lexSym reads and returns a sym token starting at the current offset.
 func (l *Lexer) lexSym(punct bool) (Token, error) {
 	var b strings.Builder
 	t := l.tok(Sym, "")
@@ -136,7 +136,7 @@ func (l *Lexer) lexSym(punct bool) (Token, error) {
 	return t, nil
 }
 
-// lexNum reads and returns a num token starting at the current offset
+// lexNum reads and returns a num token starting at the current offset.
 func (l *Lexer) lexNum() (Token, error) {
 	var b strings.Builder
 	t := l.tok(Num, "")
@@ -172,8 +172,8 @@ func (l *Lexer) lexNum() (Token, error) {
 	return t, nil
 }
 
-// lexDigits reads the next digits and writes the to b
-// it returns false if no digit was read.
+// lexDigits reads the next digits and writes the to b.
+// It returns false if no digit was read.
 func (l *Lexer) lexDigits(b *strings.Builder) bool {
 	if !IsDigit(l.nxt) {
 		return false
@@ -185,7 +185,7 @@ func (l *Lexer) lexDigits(b *strings.Builder) bool {
 	return true
 }
 
-// scanTree returns a token tree constructed from t or an error
+// scanTree returns a token tree constructed from t or an error.
 // If the token is an open paren trees are scanned until a matching closing paren.
 // Symbols are read with punctuation only inside round parenthesis.
 func (l *Lexer) scanTree(t Token) (*Tree, error) {

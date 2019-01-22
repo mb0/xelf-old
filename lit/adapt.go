@@ -8,12 +8,12 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Adapt returns a literal adapter for the interface value v or an error
+// Adapt returns a literal adapter for the interface value v or an error.
 func Adapt(v interface{}) (Lit, error) {
 	return AdaptValue(reflect.ValueOf(v))
 }
 
-// AdaptValue returns a literal adapter for the reflect value val or an error
+// AdaptValue returns a literal adapter for the reflect value val or an error.
 func AdaptValue(val reflect.Value) (Lit, error) {
 	if !val.IsValid() {
 		return Nil, nil

@@ -15,6 +15,7 @@ var (
 	ZeroSpan = Span(0)
 )
 
+// Zero returns the zero literal for the given type t.
 func Zero(t typ.Type) Lit {
 	if t.Kind&typ.FlagOpt != 0 {
 		return Null(t)

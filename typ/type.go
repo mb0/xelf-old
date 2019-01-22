@@ -43,10 +43,10 @@ type Field struct {
 	key string
 }
 
-// Opt returns true if the field is optional, indicated by its name ending in a question mark
+// Opt returns true if the field is optional, indicated by its name ending in a question mark.
 func (a Field) Opt() bool { n := a.Name; return n != "" && n[len(n)-1] == '?' }
 
-// Key returns the lowercase field key
+// Key returns the lowercase field key.
 func (a Field) Key() string {
 	if n := a.Name; n != "" && a.key == "" {
 		if a.Opt() {

@@ -4,12 +4,12 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeMap returns a new abstract map literal with the given type or an error
+// MakeMap returns a new abstract map literal with the given type or an error.
 func MakeMap(t typ.Type) (Map, error) {
 	return MakeMapCap(t, 0)
 }
 
-// MakeMapCap returns a new abstract map literal with the given type and cap or an error
+// MakeMapCap returns a new abstract map literal with the given type and cap or an error.
 func MakeMapCap(t typ.Type, cap int) (Map, error) {
 	if t.Kind&typ.MaskElem != typ.KindMap {
 		return nil, typ.ErrInvalid

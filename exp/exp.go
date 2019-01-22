@@ -6,15 +6,15 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// El is the common interface for all language elements
+// El is the common interface for all language elements.
 type El interface {
-	// WriteBfr writes the element to a bfr.Ctx
+	// WriteBfr writes the element to a bfr.Ctx.
 	WriteBfr(bfr.Ctx) error
-	// String returns the xelf representation as string
+	// String returns the xelf representation as string.
 	String() string
 }
 
-// Sym holds symbol data and is used in both Val and Expr elements
+// Sym holds symbol data and is used in both Val and Expr elements.
 type Sym struct {
 	Name string
 	Rslv Resolver
@@ -23,56 +23,56 @@ type Sym struct {
 
 // All language elements
 type (
-	// Type is a type as defined in package typ
+	// Type is a type as defined in package typ.
 	Type = typ.Type
 
-	// Lit is a literal as defined in package lit
+	// Lit is a literal as defined in package lit.
 	Lit = lit.Lit
 
-	// Ref is a unresolved symbol that refers to an element
+	// Ref is a unresolved symbol that refers to an element.
 	Ref struct {
 		Sym
 	}
-	// Dyn represents an unresolved dynamic expression where the spec is not yet resolved
+	// Dyn represents an unresolved dynamic expression where the spec is not yet resolved.
 	Dyn []El
 
-	// Tag is a tag element; its meaning is determined by the parent expression spec
+	// Tag is a tag element; its meaning is determined by the parent expression spec.
 	Tag struct {
 		Name string
 		Args []El
 	}
 
-	// Decl is a declaration element; its meaning is determined by the parent expression spec
+	// Decl is a declaration element; its meaning is determined by the parent expression spec.
 	Decl struct {
 		Name string
 		Args []El
 	}
 
-	// Expr is unresolved expression with a resolved spec
+	// Expr is unresolved expression with a resolved spec.
 	Expr struct {
 		Sym
 		Args []El
 	}
 )
 
-// Env is the scoped symbol environment used to define and lookup resolvers by symbol
+// Env is the scoped symbol environment used to define and lookup resolvers by symbol.
 type Env interface {
-	// Parent returns the parent environment or nil for the root environment
+	// Parent returns the parent environment or nil for the root environment.
 	Parent() Env
 
-	// Def defines a symbol resolver binding in this environment
+	// Def defines a symbol resolver binding in this environment.
 	Def(string, Resolver) error
 
-	// Get looks for resolver with symbol sym in this or the parent environments
+	// Get looks for resolver with symbol sym in this or the parent environments.
 	Get(sym string) Resolver
 }
 
-// Resolver can resolve an element given a context and environment
+// Resolver can resolve an element given a context and environment.
 type Resolver interface {
 	Resolve(*Ctx, Env, El) (El, error)
 }
 
-// Ctx is the resolution context that defines the resolution level and collects information
+// Ctx is the resolution context that defines the resolution level and collects information.
 type Ctx struct {
 	Exec bool
 

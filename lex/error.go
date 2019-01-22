@@ -7,22 +7,22 @@ import (
 )
 
 var (
-	// ErrUnexpected denotes an unexpected input rune
+	// ErrUnexpected denotes an unexpected input rune.
 	ErrUnexpected = errors.New("unexpected")
-	// ErrUnterminated denotes an unterminated quote or open bracket
+	// ErrUnterminated denotes an unterminated quote or open bracket.
 	ErrUnterminated = errors.New("unterminated")
-	// ErrExpectDigit denotes missing digits in a floating point format
+	// ErrExpectDigit denotes missing digits in a floating point format.
 	ErrExpectDigit = errors.New("expect digit")
 )
 
-// Error is a special lexer error with token information
+// Error is a special lexer error with token information.
 type Error struct {
 	Token
 	Err  error
 	Want rune
 }
 
-// Error builds and returns an error string of e
+// Error builds and returns an error string of e.
 func (e *Error) Error() string {
 	var b strings.Builder
 	b.WriteString(e.Cause().Error())
@@ -38,7 +38,7 @@ func (e *Error) Error() string {
 	return b.String()
 }
 
-// Cause returns the underlying error
+// Cause returns the underlying error.
 func (e *Error) Cause() error {
 	if e.Err == nil {
 		return ErrUnexpected

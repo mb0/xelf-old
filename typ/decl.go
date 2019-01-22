@@ -31,13 +31,13 @@ func Flag(name string) Type         { return Type{KindFlag, &Info{Ref: name}} }
 func Enum(name string) Type         { return Type{KindEnum, &Info{Ref: name}} }
 func Rec(n string, fs []Field) Type { return Type{KindRec, &Info{Ref: n, Fields: fs}} }
 
-// IsOpt returns whether t is an optional type and not any
+// IsOpt returns whether t is an optional type and not any.
 func (t Type) IsOpt() bool {
 	return t.Kind&FlagOpt != 0 && t.Kind&MaskRef != 0
 }
 
-// Deopt returns the non-optional type of t if t is a optional type and not any
-// otherwise t is returned as is
+// Deopt returns the non-optional type of t if t is a optional type and not any,
+// otherwise t is returned as is.
 func (t Type) Deopt() (_ Type, ok bool) {
 	if ok = t.IsOpt(); ok {
 		t.Kind &^= FlagOpt
@@ -45,8 +45,8 @@ func (t Type) Deopt() (_ Type, ok bool) {
 	return t, ok
 }
 
-// Next returns the next sub type of t if t is a arr or map type
-// otherwise t is returned as is
+// Next returns the next sub type of t if t is a arr or map type,
+// otherwise t is returned as is.
 func (t Type) Next() Type {
 	switch t.Kind & MaskElem {
 	case KindArr, KindMap:
@@ -55,8 +55,8 @@ func (t Type) Next() Type {
 	return t
 }
 
-// Last returns the last sub type of t if t is a arr or map type
-// otherwise t is returned as is
+// Last returns the last sub type of t if t is a arr or map type,
+// otherwise t is returned as is.
 func (t Type) Last() Type {
 	for k := t.Kind; ; k = k >> SlotSize {
 		switch k & MaskElem {
@@ -68,7 +68,7 @@ func (t Type) Last() Type {
 	return t
 }
 
-// Ordered returns whether type t supports ordering
+// Ordered returns whether type t supports ordering.
 func (t Type) Ordered() bool {
 	if t.Kind&BaseNum != 0 {
 		return true

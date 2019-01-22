@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// ErrUUID indicates an ivalid input format when parsing an uuid
+// ErrUUID indicates an invalid input format when parsing an uuid.
 var ErrUUID = errors.New("invalid uuid format")
 
-// UUID parses s and returns a pointer to the uuid bytes or nil on error
+// UUID parses s and returns a pointer to the uuid bytes or nil on error.
 func UUID(s string) *[16]byte {
 	v, err := ParseUUID(s)
 	if err != nil {
@@ -18,7 +18,7 @@ func UUID(s string) *[16]byte {
 	return &v
 }
 
-// FormatUUID returns v as string in the canonical uuid format
+// FormatUUID returns v as string in the canonical uuid format.
 func FormatUUID(v [16]byte) string {
 	var b strings.Builder
 	w := hex.NewEncoder(&b)
@@ -33,8 +33,8 @@ func FormatUUID(v [16]byte) string {
 	return b.String()
 }
 
-// ParseUUID parses s and return the uuid bytes or an error
-// It accepts 16 hex encoded bytes with up to four dashes between them
+// ParseUUID parses s and return the uuid bytes or an error.
+// It accepts 16 hex encoded bytes with up to four dashes in between.
 func ParseUUID(s string) ([16]byte, error) {
 	var res [16]byte
 	if len(s) < 32 || len(s) > 36 {

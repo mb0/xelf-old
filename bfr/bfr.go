@@ -1,4 +1,4 @@
-// Package bfr provides a common interface for buffered writers and bytes.Buffer pool
+// Package bfr provides a common interface for buffered writers and a bytes.Buffer pool.
 package bfr
 
 import (
@@ -10,26 +10,26 @@ var pool = sync.Pool{New: func() interface{} {
 	return &bytes.Buffer{}
 }}
 
-// Get returns a bytes.Buffer from the pool
+// Get returns a bytes.Buffer from the pool.
 func Get() *bytes.Buffer {
 	return pool.Get().(*bytes.Buffer)
 }
 
-// Put a Buffer back into the pool
+// Put a Buffer back into the pool.
 func Put(b *bytes.Buffer) {
 	b.Reset()
 	pool.Put(b)
 }
 
-// Grow grows the buffer by n if it implements a Grow(int) method
-// both bytes.Buffer and strings.Builder implement that method
+// Grow grows the buffer by n if it implements a Grow(int) method.
+// Both bytes.Buffer and strings.Builder implement that method.
 func Grow(b B, n int) {
 	if v, ok := b.(interface{ Grow(int) }); ok {
 		v.Grow(n)
 	}
 }
 
-// B is the common interface of bytes.Buffer, strings.Builder and bufio.Writer
+// B is the common interface of bytes.Buffer, strings.Builder and bufio.Writer.
 type B interface {
 	Write([]byte) (int, error)
 	WriteByte(byte) error

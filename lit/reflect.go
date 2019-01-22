@@ -8,12 +8,12 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Reflect returns the xelf type for the interface value v or an error
+// Reflect returns the xelf type for the interface value v or an error.
 func Reflect(v interface{}) (typ.Type, error) {
 	return ReflectType(reflect.TypeOf(v))
 }
 
-// ReflectType returns the xelf type for the reflect type t or an error
+// ReflectType returns the xelf type for the reflect type t or an error.
 func ReflectType(t reflect.Type) (res typ.Type, err error) {
 	var ptr bool
 	if ptr = t.Kind() == reflect.Ptr; ptr {

@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 )
 
-// Quote is a json compatible string quoter that works for single and double quotes and back ticks
+// Quote is a json compatible string quoter that works for single and double quotes and back ticks.
 func Quote(s string, q byte) (string, error) {
 	if q == '`' {
 		if strings.ContainsRune(s, '`') {
@@ -73,8 +73,8 @@ func Quote(s string, q byte) (string, error) {
 	return b.String(), nil
 }
 
-// Unquote is a stripped version of strconv.Unquote
-// It does not complain about single-quoted string having length greater than 1
+// Unquote is a stripped version of strconv.Unquote.
+// It does not complain about single-quoted string having length greater than 1.
 func Unquote(s string) (string, error) {
 	n := len(s)
 	if n < 2 {

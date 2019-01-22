@@ -4,12 +4,12 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeArr returns a new abstract arr literal with the given type and len or an error
+// MakeArr returns a new abstract arr literal with the given type and len or an error.
 func MakeArr(t typ.Type, len int) (Arr, error) {
 	return MakeArrCap(t, len, len)
 }
 
-// MakeArrCap returns a new abstract arr literal with the given type, len and cap or an error
+// MakeArrCap returns a new abstract arr literal with the given type, len and cap or an error.
 func MakeArrCap(t typ.Type, len, cap int) (Arr, error) {
 	if t.Kind&typ.MaskElem != typ.KindArr {
 		return nil, typ.ErrInvalid

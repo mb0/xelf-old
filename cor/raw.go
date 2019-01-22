@@ -8,7 +8,7 @@ import (
 	"github.com/mb0/xelf/lex"
 )
 
-// Raw parses s and returns a pointer to a byte slice or nil on error
+// Raw parses s and returns a pointer to a byte slice or nil on error.
 func Raw(s string) *[]byte {
 	v, err := ParseRaw(s)
 	if err != nil {
@@ -17,7 +17,7 @@ func Raw(s string) *[]byte {
 	return &v
 }
 
-// FormatRaw returns v as a string starting with '\x' and folled by the bytes as lower hex
+// FormatRaw returns v as a string starting with '\x' and followed by the bytes as lower hex.
 func FormatRaw(v []byte) string {
 	if isPlain(v) {
 		return string(v)
@@ -29,7 +29,7 @@ func FormatRaw(v []byte) string {
 	return b.String()
 }
 
-// ParseRaw parses s and returns a byte slice or error
+// ParseRaw parses s and returns a byte slice or an error.
 func ParseRaw(s string) ([]byte, error) {
 	if strings.HasPrefix(s, `\x`) {
 		return hex.DecodeString(s[2:])
@@ -37,7 +37,7 @@ func ParseRaw(s string) ([]byte, error) {
 	return []byte(s), nil
 }
 
-// isPlain returns whether b consist only of basic latin and latin-1 supplement non control runes
+// isPlain returns whether b consist only of basic latin and latin-1 supplement none-control runes.
 func isPlain(b []byte) bool {
 	for len(b) > 0 {
 		r, n := utf8.DecodeRune(b)

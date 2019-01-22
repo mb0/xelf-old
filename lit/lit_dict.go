@@ -10,12 +10,12 @@ import (
 
 var ErrNilKeyer = errors.New("nil keyer")
 
-// Dict is a generic container implementing Keyer
+// Dict is a generic container implementing Keyer.
 type Dict struct {
 	List []Keyed
 }
 
-// Keyed is a key associated with a literal
+// Keyed is a key associated with a literal.
 type Keyed struct {
 	Key string
 	Lit
