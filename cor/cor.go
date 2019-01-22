@@ -20,3 +20,6 @@ func Real(v float64) *float64 { return &v }
 
 // Str returns a pointer to v
 func Str(v string) *string { return &v }
+
+// Any returns a pointer to v
+func Any(v interface{}) *interface{} { return &v }
