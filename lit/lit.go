@@ -1,9 +1,15 @@
 package lit
 
 import (
+	"errors"
+
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/typ"
 )
+
+// BreakIter is a special error value that can be returned from iterators.
+// It indicates that the iteration should be stopped even though no actual failure occurred
+var BreakIter = errors.New("break iter")
 
 // Lit is the common interface for all literal adapters
 // A nil Lit represents an absent value.
@@ -57,8 +63,8 @@ type Idxer interface {
 	// SetIdx sets the element value at idx to l or returns an error
 	SetIdx(idx int, l Lit) error
 	// IterIdx iterates over elements, calling iter with the elements index and literal value
-	// If iter returns false the iteration is aborted
-	IterIdx(f func(int, Lit) bool) error
+	// If iter returns an error the iteration is aborted
+	IterIdx(iter func(int, Lit) error) error
 }
 
 // Keyer is the common interface for container literals with elements accessible by key
@@ -68,13 +74,13 @@ type Keyer interface {
 	Len() int
 	// Keys returns a string slice of all keys
 	Keys() []string
-	// Key returns the literal of the element with key k or an error
-	Key(k string) (Lit, error)
-	// SetKey sets the elements value with key k to l or returns an error
-	SetKey(k string, l Lit) error
+	// Key returns the literal of the element with key key or an error
+	Key(key string) (Lit, error)
+	// SetKey sets the elements value with key key to l or returns an error
+	SetKey(key string, l Lit) error
 	// IterKey iterates over elements, calling iter with the elements key and literal value
-	// If iter returns false the iteration is aborted
-	IterKey(iter func(string, Lit) bool) error
+	// If iter returns an error the iteration is aborted
+	IterKey(iter func(string, Lit) error) error
 }
 
 // Arr is the interface for arr literals
@@ -98,18 +104,18 @@ type Obj interface {
 	Len() int
 	// Keys returns a string slice of all field keys
 	Keys() []string
-	// Key returns the literal of the field with key k or an error
-	Key(k string) (Lit, error)
-	// SetKey sets the fields value with key k to l or returns an error
-	SetKey(k string, l Lit) error
+	// Key returns the literal of the field with key key or an error
+	Key(key string) (Lit, error)
+	// SetKey sets the fields value with key key to l or returns an error
+	SetKey(key string, l Lit) error
 	// Idx returns the literal of the field at idx or an error
 	Idx(idx int) (Lit, error)
 	// SetIdx sets the field value at idx to l or returns an error
 	SetIdx(idx int, l Lit) error
 	// IterKey iterates over fields, calling iter with the fields key and literal value
-	// If iter returns false the iteration is aborted
-	IterKey(iter func(string, Lit) bool) error
+	// If iter returns an error the iteration is aborted
+	IterKey(iter func(string, Lit) error) error
 	// IterIdx iterates over fields, calling iter with the fields index and literal value
-	// If iter returns false the iteration is aborted
-	IterIdx(f func(int, Lit) bool) error
+	// If iter returns an error the iteration is aborted
+	IterIdx(iter func(int, Lit) error) error
 }

@@ -69,13 +69,16 @@ func (d *Dict) SetKey(k string, el Lit) error {
 	return nil
 }
 
-func (d *Dict) IterKey(it func(string, Lit) bool) error {
+func (d *Dict) IterKey(it func(string, Lit) error) error {
 	if d == nil {
 		return nil
 	}
 	for _, el := range d.List {
-		if !it(el.Key, el.Lit) {
-			break
+		if err := it(el.Key, el.Lit); err != nil {
+			if err == BreakIter {
+				return nil
+			}
+			return err
 		}
 	}
 	return nil

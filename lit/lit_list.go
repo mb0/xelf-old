@@ -29,10 +29,13 @@ func (l List) SetIdx(i int, el Lit) error {
 	l[i] = el
 	return nil
 }
-func (l List) IterIdx(it func(int, Lit) bool) error {
+func (l List) IterIdx(it func(int, Lit) error) error {
 	for i, el := range l {
-		if !it(i, el) {
-			break
+		if err := it(i, el); err != nil {
+			if err == BreakIter {
+				return nil
+			}
+			return err
 		}
 	}
 	return nil
