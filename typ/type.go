@@ -66,7 +66,10 @@ func (a *Info) Equal(b *Info) bool {
 	if a.IsZero() {
 		return b.IsZero()
 	}
-	if b.IsZero() || a.Ref != b.Ref || len(a.Fields) != len(b.Fields) {
+	if b.IsZero() ||
+		len(a.Fields) != len(b.Fields) ||
+		len(a.Values) != len(b.Values) ||
+		a.Ref != b.Ref && a.Key() != b.Key() {
 		return false
 	}
 	for i, af := range a.Fields {
@@ -76,7 +79,9 @@ func (a *Info) Equal(b *Info) bool {
 	}
 	return true
 }
-func (a Field) Equal(b Field) bool { return a.Name == b.Name && a.Type.Equal(b.Type) }
+func (a Field) Equal(b Field) bool {
+	return (a.Name == b.Name || a.Key() == b.Key()) && a.Type.Equal(b.Type)
+}
 
 func (a Type) String() string {
 	var b strings.Builder
