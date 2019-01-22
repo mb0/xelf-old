@@ -1,12 +1,11 @@
 package cor
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // ErrSpan indicates an ivalid input format when parsing a span

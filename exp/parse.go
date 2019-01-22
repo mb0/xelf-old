@@ -1,10 +1,11 @@
 package exp
 
 import (
+	"errors"
+
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
-	"github.com/pkg/errors"
 )
 
 // ParseString scans and parses string s and returns an element or an error

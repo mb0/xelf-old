@@ -2,9 +2,8 @@ package cor
 
 import (
 	"encoding/hex"
+	"errors"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // ErrUUID indicates an ivalid input format when parsing an uuid
@@ -39,10 +38,10 @@ func FormatUUID(v [16]byte) string {
 func ParseUUID(s string) ([16]byte, error) {
 	var res [16]byte
 	if len(s) < 32 || len(s) > 36 {
-		return res, errors.Wrapf(ErrUUID, "%q is too short", s)
+		return res, ErrUUID
 	}
 	if len(s) > 36 {
-		return res, errors.Wrapf(ErrUUID, "%q is too long", s)
+		return res, ErrUUID
 	}
 	for i, o := 0, 0; i+1 < len(s) && o < 16; {
 		a := s[i]
@@ -54,7 +53,7 @@ func ParseUUID(s string) ([16]byte, error) {
 		a, aok := fromHex(a)
 		b, bok := fromHex(b)
 		if !aok || !bok {
-			return res, errors.Wrapf(ErrUUID, "%q %q not a hex byte", a, b)
+			return res, ErrUUID
 		}
 		res[o] = a<<4 | b
 		i += 2

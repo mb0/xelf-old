@@ -8,7 +8,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var ErrNilMap = errors.New("nil map")
+var ErrNilKeyer = errors.New("nil keyer")
 
 // Dict is a generic container implementing Keyer
 type Dict struct {
@@ -53,7 +53,7 @@ func (d *Dict) Key(k string) (Lit, error) {
 }
 func (d *Dict) SetKey(k string, el Lit) error {
 	if d == nil {
-		return ErrNilMap
+		return ErrNilKeyer
 	}
 	for i, v := range d.List {
 		if v.Key == k {
