@@ -60,6 +60,5 @@ func quoteBuffer(v string, b bfr.Ctx) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString(v)
-	return err
+	return b.Fmt(v)
 }

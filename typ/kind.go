@@ -128,7 +128,7 @@ func ParseKind(str string) (Kind, error) {
 func (k Kind) WriteBfr(b bfr.Ctx) (err error) {
 	str := simpleStr(k)
 	if str != "" {
-		_, err = b.WriteString(str)
+		err = b.Fmt(str)
 		if k != KindAny && k&FlagOpt != 0 {
 			err = b.WriteByte('?')
 		}

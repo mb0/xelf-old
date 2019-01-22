@@ -63,8 +63,7 @@ func writeSep(b bfr.Ctx) error {
 
 func writeLit(b bfr.Ctx, e Lit) error {
 	if e == nil {
-		_, err := b.WriteString("null")
-		return err
+		return b.Fmt("null")
 	}
 	return e.WriteBfr(b)
 }

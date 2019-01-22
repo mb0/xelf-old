@@ -44,10 +44,10 @@ func (v Bool) MarshalJSON() ([]byte, error) { return strconv.AppendBool(nil, boo
 func (v Int) MarshalJSON() ([]byte, error)  { return strconv.AppendInt(nil, int64(v), 10), nil }
 func (v Real) MarshalJSON() ([]byte, error) { return floatToBytes(float64(v)), nil }
 
-func (v Num) WriteBfr(b bfr.Ctx) error  { _, err := b.WriteString(v.String()); return err }
-func (v Bool) WriteBfr(b bfr.Ctx) error { _, err := b.WriteString(v.String()); return err }
-func (v Int) WriteBfr(b bfr.Ctx) error  { _, err := b.WriteString(v.String()); return err }
-func (v Real) WriteBfr(b bfr.Ctx) error { _, err := b.WriteString(v.String()); return err }
+func (v Num) WriteBfr(b bfr.Ctx) error  { return b.Fmt(v.String()) }
+func (v Bool) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
+func (v Int) WriteBfr(b bfr.Ctx) error  { return b.Fmt(v.String()) }
+func (v Real) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
 
 func boolToFloat(b bool) float64 {
 	if b {
