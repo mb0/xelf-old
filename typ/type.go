@@ -22,6 +22,7 @@ func (a Type) Sub() Type {
 type Info struct {
 	Ref    string  `json:"ref,omitempty"`
 	Fields []Field `json:"fields,omitempty"`
+	Values []Value `json:"values,omitempty"`
 	key    string
 }
 
@@ -57,9 +58,25 @@ func (a Field) Key() string {
 	return a.key
 }
 
-func (a Type) IsZero() bool  { return a.Kind == 0 && a.Info.IsZero() }
-func (a *Info) IsZero() bool { return a == nil || a.Ref == "" && len(a.Fields) == 0 }
-func (a Field) IsZero() bool { return a.Name == "" && a.Type.IsZero() }
+// Value represents named integer constant for a flag or enum type.
+type Value struct {
+	Name string `json:"name,omitempty"`
+	Val  int64  `json:"val,omitempty"`
+	key  string
+}
+
+// Key returns the lowercase value key.
+func (a Value) Key() string {
+	if n := a.Name; n != "" && a.key == "" {
+		a.key = strings.ToLower(n)
+	}
+	return a.key
+}
+
+func (a Type) IsZero() bool { return a.Kind == 0 && a.Info.IsZero() }
+func (a *Info) IsZero() bool {
+	return a == nil || a.Ref == "" && len(a.Fields) == 0 && len(a.Values) == 0
+}
 
 func (a Type) Equal(b Type) bool { return a.Kind == b.Kind && a.Info.Equal(b.Info) }
 func (a *Info) Equal(b *Info) bool {
@@ -77,10 +94,18 @@ func (a *Info) Equal(b *Info) bool {
 			return false
 		}
 	}
+	for i, av := range a.Values {
+		if !av.Equal(b.Values[i]) {
+			return false
+		}
+	}
 	return true
 }
 func (a Field) Equal(b Field) bool {
 	return (a.Name == b.Name || a.Key() == b.Key()) && a.Type.Equal(b.Type)
+}
+func (a Value) Equal(b Value) bool {
+	return (a.Name == b.Name || a.Key() == b.Key()) && a.Val == b.Val
 }
 
 func (a Type) String() string {
