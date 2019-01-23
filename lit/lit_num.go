@@ -49,6 +49,34 @@ func (v Bool) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
 func (v Int) WriteBfr(b bfr.Ctx) error  { return b.Fmt(v.String()) }
 func (v Real) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
 
+func (v *Bool) Assign(l Lit) error {
+	if b, ok := l.(Numer); ok {
+		if e, ok := b.Val().(bool); ok {
+			*v = Bool(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}
+func (v *Int) Assign(l Lit) error {
+	if b, ok := l.(Numer); ok {
+		if e, ok := b.Val().(int64); ok {
+			*v = Int(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}
+func (v *Real) Assign(l Lit) error {
+	if b, ok := l.(Numer); ok {
+		if e, ok := b.Val().(float64); ok {
+			*v = Real(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}
+
 func boolToFloat(b bool) float64 {
 	if b {
 		return 1

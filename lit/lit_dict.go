@@ -98,6 +98,26 @@ func (v *Dict) WriteBfr(b bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
+func (v *Dict) Assign(l Lit) error {
+	switch lv := l.(type) {
+	case *Dict:
+		*v = *lv
+	case Keyer:
+		res := v.List[:0]
+		err := v.IterKey(func(k string, e Lit) error {
+			res = append(res, Keyed{k, e})
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		v.List = res
+	default:
+		return ErrNotAssignable
+	}
+	return nil
+}
+
 func writeKey(b bfr.Ctx, key string) (err error) {
 	if !b.JSON && lex.IsName(key) {
 		b.WriteByte('+')

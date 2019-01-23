@@ -33,6 +33,14 @@ type Opter interface {
 	Some() Lit
 }
 
+// Assignable is the common interface for proxies and some adapter pointers that can be assigned to.
+type Assignable interface {
+	Lit
+	// Assign assigns the value of the given literal or returns an error.
+	// The literal must be valid literal of the same type.
+	Assign(Lit) error
+}
+
 // Numer is the common interface for numeric literals.
 type Numer interface {
 	Lit

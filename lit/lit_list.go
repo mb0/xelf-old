@@ -54,6 +54,28 @@ func (l List) WriteBfr(b bfr.Ctx) error {
 	return b.WriteByte(']')
 }
 
+func (l *List) Assign(val Lit) error {
+	switch v := val.(type) {
+	case *List:
+		*l = *v
+	case List:
+		*l = v
+	case Idxer:
+		res := (*l)[:0]
+		err := v.IterIdx(func(i int, e Lit) error {
+			res = append(res, e)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		*l = res
+	default:
+		return ErrNotAssignable
+	}
+	return nil
+}
+
 func writeSep(b bfr.Ctx) error {
 	if b.JSON {
 		return b.WriteByte(',')

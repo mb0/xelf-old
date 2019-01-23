@@ -36,3 +36,22 @@ func (v Span) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
 
 func (v Time) WriteBfr(b bfr.Ctx) error { return quoteBuffer(v.Char(), b) }
 func (v Span) WriteBfr(b bfr.Ctx) error { return quoteBuffer(v.Char(), b) }
+
+func (v *Time) Assign(l Lit) error {
+	if b, ok := l.(Charer); ok {
+		if e, ok := b.Val().(time.Time); ok {
+			*v = Time(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}
+func (v *Span) Assign(l Lit) error {
+	if b, ok := l.(Charer); ok {
+		if e, ok := b.Val().(time.Duration); ok {
+			*v = Span(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}

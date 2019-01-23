@@ -49,6 +49,34 @@ func (v Str) WriteBfr(b bfr.Ctx) error  { return quoteBuffer(string(v), b) }
 func (v Raw) WriteBfr(b bfr.Ctx) error  { return quoteBuffer(v.Char(), b) }
 func (v UUID) WriteBfr(b bfr.Ctx) error { return quoteBuffer(v.Char(), b) }
 
+func (v *Str) Assign(l Lit) error {
+	if b, ok := l.(Charer); ok {
+		if e, ok := b.Val().(string); ok {
+			*v = Str(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}
+func (v *Raw) Assign(l Lit) error {
+	if b, ok := l.(Charer); ok {
+		if e, ok := b.Val().([]byte); ok {
+			*v = Raw(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}
+func (v *UUID) Assign(l Lit) error {
+	if b, ok := l.(Charer); ok {
+		if e, ok := b.Val().([16]byte); ok {
+			*v = UUID(e)
+			return nil
+		}
+	}
+	return ErrNotAssignable
+}
+
 func sglQuoteString(v string) string         { s, _ := lex.Quote(v, '\''); return s }
 func dblQuoteBytes(v string) ([]byte, error) { s, err := lex.Quote(v, '"'); return []byte(s), err }
 func quoteBuffer(v string, b bfr.Ctx) (err error) {
