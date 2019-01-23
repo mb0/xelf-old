@@ -2,7 +2,9 @@ package lit
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/mb0/xelf/typ"
@@ -96,19 +98,95 @@ func ReflectType(t reflect.Type) (res typ.Type, err error) {
 }
 
 func reflectFields(t reflect.Type) ([]typ.Field, [][]int, error) {
-	n := t.NumField()
-	fs := make([]typ.Field, 0, n)
-	idx := make([][]int, 0, n)
-	for i := 0; i < n; i++ {
-		f := t.Field(i)
-		ft, err := ReflectType(f.Type)
+	fs := make([]typ.Field, 0, 16)
+	idx := make([][]int, 0, 16)
+	err := collectFields(t, nil, func(name, _ string, et reflect.Type, i []int) error {
+		ft, err := ReflectType(et)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
-		fs = append(fs, typ.Field{Name: f.Name, Type: ft})
-		idx = append(idx, f.Index)
+		fs = append(fs, typ.Field{Name: name, Type: ft})
+		idx = append(idx, i)
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 	return fs, idx, nil
+}
+
+type fidx struct {
+	name string
+	idx  []int
+}
+
+func fieldIndices(t reflect.Type, fs []typ.Field) ([][]int, error) {
+	m := make(map[string]fidx, len(fs)+8)
+	err := collectFields(t, nil, func(name, key string, _ reflect.Type, idx []int) error {
+		m[key] = fidx{name, idx}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	res := make([][]int, 0, len(fs))
+	for _, f := range fs {
+		fi, ok := m[f.Key()]
+		if !ok {
+			return nil, fmt.Errorf("field %s not found", f.Key())
+		}
+		res = append(res, fi.idx)
+	}
+	return res, nil
+}
+
+type fieldCollector = func(name, key string, t reflect.Type, idx []int) error
+
+func collectFields(t reflect.Type, idx []int, col fieldCollector) error {
+	n := t.NumField()
+	for i := 0; i < n; i++ {
+		f := t.Field(i)
+		var key string
+		var opt bool
+		// check for a json struct tag first
+		tag := strings.Split(f.Tag.Get("json"), ",")
+		if len(tag) > 0 && tag[0] != "" {
+			key = tag[0]
+			if key == "-" { // skip ignored fields
+				continue
+			}
+			// we found a key check if optional field
+			for _, t := range tag[1:] {
+				if opt = t == "omitempty"; opt {
+					break
+				}
+			}
+		}
+		// collect embedded only if we have no key set by json tag explicitly
+		if key == "" && f.Anonymous {
+			err := collectFields(f.Type, append(idx, i), col)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		name := f.Name
+		// use simple capitalization if key does not match the lowercase name
+		if key != "" && key != strings.ToLower(name) {
+			name = strings.ToUpper(key[:1]) + key[1:]
+		}
+		if key == "" {
+			key = strings.ToLower(name)
+		}
+		if opt { // append a question mark to optional fields
+			name += "?"
+		}
+		err := col(name, key, f.Type, append(idx, i))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 var (
