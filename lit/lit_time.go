@@ -37,6 +37,10 @@ func (v Span) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
 func (v Time) WriteBfr(b bfr.Ctx) error { return quoteBuffer(v.Char(), b) }
 func (v Span) WriteBfr(b bfr.Ctx) error { return quoteBuffer(v.Char(), b) }
 
+func (v Span) Seconds() float64 {
+	return time.Duration(v).Seconds()
+}
+
 func (v *Time) Assign(l Lit) error {
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().(time.Time); ok {
