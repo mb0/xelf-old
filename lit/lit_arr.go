@@ -1,6 +1,9 @@
 package lit
 
 import (
+	"reflect"
+
+	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -26,6 +29,7 @@ type (
 		elem typ.Type
 		List
 	}
+	proxyArr struct{ proxy }
 )
 
 func (a abstrArr) Typ() typ.Type  { return typ.Arr(a.elem) }
@@ -40,4 +44,97 @@ func (a abstrArr) SetIdx(i int, el Lit) (err error) {
 		}
 	}
 	return a.List.SetIdx(i, el)
+}
+
+func (p *proxyArr) Assign(l Lit) error {
+	if l == nil || !p.typ.Equal(l.Typ()) {
+		return ErrNotAssignable
+	}
+	b, ok := l.(Idxer)
+	if !ok || b.IsZero() { // a nil obj?
+		p.val.Set(reflect.Zero(p.val.Type()))
+		return nil
+	}
+	v, ok := p.elem(reflect.Slice)
+	if !ok {
+		return ErrNotAssignable
+	}
+	v = v.Slice(0, 0)
+	err := b.IterIdx(func(i int, e Lit) error {
+		fp := reflect.New(v.Type().Elem())
+		fl, err := ProxyValue(fp)
+		if err != nil {
+			return err
+		}
+		err = fl.Assign(e)
+		if err != nil {
+			return err
+		}
+		v = reflect.Append(v, fp.Elem())
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	p.val.Set(v)
+	return nil
+}
+
+func (p *proxyArr) Elem() typ.Type { return p.typ.Next() }
+func (p *proxyArr) Len() int {
+	if v, ok := p.elem(reflect.Slice); ok {
+		return v.Len()
+	}
+	return 0
+}
+func (p *proxyArr) IsZero() bool { return p.Len() == 0 }
+func (p *proxyArr) Idx(i int) (Lit, error) {
+	if v, ok := p.elem(reflect.Slice); ok {
+		if i >= 0 && i < v.Len() {
+			return AdaptValue(v.Index(i))
+		}
+	}
+	return nil, ErrIdxBounds
+}
+func (p *proxyArr) SetIdx(i int, l Lit) error {
+	if v, ok := p.elem(reflect.Slice); ok {
+		if i >= 0 && i < v.Len() {
+			return AssignToValue(l, v.Index(i).Addr())
+		}
+	}
+	return ErrIdxBounds
+}
+func (p *proxyArr) IterIdx(it func(int, Lit) error) error {
+	if v, ok := p.elem(reflect.Slice); ok {
+		for i, n := 0, v.Len(); i < n; i++ {
+			el, err := AdaptValue(v.Index(i))
+			if err != nil {
+				return err
+			}
+			err = it(i, el)
+			if err != nil {
+				if err == BreakIter {
+					return nil
+				}
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (p *proxyArr) String() string               { return bfr.String(p) }
+func (p *proxyArr) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
+func (p *proxyArr) WriteBfr(b bfr.Ctx) error {
+	b.WriteByte('[')
+	err := p.IterIdx(func(i int, el Lit) error {
+		if i > 0 {
+			writeSep(b)
+		}
+		return writeLit(b, el)
+	})
+	if err != nil {
+		return err
+	}
+	return b.WriteByte(']')
 }

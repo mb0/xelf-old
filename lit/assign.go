@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/mb0/xelf/typ"
 )
 
 var (
@@ -90,7 +92,45 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 			return v.Interface().(*Dict), nil
 		}
 	}
+	// generic proxy fallback
+	t, err := ReflectType(et)
+	if err != nil {
+		return nil, err
+	}
+	p := proxy{t, ptr}
+	switch t.Kind & typ.MaskBase {
+	case typ.BaseNum:
+		return &proxyNum{p}, nil
+	case typ.BaseList:
+		return &proxyArr{p}, nil
+	case typ.BaseDict:
+		return &proxyMap{p}, nil
+	case typ.MaskCont:
+		idx, err := fieldIndices(et, p.typ.Fields)
+		if err != nil {
+			return nil, err
+		}
+		return &proxyObj{p, idx}, nil
+	}
 	return nil, fmt.Errorf("cannot proxy type %s", ptr.Type())
+}
+
+type proxy struct {
+	typ typ.Type
+	val reflect.Value
+}
+
+func (p *proxy) Typ() typ.Type { return p.typ }
+func (p *proxy) el() reflect.Value {
+	v := p.val
+	if v.IsValid() && v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	return v
+}
+func (p *proxy) elem(k reflect.Kind) (reflect.Value, bool) {
+	v := p.el()
+	return v, v.IsValid() && v.Kind() == k
 }
 
 func ptrRef(et reflect.Type, ref reflect.Type, v reflect.Value) (reflect.Value, bool) {
