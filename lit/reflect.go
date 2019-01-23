@@ -12,6 +12,9 @@ import (
 
 var (
 	refLit  = reflect.TypeOf((*Lit)(nil)).Elem()
+	refBool = reflect.TypeOf(false)
+	refInt  = reflect.TypeOf(int64(0))
+	refReal = reflect.TypeOf(float64(0))
 	refStr  = reflect.TypeOf("")
 	refRaw  = reflect.TypeOf([]byte(nil))
 	refUUID = reflect.TypeOf([16]byte{})
