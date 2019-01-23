@@ -4,10 +4,10 @@ Package lit provides code for working with literals.
 The Lit interface defines the common behaviour of all literals. There are additional interfaces for
 each base type: Opter, Numer, Charer, Idxer or Keyer.
 
-The go implementation provides adapter types that implement those interfaces. There are:
+The go implementation provides adapter and proxy types that implement those interfaces.
 
-   concrete adapters for the base, numeric and character typed literals
-   abstract adapters for uncommon, nested or custom types using reflection
+   adapters adapt go values of a limited set of types as literals
+   proxies proxy uncommon, nested or custom go values as literals using reflection
 
 Literal can be read from and written as JSON or a xelf extension with four new syntax features:
 

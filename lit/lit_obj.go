@@ -13,24 +13,33 @@ func MakeObj(t typ.Type) (Obj, error) {
 	for _, f := range t.Fields {
 		list = append(list, Keyed{f.Key(), Null(f.Type)})
 	}
-	return &abstractObj{t, Dict{list}}, nil
+	return &abstrObj{t, Dict{list}}, nil
 }
 
-type abstractObj struct {
-	typ typ.Type
-	Dict
-}
+type (
+	abstrObj struct {
+		typ typ.Type
+		Dict
+	}
+)
 
-func (a *abstractObj) Typ() typ.Type { return a.typ }
-func (a *abstractObj) Idx(i int) (Lit, error) {
-	_, err := a.idxField(i)
+func (a *abstrObj) Typ() typ.Type { return a.typ }
+func (a *abstrObj) Idx(i int) (Lit, error) {
+	_, err := idxField(a.typ, i)
 	if err != nil {
 		return nil, err
 	}
 	return a.Dict.List[i].Lit, nil
 }
-func (a *abstractObj) SetIdx(i int, el Lit) error {
-	f, err := a.idxField(i)
+func (a *abstrObj) Key(key string) (Lit, error) {
+	_, _, err := keyField(a.typ, key)
+	if err != nil {
+		return nil, err
+	}
+	return a.Dict.Key(key)
+}
+func (a *abstrObj) SetIdx(i int, el Lit) error {
+	f, err := idxField(a.typ, i)
 	if err != nil {
 		return err
 	}
@@ -45,15 +54,8 @@ func (a *abstractObj) SetIdx(i int, el Lit) error {
 	a.Dict.List[i].Lit = el
 	return nil
 }
-func (a *abstractObj) Key(key string) (Lit, error) {
-	_, err := a.keyField(key)
-	if err != nil {
-		return nil, err
-	}
-	return a.Dict.Key(key)
-}
-func (a *abstractObj) SetKey(key string, el Lit) error {
-	f, err := a.keyField(key)
+func (a *abstrObj) SetKey(key string, el Lit) error {
+	f, _, err := keyField(a.typ, key)
 	if err != nil {
 		return err
 	}
@@ -67,7 +69,7 @@ func (a *abstractObj) SetKey(key string, el Lit) error {
 	}
 	return a.Dict.SetKey(key, el)
 }
-func (a *abstractObj) IterIdx(it func(int, Lit) error) error {
+func (a *abstrObj) IterIdx(it func(int, Lit) error) error {
 	for i, el := range a.Dict.List {
 		if err := it(i, el.Lit); err != nil {
 			if err == BreakIter {
@@ -79,21 +81,22 @@ func (a *abstractObj) IterIdx(it func(int, Lit) error) error {
 	return nil
 }
 
-func (a *abstractObj) idxField(i int) (*typ.Field, error) {
-	if n := a.typ.Info; n != nil {
+
+func idxField(t typ.Type, i int) (*typ.Field, error) {
+	if n := t.Info; n != nil {
 		if i >= 0 && i < len(n.Fields) {
 			return &n.Fields[i], nil
 		}
 	}
 	return nil, ErrIdxBounds
 }
-func (a *abstractObj) keyField(k string) (*typ.Field, error) {
-	if n := a.typ.Info; n != nil {
-		for _, f := range n.Fields {
+func keyField(t typ.Type, k string) (*typ.Field, int, error) {
+	if n := t.Info; n != nil {
+		for i, f := range n.Fields {
 			if f.Key() == k {
-				return &f, nil
+				return &f, i, nil
 			}
 		}
 	}
-	return nil, typ.ErrFieldName
+	return nil, 0, typ.ErrFieldName
 }

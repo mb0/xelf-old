@@ -10,6 +10,18 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+var (
+	refLit  = reflect.TypeOf((*Lit)(nil)).Elem()
+	refStr  = reflect.TypeOf("")
+	refRaw  = reflect.TypeOf([]byte(nil))
+	refUUID = reflect.TypeOf([16]byte{})
+	refSpan = reflect.TypeOf(time.Second)
+	refTime = reflect.TypeOf(time.Time{})
+	refList = reflect.TypeOf(List(nil))
+	refDict = reflect.TypeOf((*Dict)(nil))
+	refSecs = reflect.TypeOf((*interface{ Seconds() float64 })(nil))
+)
+
 // Reflect returns the xelf type for the interface value v or an error.
 func Reflect(v interface{}) (typ.Type, error) {
 	return ReflectType(reflect.TypeOf(v))
@@ -95,6 +107,10 @@ func ReflectType(t reflect.Type) (res typ.Type, err error) {
 		return typ.Opt(res), nil
 	}
 	return res, nil
+}
+
+func isRef(t reflect.Type, ref reflect.Type) bool {
+	return t == ref || t.ConvertibleTo(ref)
 }
 
 func reflectFields(t reflect.Type) ([]typ.Field, [][]int, error) {
@@ -187,20 +203,4 @@ func collectFields(t reflect.Type, idx []int, col fieldCollector) error {
 		}
 	}
 	return nil
-}
-
-var (
-	refLit  = reflect.TypeOf((*Lit)(nil)).Elem()
-	refStr  = reflect.TypeOf("")
-	refRaw  = reflect.TypeOf([]byte(nil))
-	refUUID = reflect.TypeOf([16]byte{})
-	refSpan = reflect.TypeOf(time.Second)
-	refTime = reflect.TypeOf(time.Time{})
-	refList = reflect.TypeOf(List(nil))
-	refDict = reflect.TypeOf((*Dict)(nil))
-	refSecs = reflect.TypeOf((*interface{ Seconds() float64 })(nil))
-)
-
-func isRef(t reflect.Type, ref reflect.Type) bool {
-	return t == ref || t.ConvertibleTo(ref)
 }

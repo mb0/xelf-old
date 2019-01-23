@@ -35,11 +35,11 @@ func TestAdapt(t *testing.T) {
 		{myUUID{}, ZeroUUID},
 		{time.Time{}, ZeroTime},
 		{myTime{}, ZeroTime},
-		{[]int{1, 2}, &abstractArr{typ.Int, List{Int(1), Int(2)}}},
+		{[]int{1, 2}, &abstrArr{typ.Int, List{Int(1), Int(2)}}},
 		{[]*int64{cor.Int(1), cor.Int(2)},
-			&abstractArr{typ.Opt(typ.Int), List{Some{Int(1)}, Some{Int(2)}}},
+			&abstrArr{typ.Opt(typ.Int), List{Some{Int(1)}, Some{Int(2)}}},
 		},
-		{myPoint{1, 2}, &abstractObj{typ.Obj([]typ.Field{
+		{myPoint{1, 2}, &abstrObj{typ.Obj([]typ.Field{
 			{Name: "X", Type: typ.Int},
 			{Name: "Y", Type: typ.Int},
 		}), Dict{[]Keyed{
