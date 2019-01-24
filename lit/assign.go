@@ -106,6 +106,9 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 	case typ.BaseDict:
 		return &proxyMap{p}, nil
 	case typ.MaskCont:
+		if et.Kind() == reflect.Ptr {
+			et = et.Elem()
+		}
 		idx, err := fieldIndices(et, p.typ.Fields)
 		if err != nil {
 			return nil, err
@@ -129,8 +132,18 @@ func (p *proxy) el() reflect.Value {
 	return v
 }
 func (p *proxy) elem(k reflect.Kind) (reflect.Value, bool) {
-	v := p.el()
-	return v, v.IsValid() && v.Kind() == k
+	pv := p.val
+	if !pv.IsValid() || pv.Kind() != reflect.Ptr {
+		return pv, false
+	}
+	v := pv.Elem()
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		v = v.Elem()
+	}
+	return v, v.Kind() == k
 }
 
 func ptrRef(et reflect.Type, ref reflect.Type, v reflect.Value) (reflect.Value, bool) {

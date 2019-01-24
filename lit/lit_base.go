@@ -20,7 +20,6 @@ func (Null) WriteBfr(b bfr.Ctx) error     { _, err := b.WriteString("null"); ret
 type Some struct{ Lit }
 
 func (s Some) Typ() typ.Type { return typ.Opt(s.Lit.Typ()) }
-func (_ Some) IsZero() bool  { return false }
 func (s Some) Some() Lit     { return s.Lit }
 
 // Any represents a non-null, any-typed literal.

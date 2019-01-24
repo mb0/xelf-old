@@ -32,6 +32,17 @@ type (
 )
 
 func (a *abstrObj) Typ() typ.Type { return a.typ }
+func (a *abstrObj) IsZero() bool {
+	if a.Dict.IsZero() {
+		return true
+	}
+	for _, k := range a.List {
+		if !k.Lit.IsZero() {
+			return false
+		}
+	}
+	return true
+}
 func (a *abstrObj) Idx(i int) (Lit, error) {
 	_, err := idxField(a.typ, i)
 	if err != nil {
@@ -97,14 +108,13 @@ func (p *proxyObj) Assign(l Lit) error {
 	}
 	b, ok := l.(Keyer)
 	if !ok || b.IsZero() { // a nil obj?
-		p.val.Set(reflect.Zero(p.val.Type()))
+		v := p.val.Elem()
+		v.Set(reflect.New(v.Type().Elem()))
 		return nil
 	}
 	v, ok := p.elem(reflect.Struct)
-	if !ok && v.Kind() == reflect.Ptr { // nil value?
-		e := reflect.New(v.Type().Elem())
-		v.Set(e)
-		v = v.Elem()
+	if !ok {
+		return ErrObjProxyVal
 	}
 	return b.IterKey(func(k string, e Lit) error {
 		_, i, err := keyField(p.typ, k)
@@ -131,7 +141,8 @@ func (p *proxyObj) Len() int {
 	return 0
 }
 func (p *proxyObj) IsZero() bool {
-	return p.Len() == 0
+	v := p.el()
+	return !v.IsValid() || v.Kind() == reflect.Ptr && v.IsNil() || p.typ.Info.IsZero()
 }
 func (p *proxyObj) Keys() []string {
 	if p.typ.Info != nil {
