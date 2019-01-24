@@ -160,7 +160,7 @@ func (p *proxyObj) Idx(i int) (Lit, error) {
 		return nil, err
 	}
 	if v, ok := p.elem(reflect.Struct); ok {
-		res, err := AdaptValue(v.FieldByIndex(p.idx[i]))
+		res, err := ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
 		if err != nil {
 			return nil, err
 		}
@@ -174,7 +174,7 @@ func (p *proxyObj) Key(k string) (Lit, error) {
 		return nil, err
 	}
 	if v, ok := p.elem(reflect.Struct); ok {
-		res, err := AdaptValue(v.FieldByIndex(p.idx[i]))
+		res, err := ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
 		if err != nil {
 			return nil, err
 		}
@@ -202,10 +202,11 @@ func (p *proxyObj) SetKey(k string, l Lit) error {
 	}
 	return ErrObjProxyVal
 }
-func (p *proxyObj) IterIdx(it func(int, Lit) error) error {
+func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
 		for i, f := range p.typ.Fields {
-			el, err := AdaptValue(v.FieldByIndex(p.idx[i]))
+			var el Lit
+			el, err = ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
 			if err != nil {
 				return err
 			}
@@ -224,10 +225,11 @@ func (p *proxyObj) IterIdx(it func(int, Lit) error) error {
 	}
 	return nil
 }
-func (p *proxyObj) IterKey(it func(string, Lit) error) error {
+func (p *proxyObj) IterKey(it func(string, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
 		for i, f := range p.typ.Fields {
-			el, err := AdaptValue(v.FieldByIndex(p.idx[i]))
+			var el Lit
+			el, err = ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
 			if err != nil {
 				return err
 			}

@@ -91,7 +91,7 @@ func (p *proxyArr) IsZero() bool { return p.Len() == 0 }
 func (p *proxyArr) Idx(i int) (Lit, error) {
 	if v, ok := p.elem(reflect.Slice); ok {
 		if i >= 0 && i < v.Len() {
-			return AdaptValue(v.Index(i))
+			return ProxyValue(v.Index(i).Addr())
 		}
 	}
 	return nil, ErrIdxBounds
@@ -107,7 +107,7 @@ func (p *proxyArr) SetIdx(i int, l Lit) error {
 func (p *proxyArr) IterIdx(it func(int, Lit) error) error {
 	if v, ok := p.elem(reflect.Slice); ok {
 		for i, n := 0, v.Len(); i < n; i++ {
-			el, err := AdaptValue(v.Index(i))
+			el, err := ProxyValue(v.Index(i).Addr())
 			if err != nil {
 				return err
 			}
