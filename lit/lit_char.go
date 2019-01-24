@@ -49,6 +49,7 @@ func (v Str) WriteBfr(b bfr.Ctx) error  { return quoteBuffer(string(v), b) }
 func (v Raw) WriteBfr(b bfr.Ctx) error  { return quoteBuffer(v.Char(), b) }
 func (v UUID) WriteBfr(b bfr.Ctx) error { return quoteBuffer(v.Char(), b) }
 
+func (v *Str) Ptr() interface{} { return v }
 func (v *Str) Assign(l Lit) error {
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().(string); ok {
@@ -58,6 +59,8 @@ func (v *Str) Assign(l Lit) error {
 	}
 	return ErrNotAssignable
 }
+
+func (v *Raw) Ptr() interface{} { return v }
 func (v *Raw) Assign(l Lit) error {
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().([]byte); ok {
@@ -67,6 +70,8 @@ func (v *Raw) Assign(l Lit) error {
 	}
 	return ErrNotAssignable
 }
+
+func (v *UUID) Ptr() interface{} { return v }
 func (v *UUID) Assign(l Lit) error {
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().([16]byte); ok {

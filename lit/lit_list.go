@@ -54,6 +54,7 @@ func (l List) WriteBfr(b bfr.Ctx) error {
 	return b.WriteByte(']')
 }
 
+func (v *List) Ptr() interface{} { return v }
 func (l *List) Assign(val Lit) error {
 	switch v := val.(type) {
 	case *List:

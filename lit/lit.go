@@ -36,6 +36,8 @@ type Opter interface {
 // Assignable is the common interface for proxies and some adapter pointers that can be assigned to.
 type Assignable interface {
 	Lit
+	// Ptr returns a pointer to the underlying go value as interface.
+	Ptr() interface{}
 	// Assign assigns the value of the given literal or returns an error.
 	// The literal must be valid literal of the same type.
 	Assign(Lit) error

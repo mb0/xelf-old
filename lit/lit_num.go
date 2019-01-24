@@ -51,6 +51,7 @@ func (v Bool) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
 func (v Int) WriteBfr(b bfr.Ctx) error  { return b.Fmt(v.String()) }
 func (v Real) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
 
+func (v *Bool) Ptr() interface{} { return v }
 func (v *Bool) Assign(l Lit) error {
 	if b, ok := l.(Numer); ok {
 		if e, ok := b.Val().(bool); ok {
@@ -60,6 +61,8 @@ func (v *Bool) Assign(l Lit) error {
 	}
 	return ErrNotAssignable
 }
+
+func (v *Int) Ptr() interface{} { return v }
 func (v *Int) Assign(l Lit) error {
 	if b, ok := l.(Numer); ok {
 		if e, ok := b.Val().(int64); ok {
@@ -69,6 +72,8 @@ func (v *Int) Assign(l Lit) error {
 	}
 	return ErrNotAssignable
 }
+
+func (v *Real) Ptr() interface{} { return v }
 func (v *Real) Assign(l Lit) error {
 	if b, ok := l.(Numer); ok {
 		if e, ok := b.Val().(float64); ok {
@@ -92,6 +97,7 @@ func (p *proxyNum) Val() interface{} {
 	}
 	return nil
 }
+
 func (p *proxyNum) Assign(l Lit) error {
 	if b, ok := l.(Numer); ok {
 		if v := p.el(); v.IsValid() {

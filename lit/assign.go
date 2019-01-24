@@ -124,6 +124,12 @@ type proxy struct {
 }
 
 func (p *proxy) Typ() typ.Type { return p.typ }
+func (p *proxy) Ptr() interface{} {
+	if p.val.IsValid() {
+		return p.val.Interface()
+	}
+	return nil
+}
 func (p *proxy) el() reflect.Value {
 	v := p.val
 	if v.IsValid() && v.Kind() == reflect.Ptr {

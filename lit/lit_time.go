@@ -41,6 +41,7 @@ func (v Span) Seconds() float64 {
 	return time.Duration(v).Seconds()
 }
 
+func (v *Time) Ptr() interface{} { return v }
 func (v *Time) Assign(l Lit) error {
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().(time.Time); ok {
@@ -50,6 +51,8 @@ func (v *Time) Assign(l Lit) error {
 	}
 	return ErrNotAssignable
 }
+
+func (v *Span) Ptr() interface{} { return v }
 func (v *Span) Assign(l Lit) error {
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().(time.Duration); ok {

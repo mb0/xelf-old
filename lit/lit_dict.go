@@ -98,6 +98,7 @@ func (v *Dict) WriteBfr(b bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
+func (v *Dict) Ptr() interface{} { return v }
 func (v *Dict) Assign(l Lit) error {
 	switch lv := l.(type) {
 	case *Dict:
