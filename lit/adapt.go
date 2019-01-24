@@ -146,15 +146,15 @@ func adaptMap(v reflect.Value) (Map, error) {
 }
 
 func adaptObj(v reflect.Value) (Obj, error) {
-	fs, idx, err := reflectFields(v.Type())
+	nfo, idx, err := reflectFields(v.Type(), make(infoMap))
 	if err != nil {
 		return nil, err
 	}
-	res, err := MakeObj(typ.Obj(fs))
+	res, err := MakeObj(typ.Obj(nfo.Fields))
 	if err != nil {
 		return nil, err
 	}
-	for i, f := range fs {
+	for i, f := range nfo.Fields {
 		el, err := AdaptValue(v.FieldByIndex(idx[i]))
 		if err != nil {
 			return nil, err

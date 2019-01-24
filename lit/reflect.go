@@ -32,6 +32,17 @@ func Reflect(v interface{}) (typ.Type, error) {
 
 // ReflectType returns the xelf type for the reflect type t or an error.
 func ReflectType(t reflect.Type) (res typ.Type, err error) {
+	nfos := make(infoMap)
+	return reflectType(t, nfos)
+}
+
+type fields = struct {
+	*typ.Info
+	Idx [][]int
+}
+type infoMap = map[reflect.Type]*fields
+
+func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 	var ptr bool
 	if ptr = t.Kind() == reflect.Ptr; ptr {
 		t = t.Elem()
@@ -69,11 +80,11 @@ func ReflectType(t reflect.Type) (res typ.Type, err error) {
 			return typ.Dict, nil
 		}
 		// TODO check rec
-		fs, _, err := reflectFields(t)
+		nfo, _, err := reflectFields(t, nfos)
 		if err != nil {
 			return typ.Void, err
 		}
-		res = typ.Obj(fs)
+		res = typ.Type{Kind: typ.KindObj, Info: nfo}
 	case reflect.Array:
 		if isRef(t, refUUID) {
 			res = typ.UUID
@@ -82,7 +93,7 @@ func ReflectType(t reflect.Type) (res typ.Type, err error) {
 		if !isRef(t.Key(), refStr) {
 			return typ.Void, errors.New("map key must by string type")
 		}
-		et, err := ReflectType(t.Elem())
+		et, err := reflectType(t.Elem(), nfos)
 		if err != nil {
 			return typ.Void, err
 		}
@@ -95,7 +106,7 @@ func ReflectType(t reflect.Type) (res typ.Type, err error) {
 		if isRef(t, refList) {
 			return typ.List, nil
 		}
-		et, err := ReflectType(t.Elem())
+		et, err := reflectType(t.Elem(), nfos)
 		if err != nil {
 			return typ.Void, err
 		}
@@ -116,11 +127,17 @@ func isRef(t reflect.Type, ref reflect.Type) bool {
 	return t == ref || t.ConvertibleTo(ref)
 }
 
-func reflectFields(t reflect.Type) ([]typ.Field, [][]int, error) {
+func reflectFields(t reflect.Type, nfos infoMap) (*typ.Info, [][]int, error) {
+	nfo := nfos[t]
+	if nfo != nil {
+		return nfo.Info, nfo.Idx, nil
+	}
+	nfo = &fields{Info: new(typ.Info)}
+	nfos[t] = nfo
 	fs := make([]typ.Field, 0, 16)
 	idx := make([][]int, 0, 16)
 	err := collectFields(t, nil, func(name, _ string, et reflect.Type, i []int) error {
-		ft, err := ReflectType(et)
+		ft, err := reflectType(et, nfos)
 		if err != nil {
 			return err
 		}
@@ -131,7 +148,9 @@ func reflectFields(t reflect.Type) ([]typ.Field, [][]int, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return fs, idx, nil
+	nfo.Fields = fs
+	nfo.Idx = idx
+	return nfo.Info, idx, nil
 }
 
 type fidx struct {
