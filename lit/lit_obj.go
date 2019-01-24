@@ -99,6 +99,30 @@ func (a *abstrObj) IterIdx(it func(int, Lit) error) error {
 	}
 	return nil
 }
+func (a *abstrObj) String() string               { return bfr.String(a) }
+func (a *abstrObj) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
+func (a *abstrObj) WriteBfr(b bfr.Ctx) error {
+	b.WriteByte('{')
+	n := 0
+	for i, f := range a.typ.Fields {
+		el, err := a.Idx(i)
+		if err != nil {
+			return err
+		}
+		if f.Opt() && el.IsZero() {
+			continue
+		}
+		if n++; n > 1 {
+			writeSep(b)
+		}
+		writeKey(b, f.Key())
+		err = writeLit(b, el)
+		if err != nil {
+			return err
+		}
+	}
+	return b.WriteByte('}')
+}
 
 var ErrObjProxyVal = errors.New("unexpected obj proxy value")
 
@@ -252,17 +276,25 @@ func (p *proxyObj) String() string               { return bfr.String(p) }
 func (p *proxyObj) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
 func (p *proxyObj) WriteBfr(b bfr.Ctx) error {
 	b.WriteByte('{')
-	i := 0
-	err := p.IterKey(func(k string, el Lit) error {
-		if i > 0 {
-			writeSep(b)
+	n := 0
+	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
+		for i, f := range p.typ.Fields {
+			el, err := ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
+			if err != nil {
+				return err
+			}
+			if f.Opt() && el.IsZero() {
+				continue
+			}
+			if n++; n > 1 {
+				writeSep(b)
+			}
+			writeKey(b, f.Key())
+			err = writeLit(b, el)
+			if err != nil {
+				return err
+			}
 		}
-		i++
-		writeKey(b, k)
-		return writeLit(b, el)
-	})
-	if err != nil {
-		return err
 	}
 	return b.WriteByte('}')
 }
