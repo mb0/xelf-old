@@ -78,8 +78,17 @@ func (a *Info) IsZero() bool {
 	return a == nil || a.Ref == "" && len(a.Fields) == 0 && len(a.Values) == 0
 }
 
-func (a Type) Equal(b Type) bool { return a.Kind == b.Kind && a.Info.Equal(b.Info) }
-func (a *Info) Equal(b *Info) bool {
+type infoPair = struct{ a, b *Info }
+
+func (a Type) Equal(b Type) bool { return a.equal(b, nil) }
+func (a Type) equal(b Type, hist []infoPair) bool {
+	return a.Kind == b.Kind && a.Info.equal(b.Info, hist)
+}
+func (a *Info) Equal(b *Info) bool { return a.equal(b, nil) }
+func (a *Info) equal(b *Info, hist []infoPair) bool {
+	if a == b {
+		return true
+	}
 	if a.IsZero() {
 		return b.IsZero()
 	}
@@ -89,23 +98,30 @@ func (a *Info) Equal(b *Info) bool {
 		a.Ref != b.Ref && a.Key() != b.Key() {
 		return false
 	}
-	for i, af := range a.Fields {
-		if !af.Equal(b.Fields[i]) {
-			return false
-		}
-	}
 	for i, av := range a.Values {
 		if !av.Equal(b.Values[i]) {
 			return false
 		}
 	}
+	p := infoPair{a, b}
+	for _, h := range hist {
+		if h == p {
+			return true
+		}
+	}
+	for i, af := range a.Fields {
+		if !af.equal(b.Fields[i], append(hist, p)) {
+			return false
+		}
+	}
 	return true
-}
-func (a Field) Equal(b Field) bool {
-	return (a.Name == b.Name || a.Key() == b.Key()) && a.Type.Equal(b.Type)
 }
 func (a Value) Equal(b Value) bool {
 	return (a.Name == b.Name || a.Key() == b.Key()) && a.Val == b.Val
+}
+func (a Field) Equal(b Field) bool { return a.equal(b, nil) }
+func (a Field) equal(b Field, hist []infoPair) bool {
+	return (a.Name == b.Name || a.Key() == b.Key()) && a.Type.equal(b.Type, hist)
 }
 
 func (a Type) String() string {
@@ -115,6 +131,9 @@ func (a Type) String() string {
 }
 
 func (a Type) WriteBfr(b bfr.Ctx) error {
+	return a.writeBfr(b, nil)
+}
+func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 	switch a.Last().Kind & MaskRef {
 	case KindRef:
 		k := a.Kind
@@ -144,14 +163,24 @@ func (a Type) WriteBfr(b bfr.Ctx) error {
 		if err != nil {
 			return err
 		}
-		err = a.Info.WriteBfr(b)
+		for i := 0; i < len(hist); i++ {
+			h := hist[len(hist)-1-i]
+			if a.Info.Equal(h) {
+				b.WriteString(" + @..")
+				for j := 0; j < i; j++ {
+					b.WriteByte('.')
+				}
+				return b.WriteByte(')')
+			}
+		}
+		err = a.Info.writeBfr(b, append(hist, a.Info))
 		b.WriteByte(')')
 		return err
 	}
 	return a.Kind.WriteBfr(b)
 }
 
-func (a *Info) WriteBfr(b bfr.Ctx) error {
+func (a *Info) writeBfr(b bfr.Ctx, hist []*Info) error {
 	if a == nil {
 		return nil
 	}
@@ -178,7 +207,7 @@ func (a *Info) WriteBfr(b bfr.Ctx) error {
 			b.WriteByte(' ')
 			i++
 		}
-		err := f.Type.WriteBfr(b)
+		err := f.Type.writeBfr(b, hist)
 		if err != nil {
 			return err
 		}
