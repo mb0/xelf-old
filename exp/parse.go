@@ -29,6 +29,10 @@ func Parse(a *lex.Tree) (El, error) {
 		}
 		t, err := typ.ParseSym(a.Val)
 		if err == nil {
+			// check if comment
+			if t == typ.Void {
+				return nil, nil
+			}
 			return t, nil
 		}
 		return &Ref{Sym{Name: a.Val}}, nil
@@ -43,7 +47,12 @@ func Parse(a *lex.Tree) (El, error) {
 		var sym Sym
 		args := make([]El, 0, len(a.Seq))
 		switch f := fst.(type) {
+		case nil: // comment
+			return nil, nil
 		case Type:
+			if f == typ.Void {
+				return nil, nil
+			}
 			// check if type definition
 			if nr, nf := typ.NeedsInfo(f); nr || nf {
 				n, err := typ.ParseInfo(a, nr, nf)
@@ -137,7 +146,9 @@ func plainArgs(res []El, seq []*lex.Tree) ([]El, error) {
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, e)
+		if e != nil {
+			res = append(res, e)
+		}
 	}
 	return res, nil
 }

@@ -13,6 +13,8 @@ func TestParse(t *testing.T) {
 		raw  string
 		want El
 	}{
+		{`void`, nil},
+		{`(void any 1 2 3 'things')`, nil},
 		{`1`, lit.Num(1)},
 		{`bool`, typ.Bool},
 		{`name`, &Ref{Sym: Sym{Name: "name"}}},
