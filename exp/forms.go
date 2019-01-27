@@ -3,6 +3,7 @@ package exp
 import "errors"
 
 var (
+	ErrArgCount  = errors.New("unexpected argument count")
 	ErrRogueEl   = errors.New("unexpected element")
 	ErrRogueTag  = errors.New("unexpected tag")
 	ErrRogueDecl = errors.New("unexpected declaration")
@@ -17,16 +18,40 @@ var (
 // plain elements in the context of forms.
 
 // ArgsForm accepts only plain elements.
-func ArgsForm(es []El) ([]El, error) {
+func ArgsForm(es []El) error {
 	for _, e := range es {
 		switch e.(type) {
 		case Tag:
-			return nil, ErrRogueTag
+			return ErrRogueTag
 		case Decl:
-			return nil, ErrRogueDecl
+			return ErrRogueDecl
 		}
 	}
-	return es, nil
+	return nil
+}
+
+// ArgsMin accepts at least min plain elemts.
+func ArgsMin(es []El, min int) error {
+	if len(es) < min {
+		return ErrArgCount
+	}
+	return ArgsForm(es)
+}
+
+// ArgsExact accepts exactly n plain elements.
+func ArgsExact(es []El, n int) error {
+	if len(es) != n {
+		return ErrArgCount
+	}
+	return ArgsForm(es)
+}
+
+// ArgsMinMax accepts at least min and at most max plain elements.
+func ArgsMinMax(es []El, min, max int) error {
+	if len(es) < min || len(es) > max {
+		return ErrArgCount
+	}
+	return ArgsForm(es)
 }
 
 // TagsForm accepts leading plain elements and then tag expressions after that.
