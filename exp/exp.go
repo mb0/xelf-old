@@ -1,6 +1,8 @@
 package exp
 
 import (
+	"errors"
+
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -14,7 +16,7 @@ type El interface {
 	String() string
 }
 
-// Sym holds symbol data and is used in both Val and Expr elements.
+// Sym holds symbol data and is used by expressions and symbol references.
 type Sym struct {
 	Name string
 	Rslv Resolver
@@ -55,7 +57,7 @@ type (
 	}
 )
 
-// Env is the scoped symbol environment used to define and lookup resolvers by symbol.
+// Env is a scoped symbol environment used to define and lookup resolvers by symbol.
 type Env interface {
 	// Parent returns the parent environment or nil for the root environment.
 	Parent() Env
@@ -67,15 +69,34 @@ type Env interface {
 	Get(sym string) Resolver
 }
 
-// Resolver can resolve an element given a context and environment.
+// ErrUnres is a special error value that is returned by a resolver when
+// the result is unresolved but otherwise valid.
+var ErrUnres = errors.New("unresolved")
+
+// Resolver is the common interface of all element resolvers.
 type Resolver interface {
-	Resolve(*Ctx, Env, El) (El, error)
+	// Resolve resolves el with a context and environment and returns the result or an error.
+	//
+	// The passed in unresolved element is either a expression or a type or symbol reference.
+	//
+	// A successful resolution returns either a type or a literal without an error.
+	// When parts of the element could not be resolved it returns the special error ErrUnres,
+	// and either the original element or a new partially resolved element.
+	// Any other error ends the whole resolution process.
+	Resolve(c *Ctx, enc Env, el El) (El, error)
 }
 
 // Ctx is the resolution context that defines the resolution level and collects information.
 type Ctx struct {
+	// Exec indicates that the resolution is expected to successfully resolve.
+	//
+	// This means that all sub-expressions must also successfully resolve and any error
+	// even the special ErrUnres will end resolution.
+	// Expressions with side effects or any interaction outside the resolution environment
+	// should only attempt to resolve if exec is true.
 	Exec bool
 
+	// Unres is a list of all unresolved expressions and type and symbol references.
 	Unres []El
 }
 
