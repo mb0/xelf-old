@@ -16,8 +16,12 @@ Expression elements are enclosed in parenthesis and usually start with a referen
     Decl: a declaration group that applies to the parent expression
 
 The parsing and resolution process is very abstract and uses following rules:
+Literals and type symbols as well as type expressions are parsed normally.
 Tag and declaration symbols always start an implicit sub expression.
     (eq (e :a 1 +b 2) (e (:a 1) (+b 2)))
+
+All other symbols are parsed as references. Expressions not starting with a reference, are parsed
+as a dynamic expression.
 
 Implicit declarations associate to the elements to the right until the end, another declaration or
 the special naked declaration symbol "-". The elements before the first and after the last
@@ -32,15 +36,12 @@ tag are grouped in a tag expression with the special tag "::".
 
 In the end a resolver implementation decides whether and how those sub expression are interpreted.
 
-The parser reads literal and type symbols as such and otherwise looks up a resolver by name.
-Expressions starting with a type are rewritten to the 'as'-expression
-    (eq (str 'test') (as str 'test'))
+Dynamic expressions starting with a literal or type are resolved as the 'as' and 'combine'
+expressions. Languages built on this package can choose to use the built-in std resolvers or use
+custom implementations.
 
-Expressions starting with a literal are rewritten to the 'combine'-expression
-    (eq ('a' 'b' 'c') (combine 'a' 'b' 'c'))
-
-Languages built on this package can choose to use the built-in std resolvers or use custom
-implementations.
+Dynamic expressions starting with a tag or declaration are invalid. The only other allowed
+start elements are another unresolved or dynamic expression.
 
 */
 package exp

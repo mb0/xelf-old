@@ -15,24 +15,21 @@ func TestParse(t *testing.T) {
 	}{
 		{`void`, nil},
 		{`(void any 1 2 3 'things')`, nil},
+		{`null`, lit.Nil},
+		{`()`, Dyn{}},
 		{`1`, lit.Num(1)},
 		{`bool`, typ.Bool},
 		{`name`, &Ref{Sym: Sym{Name: "name"}}},
 		{`(false)`, lit.False},
-		{`(bool 1)`, &Expr{
-			Sym:  Sym{Name: "as", Type: typ.Bool},
-			Args: []El{typ.Bool, lit.Num(1)}},
-		},
+		{`(bool 1)`, Dyn{typ.Bool, lit.Num(1)}},
 		{`(obj +x +y int)`, typ.Obj([]typ.Field{
 			{Name: "x", Type: typ.Int},
 			{Name: "y", Type: typ.Int},
 		})},
-		{`('Hello ' $Name '!')`, &Expr{
-			Sym: Sym{Name: "combine", Type: typ.Char}, Args: []El{
-				lit.Char("Hello "),
-				&Ref{Sym: Sym{Name: "$Name"}},
-				lit.Char("!"),
-			},
+		{`('Hello ' $Name '!')`, Dyn{
+			lit.Char("Hello "),
+			&Ref{Sym: Sym{Name: "$Name"}},
+			lit.Char("!"),
 		}},
 		{`(a :b +c d)`, &Expr{
 			Sym: Sym{Name: "a"},
@@ -44,9 +41,7 @@ func TestParse(t *testing.T) {
 			},
 		}},
 		{`((1 2) 1 2)`, Dyn{
-			&Expr{Sym: Sym{Name: "combine", Type: typ.Num}, Args: []El{
-				lit.Num(1), lit.Num(2),
-			}},
+			Dyn{lit.Num(1), lit.Num(2)},
 			lit.Num(1), lit.Num(2),
 		}},
 	}
@@ -59,7 +54,6 @@ func TestParse(t *testing.T) {
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("%s want:\n%#v\n\tgot:\n%#v", test.raw, test.want, got)
 			continue
-
 		}
 	}
 }

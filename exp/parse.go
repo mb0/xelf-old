@@ -37,8 +37,8 @@ func Parse(a *lex.Tree) (El, error) {
 		}
 		return &Ref{Sym{Name: a.Val}}, nil
 	case '(':
-		if len(a.Seq) == 0 { // reuse void type as void expressions
-			return typ.Void, nil
+		if len(a.Seq) == 0 { // empty expression is null
+			return Dyn{}, nil
 		}
 		fst, err := Parse(a.Seq[0])
 		if err != nil {
@@ -62,15 +62,13 @@ func Parse(a *lex.Tree) (El, error) {
 				f.Info = n
 				return f, nil
 			}
-			// or a conversion
-			sym = Sym{Name: "as", Type: f}
+			// otherwise it is a constructor or conversion, handled in resolution
 			args = append(args, f)
 		case Lit:
 			if len(a.Seq) == 1 {
 				return fst, nil
 			}
-			// default literal resolver
-			sym = Sym{Name: "combine", Type: f.Typ()}
+			// is a literal combine expression, handled in resolution
 			args = append(args, f)
 		case *Ref:
 			sym = f.Sym
