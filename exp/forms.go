@@ -11,6 +11,7 @@ var (
 	ErrRogueTail = errors.New("unexpected tail element")
 	ErrTailTag   = errors.New("unexpected tail tag")
 	ErrTailDecl  = errors.New("unexpected tail declaration")
+	ErrNakedDecl = errors.New("unexpected naked declaration")
 )
 
 // Forms are helper functions to check expression arguments
@@ -108,28 +109,47 @@ func NodeForm(es []El) (tags []Tag, list []El, _ error) {
 	return tags, list, nil
 }
 
-// DeclForm accepts only declarations.
-// This is used for the let expression: (let +nice true)
+// UniDeclForm accepts only declarations with one argument.
+// Naked declaration use the next declaration's argument.
+// This is used for the let expression: (let +x +y 0)
 // This is also the same syntax as xelf object type definitions.
-func DeclForm(es []El) ([]Decl, error) {
+func UniDeclForm(es []El) ([]Decl, error) {
+	var naked int
 	decls := make([]Decl, 0, len(es))
 	for _, e := range es {
 		switch v := e.(type) {
 		case Decl:
-			decls = append(decls, v)
+			switch len(v.Args) {
+			case 0:
+				naked++
+				decls = append(decls, v)
+			case 1:
+				for naked > 0 {
+					decls[len(decls)-naked].Args = v.Args
+					naked--
+				}
+				decls = append(decls, v)
+			default:
+				return nil, ErrRogueTail
+			}
 		case Tag:
 			return nil, ErrRogueTag
 		default:
 			return nil, ErrRogueEl
 		}
 	}
+	if naked > 0 {
+		return nil, ErrNakedDecl
+	}
 	return decls, nil
 }
 
-// DeclRestForm accepts leading declarations and then plain elements.
+// UniDeclRest accepts leading declarations with one argument and then plain elements.
+// Naked declaration use the next declaration's argument.
 // This is used for the with expression: (with +say 'Hello' +to 'World' (log (say ' ' to '!'))
-func DeclRestForm(es []El) (decl []Decl, list []El, _ error) {
-	decl = make([]Decl, 0, len(es))
+func UniDeclRest(es []El) (decls []Decl, list []El, _ error) {
+	var naked int
+	decls = make([]Decl, 0, len(es))
 	var tail bool
 	for i, e := range es {
 		switch v := e.(type) {
@@ -137,7 +157,28 @@ func DeclRestForm(es []El) (decl []Decl, list []El, _ error) {
 			if tail {
 				return nil, nil, ErrTailDecl
 			}
-			decl = append(decl, v)
+			switch len(v.Args) {
+			case 0:
+				naked++
+				decls = append(decls, v)
+			case 1:
+				for naked > 0 {
+					decls[len(decls)-naked].Args = v.Args
+					naked--
+				}
+				decls = append(decls, v)
+			default:
+				if i != len(es)-1 {
+					return nil, nil, ErrRogueTail
+				}
+				list = v.Args[1:]
+				v.Args = v.Args[:1]
+				for naked > 0 {
+					decls[len(decls)-naked].Args = v.Args
+					naked--
+				}
+				decls = append(decls, v)
+			}
 		case Tag:
 			return nil, nil, ErrRogueTag
 		default:
@@ -147,7 +188,10 @@ func DeclRestForm(es []El) (decl []Decl, list []El, _ error) {
 			}
 		}
 	}
-	return decl, list, nil
+	if naked > 0 {
+		return nil, nil, ErrNakedDecl
+	}
+	return decls, list, nil
 }
 
 // ArgsDeclForm accepts leading plain elements and then declaration expressions.
