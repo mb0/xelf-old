@@ -23,6 +23,14 @@ type Sym struct {
 	Type Type
 }
 
+// Lookup returns the cached resolver, if nil it queries and caches if from env.
+func (s *Sym) Lookup(env Env) Resolver {
+	if s.Rslv == nil {
+		s.Rslv = env.Get(s.Name)
+	}
+	return s.Rslv
+}
+
 // All language elements
 type (
 	// Type is a type as defined in package typ.
