@@ -104,11 +104,11 @@ func comparable(a, b Lit) (v, w Lit, ok bool) {
 		a, b = b, a
 	}
 	if cmp != typ.CmpSame {
-		c, err := Convert(b, a.Typ(), cmp)
+		c, err := Convert(a, b.Typ(), cmp)
 		if err != nil {
 			return nil, nil, false
 		}
-		b = c
+		a = c
 	}
 	return a, b, true
 }
