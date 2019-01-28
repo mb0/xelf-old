@@ -36,9 +36,8 @@ tag are grouped in a tag expression with the special tag "::".
 
 In the end a resolver implementation decides whether and how those sub expression are interpreted.
 
-Dynamic expressions starting with a literal or type are resolved as the 'as' and 'combine'
-expressions. Languages built on this package can choose to use the built-in std resolvers or use
-custom implementations.
+Dynamic expressions starting with a literal or type are resolved as the 'dyn' expression. Languages
+built on this package can choose to use the built-in std resolver or use a custom implementation.
 
 Dynamic expressions starting with a tag or declaration are invalid. The only other allowed
 start elements are another unresolved or dynamic expression.
