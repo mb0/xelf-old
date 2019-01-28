@@ -27,7 +27,13 @@ func SplitKeyed(seq []*Tree, uni bool, pred func(string) bool) (head, tail []*Tr
 				last = true
 			}
 		} else if last {
-			res[len(res)-1].Seq = seq[i : i+1]
+			el := &res[len(res)-1]
+			if el.Seq == nil {
+				el.Seq = seq[i : i+1]
+			} else {
+				// el.Seq points into seq, reslice and extend length
+				el.Seq = el.Seq[:len(el.Seq)+1]
+			}
 			last = !uni
 		} else if len(res) > 0 {
 			tail = seq[i:]

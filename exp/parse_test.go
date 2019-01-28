@@ -44,6 +44,13 @@ func TestParse(t *testing.T) {
 			Dyn{lit.Num(1), lit.Num(2)},
 			lit.Num(1), lit.Num(2),
 		}},
+		{`(1 (+z 3 4))`, Dyn{
+			lit.Num(1),
+			Decl{Name: "+z", Args: []El{
+				lit.Num(3),
+				lit.Num(4),
+			}},
+		}},
 	}
 	for _, test := range tests {
 		got, err := ParseString(test.raw)

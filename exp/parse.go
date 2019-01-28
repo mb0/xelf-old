@@ -106,7 +106,7 @@ func decledArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 }
 
 func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
-	seq, rest := lex.Split(seq, lex.SymPred(0, func(s string) bool { return s == "::" }))
+	seq, rest := lex.SplitAfter(seq, lex.SymPred(0, func(s string) bool { return s == "::" }))
 	head, tail, tags := lex.SplitKeyed(seq, true, lex.IsTag)
 	res, err = plainArgs(res, head)
 	if err != nil {
@@ -119,7 +119,7 @@ func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 		}
 		res = append(res, Tag{Name: tag.Key, Args: args})
 	}
-	if len(tail) > 0 || len(rest) > 1 {
+	if len(tail) > 0 || len(rest) > 0 {
 		args := make([]El, 0, len(tail)+len(rest))
 		if len(tail) > 0 {
 			args, err = plainArgs(args, tail)
@@ -127,8 +127,8 @@ func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 				return nil, err
 			}
 		}
-		if len(rest) > 1 {
-			args, err = plainArgs(args, rest[1:])
+		if len(rest) > 0 {
+			args, err = plainArgs(args, rest)
 			if err != nil {
 				return nil, err
 			}
