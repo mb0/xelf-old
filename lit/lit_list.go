@@ -77,6 +77,10 @@ func (l *List) Assign(val Lit) error {
 	return nil
 }
 
+func (l List) Append(vals ...Lit) (Appender, error) {
+	return append(l, vals...), nil
+}
+
 func writeSep(b bfr.Ctx) error {
 	if b.JSON {
 		return b.WriteByte(',')

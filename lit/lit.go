@@ -93,9 +93,16 @@ type Keyer interface {
 	IterKey(iter func(string, Lit) error) error
 }
 
+// Appender is the common interface for both list and arr literals.
+type Appender interface {
+	Idxer
+	// Append appends the given literals and returns a new appender or an error
+	Append(...Lit) (Appender, error)
+}
+
 // Arr is the interface for arr literals.
 type Arr interface {
-	Idxer
+	Appender
 	// Elem returns the arr element type.
 	Elem() typ.Type
 }

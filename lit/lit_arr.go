@@ -46,6 +46,17 @@ func (a abstrArr) SetIdx(i int, el Lit) (err error) {
 	return a.List.SetIdx(i, el)
 }
 
+func (a abstrArr) Append(ls ...Lit) (Appender, error) {
+	for _, e := range ls {
+		e, err := Convert(e, a.elem, 0)
+		if err != nil {
+			return nil, err
+		}
+		a.List = append(a.List, e)
+	}
+	return a, nil
+}
+
 func (p *proxyArr) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return ErrNotAssignable
@@ -78,6 +89,29 @@ func (p *proxyArr) Assign(l Lit) error {
 	}
 	p.val.Set(v)
 	return nil
+}
+
+func (p *proxyArr) Append(ls ...Lit) (Appender, error) {
+	v, ok := p.elem(reflect.Slice)
+	if !ok {
+		return nil, ErrNotAssignable
+	}
+	rt := v.Type().Elem()
+	for _, e := range ls {
+		if e == nil {
+			return nil, ErrNotAssignable
+		}
+		fp := reflect.New(rt)
+		err := AssignToValue(e, fp)
+		if err != nil {
+			return nil, err
+		}
+		v = reflect.Append(v, fp.Elem())
+	}
+	res := *p
+	res.val = reflect.New(v.Type())
+	res.val.Set(v)
+	return &res, nil
 }
 
 func (p *proxyArr) Elem() typ.Type { return p.typ.Next() }
