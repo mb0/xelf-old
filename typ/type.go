@@ -1,6 +1,7 @@
 package typ
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/mb0/xelf/bfr"
@@ -35,6 +36,28 @@ func (a *Info) Key() string {
 		a.key = strings.ToLower(a.Ref)
 	}
 	return a.key
+}
+
+var errFieldNotFound = errors.New("field not found")
+
+// FieldByIdx returns a pointer to the field at idx or an error
+func (a *Info) FieldByIdx(idx int) (*Field, error) {
+	if a != nil && idx >= 0 && idx < len(a.Fields) {
+		return &a.Fields[idx], nil
+	}
+	return nil, errFieldNotFound
+}
+
+// FieldByKey returns a pointer to the field with key or an error
+func (a *Info) FieldByKey(key string) (*Field, int, error) {
+	if a != nil {
+		for i, f := range a.Fields {
+			if f.Key() == key {
+				return &a.Fields[i], i, nil
+			}
+		}
+	}
+	return nil, -1, errFieldNotFound
 }
 
 // Field represents an obj field with a name and type.

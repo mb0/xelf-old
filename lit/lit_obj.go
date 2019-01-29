@@ -44,21 +44,21 @@ func (a *abstrObj) IsZero() bool {
 	return true
 }
 func (a *abstrObj) Idx(i int) (Lit, error) {
-	_, err := idxField(a.typ, i)
+	_, err := a.typ.FieldByIdx(i)
 	if err != nil {
 		return nil, err
 	}
 	return a.Dict.List[i].Lit, nil
 }
 func (a *abstrObj) Key(key string) (Lit, error) {
-	_, _, err := keyField(a.typ, key)
+	_, _, err := a.typ.FieldByKey(key)
 	if err != nil {
 		return nil, err
 	}
 	return a.Dict.Key(key)
 }
 func (a *abstrObj) SetIdx(i int, el Lit) error {
-	f, err := idxField(a.typ, i)
+	f, err := a.typ.FieldByIdx(i)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (a *abstrObj) SetIdx(i int, el Lit) error {
 	return nil
 }
 func (a *abstrObj) SetKey(key string, el Lit) error {
-	f, _, err := keyField(a.typ, key)
+	f, _, err := a.typ.FieldByKey(key)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (p *proxyObj) Assign(l Lit) error {
 		return ErrObjProxyVal
 	}
 	return b.IterKey(func(k string, e Lit) error {
-		_, i, err := keyField(p.typ, k)
+		_, i, err := p.typ.FieldByKey(k)
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ func (p *proxyObj) Keys() []string {
 	return nil
 }
 func (p *proxyObj) Idx(i int) (Lit, error) {
-	f, err := idxField(p.typ, i)
+	f, err := p.typ.FieldByIdx(i)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func (p *proxyObj) Idx(i int) (Lit, error) {
 	return Null(f.Type), nil
 }
 func (p *proxyObj) Key(k string) (Lit, error) {
-	f, i, err := keyField(p.typ, k)
+	f, i, err := p.typ.FieldByKey(k)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (p *proxyObj) Key(k string) (Lit, error) {
 	return Null(f.Type), nil
 }
 func (p *proxyObj) SetIdx(i int, l Lit) error {
-	_, err := idxField(p.typ, i)
+	_, err := p.typ.FieldByIdx(i)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (p *proxyObj) SetIdx(i int, l Lit) error {
 	return ErrObjProxyVal
 }
 func (p *proxyObj) SetKey(k string, l Lit) error {
-	_, i, err := keyField(p.typ, k)
+	_, i, err := p.typ.FieldByKey(k)
 	if err != nil {
 		return err
 	}
@@ -297,23 +297,4 @@ func (p *proxyObj) WriteBfr(b bfr.Ctx) error {
 		}
 	}
 	return b.WriteByte('}')
-}
-
-func idxField(t typ.Type, i int) (*typ.Field, error) {
-	if n := t.Info; n != nil {
-		if i >= 0 && i < len(n.Fields) {
-			return &n.Fields[i], nil
-		}
-	}
-	return nil, ErrIdxBounds
-}
-func keyField(t typ.Type, k string) (*typ.Field, int, error) {
-	if n := t.Info; n != nil {
-		for i, f := range n.Fields {
-			if f.Key() == k {
-				return &f, i, nil
-			}
-		}
-	}
-	return nil, 0, typ.ErrFieldName
 }
