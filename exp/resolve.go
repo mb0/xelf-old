@@ -14,20 +14,24 @@ func Resolve(env Env, x El) (El, error) { return (&Ctx{Exec: false}).Resolve(env
 func Execute(env Env, x El) (El, error) { return (&Ctx{Exec: true}).Resolve(env, x) }
 
 // ResolveAll tries to resolve each element in xs in place and returns the first error if any.
-func (c *Ctx) ResolveAll(env Env, xs []El) error {
+func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 	var res error
-	for i, x := range xs {
+	xs := els
+	if !c.Part {
+		xs = make([]El, len(els))
+	}
+	for i, x := range els {
 		r, err := c.Resolve(env, x)
 		if err != nil {
 			if !c.Exec && res == ErrUnres {
 				res = err
 				continue
 			}
-			return err
+			return nil, err
 		}
 		xs[i] = r
 	}
-	return res
+	return xs, res
 }
 
 // Resolve resolves x within env and returns the result or an error.
@@ -52,7 +56,7 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 		}
 		return v, err
 	case *Ref:
-		rslv = v.Lookup(env)
+		rslv = env.Get(v.Name)
 	case Dyn:
 		if len(v) == 0 {
 			return lit.Nil, nil
@@ -62,10 +66,10 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 			x = &Expr{Sym: Sym{Name: "dyn", Rslv: rslv}, Args: v}
 		}
 	case Tag:
-		err = c.ResolveAll(env, v.Args)
+		v.Args, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case Decl:
-		err = c.ResolveAll(env, v.Args)
+		v.Args, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case *Expr:
 		rslv = v.Lookup(env)

@@ -22,34 +22,34 @@ func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	t := e.Args[0].(Lit).Typ()
+	t := args[0].(Lit).Typ()
 	t, opt := t.Deopt()
 	var res Lit
 	switch t.Kind & typ.MaskRef {
 	case typ.BaseChar, typ.KindStr:
 		var b strings.Builder
-		err = catChar(&b, false, e.Args)
+		err = catChar(&b, false, args)
 		if err != nil {
 			return nil, err
 		}
 		res = lit.Str(b.String())
 	case typ.KindRaw:
 		var b bytes.Buffer
-		err = catChar(&b, true, e.Args)
+		err = catChar(&b, true, args)
 		if err != nil {
 			return nil, err
 		}
 		res = lit.Raw(b.Bytes())
 	default:
-		apd, ok := e.Args[0].(lit.Appender)
+		apd, ok := args[0].(lit.Appender)
 		if !ok {
 			break
 		}
-		for _, arg := range e.Args[1:] {
+		for _, arg := range args[1:] {
 			idxr, ok := arg.(lit.Idxer)
 			if !ok {
 				return nil, errCatLit
@@ -79,15 +79,15 @@ func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	apd, ok := e.Args[0].(lit.Appender)
+	apd, ok := args[0].(lit.Appender)
 	if !ok {
-		return nil, fmt.Errorf("cannot append to %T", e.Args[0])
+		return nil, fmt.Errorf("cannot append to %T", args[0])
 	}
-	for _, arg := range e.Args[1:] {
+	for _, arg := range args[1:] {
 		if l, ok := arg.(Lit); ok {
 			apd, err = apd.Append(l)
 			if err != nil {
@@ -118,11 +118,11 @@ func rslvSet(c *Ctx, env Env, e *Expr) (El, error) {
 		return fst, nil
 	}
 	// resolve all arguments
-	err = c.ResolveAll(env, e.Args[1:])
+	args, err := c.ResolveAll(env, e.Args[1:])
 	if err != nil {
 		return e, err
 	}
-	decls, err := UniDeclForm(e.Args[1:])
+	decls, err := UniDeclForm(args)
 	if err != nil {
 		return nil, err
 	}

@@ -15,11 +15,15 @@ func rslvAdd(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) == 0 {
 		return lit.Num(0), nil
 	}
-	res, err := resolveNumers(c, env, e.Args, 0, func(r, n float64) float64 { return r + n })
+	args, err := resolveArgs(c, env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	return convNumerType(e.Args[0], res)
+	res, err := reduceNumers(args, 0, func(r, n float64) float64 { return r + n })
+	if err != nil {
+		return nil, err
+	}
+	return convNumerType(args[0], res)
 }
 
 // rslvMul tries to multiply all arguments and converts the product to the first argument's type.
@@ -27,11 +31,15 @@ func rslvMul(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) == 0 {
 		return lit.Num(1), nil
 	}
-	res, err := resolveNumers(c, env, e.Args, 1, func(r, n float64) float64 { return r * n })
+	args, err := resolveArgs(c, env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	return convNumerType(e.Args[0], res)
+	res, err := reduceNumers(args, 1, func(r, n float64) float64 { return r * n })
+	if err != nil {
+		return nil, err
+	}
+	return convNumerType(args[0], res)
 }
 
 // rslvSub tries to subtract the sum of the rest from the first argument and
@@ -41,19 +49,19 @@ func rslvSub(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	res := getNumer(e.Args[0])
+	res := getNumer(args[0])
 	if res == nil {
 		return nil, err
 	}
-	sub, err := reduceNumers(e.Args[1:], 0, func(r, n float64) float64 { return r + n })
+	sub, err := reduceNumers(args[1:], 0, func(r, n float64) float64 { return r + n })
 	if err != nil {
 		return nil, err
 	}
-	return convNumerType(e.Args[0], lit.Num(res.Num())-sub)
+	return convNumerType(args[0], lit.Num(res.Num())-sub)
 }
 
 // rslvDiv tries to divide the product of the rest from the first argument.
@@ -64,15 +72,15 @@ func rslvDiv(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	res := getNumer(e.Args[0])
+	res := getNumer(args[0])
 	if res == nil {
 		return nil, ErrExpectNumer
 	}
-	div, err := reduceNumers(e.Args[1:], 1, func(r, n float64) float64 { return r * n })
+	div, err := reduceNumers(args[1:], 1, func(r, n float64) float64 { return r * n })
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +92,7 @@ func rslvDiv(c *Ctx, env Env, e *Expr) (El, error) {
 	} else {
 		res = lit.Num(res.Num()) / div
 	}
-	return convNumerType(e.Args[0], res)
+	return convNumerType(args[0], res)
 }
 
 // rslvRem tries to calculate the remainder of the first two arguments and always returns an int.
@@ -93,15 +101,15 @@ func rslvRem(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	res := getNumer(e.Args[0])
+	res := getNumer(args[0])
 	if res == nil {
 		return nil, ErrExpectNumer
 	}
-	mod := getNumer(e.Args[1])
+	mod := getNumer(args[1])
 	if mod == nil {
 		return nil, ErrExpectNumer
 	}
@@ -138,16 +146,12 @@ func reduceNumers(es []El, res float64, f numerReducer) (lit.Num, error) {
 
 type numerReducer = func(r, e float64) float64
 
-func resolveNumers(c *Ctx, env Env, es []El, res float64, f numerReducer) (lit.Num, error) {
+func resolveArgs(c *Ctx, env Env, es []El) ([]El, error) {
 	err := ArgsForm(es)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	err = c.ResolveAll(env, es)
-	if err != nil {
-		return 0, err
-	}
-	return reduceNumers(es, res, f)
+	return c.ResolveAll(env, es)
 }
 
 func deopt(el El) Lit {

@@ -96,6 +96,9 @@ type Resolver interface {
 
 // Ctx is the resolution context that defines the resolution level and collects information.
 type Ctx struct {
+	// Part indicates that the resolution should replace partially resolved results.
+	Part bool
+
 	// Exec indicates that the resolution is expected to successfully resolve.
 	//
 	// This means that all sub-expressions must also successfully resolve and any error

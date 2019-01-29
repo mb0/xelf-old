@@ -17,12 +17,12 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) == 0 {
 		return lit.Nil, nil
 	}
-	err := c.ResolveAll(env, e.Args[:1])
+	fst, err := c.Resolve(env, e.Args[0])
 	if err != nil {
 		return e, err
 	}
 	var sym string
-	switch v := e.Args[0].(type) {
+	switch v := fst.(type) {
 	case Type:
 		sym = "as"
 	case Lit:
@@ -76,7 +76,7 @@ func rslvAs(c *Ctx, env Env, e *Expr) (El, error) {
 		return lit.Zero(t), nil
 	}
 	// resolve all arguments
-	err = c.ResolveAll(env, args)
+	args, err = c.ResolveAll(env, args)
 	if err != nil {
 		return e, err
 	}

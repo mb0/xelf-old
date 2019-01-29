@@ -75,13 +75,13 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, neg bool, cmp func(a, b El) boo
 	if err != nil {
 		return nil, err
 	}
-	err = c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
 		return e, err
 	}
-	last := e.Args[0]
-	for i := 1; i < len(e.Args); i++ {
-		el := e.Args[i]
+	last := args[0]
+	for i := 1; i < len(args); i++ {
+		el := args[i]
 		if neg == cmp(last, el) {
 			return lit.False, nil
 		}

@@ -29,12 +29,11 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	for i := range e.Args {
 		args := e.Args[i:]
-		err = c.ResolveAll(env, args[:1])
+		fst, err := c.Resolve(env, args[0])
 		if err != nil {
-			e.Args = args
 			return e, err
 		}
-		l, ok := args[0].(Lit)
+		l, ok := fst.(Lit)
 		if !ok {
 			return nil, fmt.Errorf("unexpected argument in 'or': %T", args[0])
 		}
@@ -55,12 +54,11 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	for i := range e.Args {
 		args := e.Args[i:]
-		err = c.ResolveAll(env, args[:1])
+		fst, err := c.Resolve(env, args[0])
 		if err != nil {
-			e.Args = args
 			return e, err
 		}
-		l, ok := args[0].(Lit)
+		l, ok := fst.(Lit)
 		if !ok {
 			return nil, fmt.Errorf("unexpected argument in 'and': %T", args[0])
 		}
@@ -99,13 +97,13 @@ func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
 	// TODO check actions to find a common type
 	var i int
 	for i = 0; i+1 < len(e.Args); i += 2 {
-		err = c.ResolveAll(env, e.Args[i:i+1])
+		condx, err := c.Resolve(env, e.Args[i])
 		if err != nil {
 			return e, err
 		}
-		cond, ok := e.Args[i].(Lit)
+		cond, ok := condx.(Lit)
 		if !ok {
-			return nil, fmt.Errorf("unexpected condition in 'if' expression %T", e.Args[0])
+			return nil, fmt.Errorf("unexpected condition in 'if' expression %T", condx)
 		}
 		if !cond.IsZero() {
 			return c.Resolve(env, e.Args[i+1])

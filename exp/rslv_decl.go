@@ -36,7 +36,7 @@ func rslvWith(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return e, err
 	}
-	err = c.ResolveAll(s, tail)
+	tail, err = c.ResolveAll(s, tail)
 	if err != nil {
 		return e, err
 	}
@@ -49,12 +49,12 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 		if len(d.Name) < 2 {
 			return nil, errors.New("unnamed declaration")
 		}
-		err := c.ResolveAll(env, d.Args)
+		args, err := c.ResolveAll(env, d.Args)
 		if err != nil {
 			return nil, err
 		}
 		var rslv Resolver
-		switch dv := d.Args[0].(type) {
+		switch dv := args[0].(type) {
 		case Type:
 			res = dv
 			rslv = typeResolver(dv)
