@@ -101,9 +101,6 @@ func rslvRem(c *Ctx, env Env, e *Expr) (El, error) {
 	if res == nil {
 		return nil, ErrExpectNumer
 	}
-	if err != nil {
-		return nil, err
-	}
 	mod := getNumer(e.Args[1])
 	if mod == nil {
 		return nil, ErrExpectNumer

@@ -25,9 +25,7 @@ func (c *Ctx) ResolveAll(env Env, xs []El) error {
 			}
 			return err
 		}
-		if r != x {
-			xs[i] = r
-		}
+		xs[i] = r
 	}
 	return res
 }
