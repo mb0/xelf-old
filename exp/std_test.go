@@ -139,6 +139,9 @@ func TestStdResolve(t *testing.T) {
 		{`(let +a 1 +b 2 +c (int (add a b)))`, lit.Int(3)},
 		{`(if (let +a (int 1)) a)`, lit.Int(1)},
 		{`(with +a 1 +b 2 +c (add a b) (add a b c))`, lit.Num(6)},
+		{`(reduce 'hello' +e +i ['alice' 'bob'] (cat _ (if i ',') ' ' e))`,
+			lit.Str("hello alice, bob"),
+		},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)

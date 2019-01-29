@@ -57,6 +57,8 @@ func Std(sym string) Resolver {
 		f = rslvLet
 	case "with":
 		f = rslvWith
+	case "reduce":
+		f = rslvReduce
 	}
 	if f == nil {
 		return nil
