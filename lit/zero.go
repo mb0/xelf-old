@@ -41,6 +41,19 @@ func Zero(t typ.Type) Lit {
 		return ZeroTime
 	case typ.KindSpan:
 		return ZeroSpan
+	case typ.BaseList:
+		return (List)(nil)
+	case typ.BaseDict:
+		return &Dict{}
+	case typ.KindArr:
+		a, _ := MakeArr(t, 0)
+		return a
+	case typ.KindMap:
+		a, _ := MakeMap(t)
+		return a
+	case typ.KindObj:
+		a, _ := MakeObj(t)
+		return a
 	}
 	return Null(t)
 }
