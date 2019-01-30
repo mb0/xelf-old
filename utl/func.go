@@ -19,7 +19,7 @@ type FuncResolver struct {
 	err   bool
 }
 
-func (r FuncResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error) {
+func (r *FuncResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error) {
 	// we only resolve function when used as expression
 	x, ok := e.(*exp.Expr)
 	if !ok {
@@ -83,14 +83,14 @@ var refErr = reflect.TypeOf((*error)(nil)).Elem()
 // ReflectFunc will reflect val and return a function resolver or an error.
 // The names are optionally and associated to the arguments by index.
 // If no name is defined, it uses a uppercase p and the index as name: 'P0'.
-func ReflectFunc(val interface{}, names ...string) (f FuncResolver, _ error) {
-	f.val = reflect.ValueOf(val)
+func ReflectFunc(val interface{}, names ...string) (*FuncResolver, error) {
+	f := FuncResolver{val: reflect.ValueOf(val)}
 	if f.val.Kind() != reflect.Func {
-		return f, fmt.Errorf("expect function argument got %T", val)
+		return nil, fmt.Errorf("expect function argument got %T", val)
 	}
 	t := f.val.Type()
 	if t.IsVariadic() {
-		return f, fmt.Errorf("variadic fuctions are not yet supported")
+		return nil, fmt.Errorf("variadic fuctions are not yet supported")
 	}
 	n := t.NumIn()
 	fs := make([]typ.Field, 0, n)
@@ -99,7 +99,7 @@ func ReflectFunc(val interface{}, names ...string) (f FuncResolver, _ error) {
 		rt := t.In(i)
 		xt, err := lit.ReflectType(rt)
 		if err != nil {
-			return f, err
+			return nil, err
 		}
 		var name string
 		if i < len(names) {
@@ -119,18 +119,18 @@ func ReflectFunc(val interface{}, names ...string) (f FuncResolver, _ error) {
 		if rt.ConvertibleTo(refErr) {
 			f.err = true
 			if i+1 < n {
-				return f, fmt.Errorf("error can only be last result")
+				return nil, fmt.Errorf("error can only be last result")
 			}
 			break
 		}
 		if i > 0 {
-			return f, fmt.Errorf("expect at most one compatible result and an optional error")
+			return nil, fmt.Errorf("expect at most one compatible result and an optional error")
 		}
 		xt, err := lit.ReflectType(rt)
 		if err != nil {
-			return f, err
+			return nil, err
 		}
 		f.res = xt
 	}
-	return f, nil
+	return &f, nil
 }
