@@ -87,7 +87,11 @@ func (p *proxyArr) Assign(l Lit) error {
 	if err != nil {
 		return err
 	}
-	p.val.Set(v)
+	pv := p.val.Elem()
+	if pv.Kind() == reflect.Ptr {
+		pv = pv.Elem()
+	}
+	pv.Set(v)
 	return nil
 }
 
