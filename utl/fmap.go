@@ -6,7 +6,7 @@ import "github.com/mb0/xelf/exp"
 type Fmap = map[string]interface{}
 
 // MustReflectFmap reflects m and returns a lookup function or panics.
-func MustReflectFmap(m Fmap) func(string) exp.Resolver {
+func MustReflectFmap(m Fmap) exp.Lookup {
 	f, err := ReflectFmap(m)
 	if err != nil {
 		panic(err)
@@ -15,7 +15,7 @@ func MustReflectFmap(m Fmap) func(string) exp.Resolver {
 }
 
 // ReflectFmap reflects m and returns a lookup function or an error.
-func ReflectFmap(m Fmap) (func(string) exp.Resolver, error) {
+func ReflectFmap(m Fmap) (exp.Lookup, error) {
 	res := make(map[string]exp.Resolver, len(m))
 	for key, val := range m {
 		f, err := ReflectFunc(val)
