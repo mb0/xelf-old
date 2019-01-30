@@ -1,6 +1,10 @@
 package utl
 
-import "github.com/mb0/xelf/exp"
+import (
+	"sync"
+
+	"github.com/mb0/xelf/exp"
+)
 
 // Fmap is a go template.FuncMap compatible map type alias
 type Fmap = map[string]interface{}
@@ -27,4 +31,26 @@ func ReflectFmap(m Fmap) (exp.Lookup, error) {
 	return func(sym string) exp.Resolver {
 		return res[sym]
 	}, nil
+}
+
+// LazyFmap reflects a fmap on first use and is protected by a mutex
+type LazyFmap struct {
+	mu sync.Mutex
+	m  Fmap
+	l  exp.Lookup
+}
+
+// Lazy returns a LazyFmap for fmap
+func Lazy(fmap Fmap) *LazyFmap {
+	return &LazyFmap{m: fmap}
+}
+
+// Lookup returns the same fmap lookup function, it is created once on the first call
+func (m *LazyFmap) Lookup() exp.Lookup {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.l == nil {
+		m.l = MustReflectFmap(m.m)
+	}
+	return m.l
 }
