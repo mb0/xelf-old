@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -136,3 +137,12 @@ type Obj interface {
 	// If iter returns an error the iteration is aborted.
 	IterIdx(iter func(int, Lit) error) error
 }
+
+// MarkSpan is a marker interface. When implemented on an int64 indicates a span type.
+type MarkSpan interface{ Seconds() float64 }
+
+// MarkFlag is a marker interface. When implemented on an unsigned integer indicates a flag type.
+type MarkFlag interface{ Flags() []cor.Const }
+
+// MarkEnum is a marker interface. When implemented on a string or integer indicates an enum type.
+type MarkEnum interface{ Enums() []cor.Const }
