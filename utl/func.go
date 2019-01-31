@@ -46,6 +46,9 @@ func (r *FuncResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error
 				return nil, err
 			}
 		}
+		if idx >= len(args) {
+			return nil, fmt.Errorf("unexpected argument index for %v", x.Name)
+		}
 		// resolve tag arg
 		el, err := c.Resolve(env, tag.Args[0])
 		if err != nil {
