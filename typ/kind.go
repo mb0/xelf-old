@@ -17,14 +17,14 @@ const (
 // Each bit in a slot has a certain meaning. The first four bits specify a base type, next two bits
 // further specify the type. The last two bits flag a type as optional or reference version.
 const (
-	BaseNum  = 1 << iota // 0000 0001
-	BaseChar             // 0000 0010
-	BaseList             // 0000 0100
-	BaseDict             // 0000 1000
-	Spec1                // 0001 0000
-	Spec2                // 0010 0000
-	FlagRef              // 0100 0000
-	FlagOpt              // 1000 0000
+	BaseNum  Kind = 1 << iota // 0000 0001
+	BaseChar                  // 0000 0010
+	BaseList                  // 0000 0100
+	BaseDict                  // 0000 1000
+	Spec1                     // 0001 0000
+	Spec2                     // 0010 0000
+	FlagRef                   // 0100 0000
+	FlagOpt                   // 1000 0000
 
 	Spec3    = Spec1 | Spec2       // 0011 0000
 	MaskPrim = BaseNum | BaseChar  // 0000 0011
