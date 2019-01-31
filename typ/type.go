@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 )
 
@@ -19,11 +20,13 @@ func (a Type) Sub() Type {
 	return a
 }
 
+type Const = cor.Const
+
 // Info represents the reference name and obj fields for the ref and obj types.
 type Info struct {
 	Ref    string  `json:"ref,omitempty"`
 	Fields []Field `json:"fields,omitempty"`
-	Values []Value `json:"values,omitempty"`
+	Consts []Const `json:"consts,omitempty"`
 	key    string
 }
 
@@ -81,24 +84,9 @@ func (a Field) Key() string {
 	return a.key
 }
 
-// Value represents named integer constant for a flag or enum type.
-type Value struct {
-	Name string `json:"name,omitempty"`
-	Val  int64  `json:"val,omitempty"`
-	key  string
-}
-
-// Key returns the lowercase value key.
-func (a Value) Key() string {
-	if n := a.Name; n != "" && a.key == "" {
-		a.key = strings.ToLower(n)
-	}
-	return a.key
-}
-
 func (a Type) IsZero() bool { return a.Kind == 0 && a.Info.IsZero() }
 func (a *Info) IsZero() bool {
-	return a == nil || a.Ref == "" && len(a.Fields) == 0 && len(a.Values) == 0
+	return a == nil || a.Ref == "" && len(a.Fields) == 0 && len(a.Consts) == 0
 }
 
 type infoPair = struct{ a, b *Info }
@@ -117,12 +105,12 @@ func (a *Info) equal(b *Info, hist []infoPair) bool {
 	}
 	if b.IsZero() ||
 		len(a.Fields) != len(b.Fields) ||
-		len(a.Values) != len(b.Values) ||
+		len(a.Consts) != len(b.Consts) ||
 		a.Ref != b.Ref && a.Key() != b.Key() {
 		return false
 	}
-	for i, av := range a.Values {
-		if !av.Equal(b.Values[i]) {
+	for i, av := range a.Consts {
+		if av != b.Consts[i] {
 			return false
 		}
 	}
@@ -139,9 +127,7 @@ func (a *Info) equal(b *Info, hist []infoPair) bool {
 	}
 	return true
 }
-func (a Value) Equal(b Value) bool {
-	return (a.Name == b.Name || a.Key() == b.Key()) && a.Val == b.Val
-}
+
 func (a Field) Equal(b Field) bool { return a.equal(b, nil) }
 func (a Field) equal(b Field, hist []infoPair) bool {
 	return (a.Name == b.Name || a.Key() == b.Key()) && a.Type.equal(b.Type, hist)
