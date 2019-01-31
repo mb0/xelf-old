@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -22,7 +23,9 @@ var (
 	refTime = reflect.TypeOf(time.Time{})
 	refList = reflect.TypeOf(List(nil))
 	refDict = reflect.TypeOf((*Dict)(nil))
-	refSecs = reflect.TypeOf((*interface{ Seconds() float64 })(nil))
+	refSecs = reflect.TypeOf((*MarkSpan)(nil))
+	refFlag = reflect.TypeOf((*MarkFlag)(nil))
+	refEnum = reflect.TypeOf((*MarkEnum)(nil))
 )
 
 // Reflect returns the xelf type for the interface value v or an error.
@@ -42,6 +45,13 @@ type fields = struct {
 }
 type infoMap = map[reflect.Type]*fields
 
+func getConstInfo(t reflect.Type, cs []cor.Const) *typ.Info {
+	return &typ.Info{
+		Ref:    t.PkgPath() + "." + t.Name(),
+		Consts: cs,
+	}
+}
+
 func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 	var ptr bool
 	if ptr = t.Kind() == reflect.Ptr; ptr {
@@ -55,18 +65,31 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 			res = typ.Span
 			break
 		}
+		if isRef(t, refEnum) {
+			cs := reflect.Zero(t).Interface().(MarkEnum).Enums()
+			res = typ.Type{typ.KindFlag, getConstInfo(t, cs)}
+			break
+		}
 		fallthrough
 	case reflect.Int, reflect.Int32:
 		res = typ.Int
 	case reflect.Uint64:
-		// TODO check flags
+		if isRef(t, refFlag) {
+			cs := reflect.Zero(t).Interface().(MarkFlag).Flags()
+			res = typ.Type{typ.KindFlag, getConstInfo(t, cs)}
+			break
+		}
 		fallthrough
 	case reflect.Uint, reflect.Uint32:
 		res = typ.Int
 	case reflect.Float32, reflect.Float64:
 		res = typ.Real
 	case reflect.String:
-		// TODO check flags
+		if isRef(t, refEnum) {
+			cs := reflect.Zero(t).Interface().(MarkEnum).Enums()
+			res = typ.Type{typ.KindFlag, getConstInfo(t, cs)}
+			break
+		}
 		res = typ.Str
 	case reflect.Struct:
 		if isRef(t, refTime) {
@@ -79,12 +102,18 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 			}
 			return typ.Dict, nil
 		}
-		// TODO check rec
 		nfo, _, err := reflectFields(t, nfos)
 		if err != nil {
 			return typ.Void, err
 		}
-		res = typ.Type{Kind: typ.KindObj, Info: nfo}
+		k := typ.KindObj
+		if tn := t.Name(); tn != "" {
+			if c := tn[0]; c >= 'A' && c <= 'Z' {
+				k = typ.KindRec
+				nfo.Ref = t.PkgPath() + "." + t.Name()
+			}
+		}
+		res = typ.Type{Kind: k, Info: nfo}
 	case reflect.Array:
 		if isRef(t, refUUID) {
 			res = typ.UUID
