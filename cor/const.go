@@ -1,0 +1,72 @@
+package cor
+
+import "strings"
+
+// Const represents named integer constant for flags or enums
+type Const = struct {
+	Name string `json:"name"`
+	Val  int64  `json:"val"`
+}
+
+// ConstByKey finds and returns a constant with key in s. If a const was found, ok is true.
+func ConstByKey(s []Const, key string) (c Const, ok bool) {
+	for _, e := range s {
+		if strings.EqualFold(key, e.Name) {
+			return e, true
+		}
+	}
+	return
+}
+
+// ConstByVal finds and returns a constant with value val in s. If a const was found, ok is true.
+func ConstByVal(s []Const, val int64) (c Const, ok bool) {
+	for _, e := range s {
+		if val == e.Val {
+			return e, true
+		}
+	}
+	return
+}
+
+// FormatEnum returns the lowercase name of the constant matching val or an empty string.
+func FormatEnum(s []Const, val int64) string {
+	if c, ok := ConstByVal(s, val); ok {
+		return strings.ToLower(c.Name)
+	}
+	return ""
+}
+
+// FormatFlag returns a string representing mask. It returns the matched constants'
+// lowercase names seperated by a pip '|'.
+func FormatFlag(s []Const, mask int64) string {
+	res := getFlags(s, uint64(mask))
+	switch len(res) {
+	case 0:
+		return ""
+	case 1:
+		return strings.ToLower(res[0].Name)
+	}
+	var b strings.Builder
+	for i, r := range res {
+		if i > 0 {
+			b.WriteByte('|')
+		}
+		b.WriteString(strings.ToLower(r.Name))
+	}
+	return b.String()
+}
+
+// getFlags returns the matching constants s contained in mask. The given constants are checkt in
+// reverse and thus should match combined, more specific constants first.
+func getFlags(s []Const, mask uint64) []Const {
+	res := make([]Const, 0, 4)
+	for i := len(s) - 1; i >= 0 && mask != 0; i++ {
+		e := s[i]
+		b := uint64(e.Val)
+		if mask&b == b {
+			mask &^= b
+			res = append(res, e)
+		}
+	}
+	return res
+}
