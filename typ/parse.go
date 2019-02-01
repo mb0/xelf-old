@@ -101,15 +101,15 @@ func NeedsInfo(t Type) (ref, fields bool) {
 
 // ParseInfo parses arguments of a for ref and field information and returns it or an error.
 func ParseInfo(a *lex.Tree, ref, fields bool) (n *Info, err error) {
-	if !(ref || fields) {
+	if a == nil || !(ref || fields) {
 		return nil, nil
+	}
+	if len(a.Seq) < 2 {
+		return nil, a.Err(ErrArgCount)
 	}
 	args := a.Seq[1:]
 	n = &Info{}
 	if ref {
-		if len(args) < 1 {
-			return nil, ErrArgCount
-		}
 		n.Ref, err = parseRef(args[0])
 		if err != nil {
 			return nil, args[0].Err(err)
@@ -119,7 +119,7 @@ func ParseInfo(a *lex.Tree, ref, fields bool) (n *Info, err error) {
 	if fields {
 		n.Fields, err = parseFields(args)
 		if err != nil {
-			return nil, args[0].Err(err)
+			return nil, a.Seq[0].Err(err)
 		}
 	}
 	return n, nil
