@@ -89,3 +89,35 @@ func TestJSON(t *testing.T) {
 		}
 	}
 }
+
+func TestTypeSelfRef(t *testing.T) {
+	a := Obj([]Field{{Name: "Ref"}})
+	a.Fields[0].Type = Opt(a)
+	b := Obj([]Field{{Name: "C"}})
+	c := Obj([]Field{{Name: "Ref"}})
+	b.Fields[0].Type = c
+	c.Fields[0].Type = Arr(b)
+	tests := []struct {
+		typ Type
+		raw string
+	}{
+		{a, "(obj +Ref @0?)"},
+		{Opt(a), "(obj? +Ref @0?)"},
+		{b, "(obj +C (obj +Ref arr|@1))"},
+		{Opt(b), "(obj? +C (obj +Ref arr|@1))"},
+	}
+	for _, test := range tests {
+		raw := test.typ.String()
+		if got := string(raw); got != test.raw {
+			t.Errorf("%s string got %v", test.raw, got)
+		}
+		typ, err := ParseString(raw)
+		if err != nil {
+			t.Errorf("%s parse error: %v", test.raw, err)
+			continue
+		}
+		if !typ.Equal(test.typ) {
+			t.Errorf("%s parse want %+v got %+v", test.raw, test.typ, typ)
+		}
+	}
+}

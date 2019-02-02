@@ -2,6 +2,7 @@ package typ
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/mb0/xelf/bfr"
@@ -142,22 +143,28 @@ func (a Type) String() string {
 func (a Type) WriteBfr(b bfr.Ctx) error {
 	return a.writeBfr(b, nil)
 }
+
 func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
-	switch a.Last().Kind & MaskRef {
-	case KindRef:
-		k := a.Kind
-	Loop:
-		for {
-			switch k & MaskElem {
-			case KindArr:
-				b.WriteString("arr|")
-			case KindMap:
-				b.WriteString("map|")
-			default:
-				break Loop
+	last := a.Last()
+	switch last.Kind & MaskRef {
+	case KindObj, KindRec:
+		for i := 0; i < len(hist); i++ {
+			h := hist[len(hist)-1-i]
+			if a.Info.Equal(h) {
+				writeArrAndMap(b, a.Kind)
+				b.WriteByte('@')
+				b.WriteString(strconv.Itoa(i))
+				if a.Kind&FlagOpt != 0 {
+					b.WriteByte('?')
+				}
+				return nil
 			}
-			k = k >> SlotSize
 		}
+	}
+
+	switch last.Kind & MaskRef {
+	case KindRef:
+		k := writeArrAndMap(b, a.Kind)
 		b.WriteByte('@')
 		if a.Info != nil {
 			b.WriteString(a.Info.Ref)
@@ -175,10 +182,8 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 		for i := 0; i < len(hist); i++ {
 			h := hist[len(hist)-1-i]
 			if a.Info.Equal(h) {
-				b.WriteString(" + @..")
-				for j := 0; j < i; j++ {
-					b.WriteByte('.')
-				}
+				b.WriteString(" + @")
+				b.WriteString(strconv.Itoa(i))
 				return b.WriteByte(')')
 			}
 		}
@@ -187,6 +192,20 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 		return err
 	}
 	return a.Kind.WriteBfr(b)
+}
+
+func writeArrAndMap(b bfr.Ctx, k Kind) Kind {
+	for {
+		switch k & MaskElem {
+		case KindArr:
+			b.WriteString("arr|")
+		case KindMap:
+			b.WriteString("map|")
+		default:
+			return k
+		}
+		k = k >> SlotSize
+	}
 }
 
 func (a *Info) writeBfr(b bfr.Ctx, hist []*Info) error {

@@ -55,12 +55,7 @@ func Parse(a *lex.Tree) (El, error) {
 			}
 			// check if type definition
 			if nr, nf := typ.NeedsInfo(f); nr || nf {
-				n, err := typ.ParseInfo(a, nr, nf)
-				if err != nil {
-					return nil, err
-				}
-				f.Info = n
-				return f, nil
+				return typ.ParseInfo(f, a, nr, nf)
 			}
 			// otherwise it is a constructor or conversion, handled in resolution
 			args = append(args, f)

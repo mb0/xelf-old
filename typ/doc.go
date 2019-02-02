@@ -59,6 +59,9 @@ in the reference name.
 	+cat   (obj + @named @kind? +prods arr|@named)
     )
 
+Self references of the form '@1' are a special references to the current '@0' or the parent '@1' or
+the grand parent '@2' and so on for the whole object type ancestry.
+
 There are more quasi-reference types, that are treated as a specific type in most cases, but carry
 more information for handling in a domain modeled declaration context.
 

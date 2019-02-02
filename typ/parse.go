@@ -2,6 +2,8 @@ package typ
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/mb0/xelf/lex"
 )
@@ -26,11 +28,14 @@ func ParseString(s string) (Type, error) {
 
 // Parse parses the syntax tree a and returns a type or an error.
 func Parse(a *lex.Tree) (Type, error) {
+	return parse(a, nil)
+}
+func parse(a *lex.Tree, hist []Type) (Type, error) {
 	if len(a.Seq) > 0 && a.Tok == '(' {
-		return parseSeq(a)
+		return parseSeq(a, hist)
 	}
 	if a.Tok == lex.Sym {
-		t, err := ParseSym(a.Val)
+		t, err := parseSym(a.Val, hist)
 		if err != nil {
 			return Void, a.Err(err)
 		}
@@ -41,17 +46,40 @@ func Parse(a *lex.Tree) (Type, error) {
 
 // ParseSym returns the type represented by the symbol s or an error.
 func ParseSym(s string) (Type, error) {
+	return parseSym(s, nil)
+}
+
+func parseSym(s string, hist []Type) (res Type, _ error) {
 	if len(s) == 0 {
 		return Void, ErrInvalid
 	}
 	if s[0] == '@' {
-		if s[len(s)-1] == '?' {
-			return Opt(Ref(s[1 : len(s)-1])), nil
+		opt := s[len(s)-1] == '?'
+		ref := s[1:]
+		if opt {
+			ref = s[1 : len(s)-1]
 		}
-		return Ref(s[1:]), nil
+		res = Ref(ref)
+		if len(ref) > 0 {
+			if c := ref[0]; c >= '0' && c <= '9' { // self reference by index
+				idx, err := strconv.Atoi(ref)
+				if err != nil {
+					return Void, fmt.Errorf("self ref index must be a number: %v", err)
+				}
+				if idx < 0 || idx >= len(hist) {
+					return Void, fmt.Errorf("self ref index out of bounds")
+				}
+				res = hist[len(hist)-1-idx]
+			}
+		}
+		if opt {
+			res = Opt(res)
+		}
+		return res, nil
+
 	}
 	if len(s) > 4 && s[3] == '|' {
-		t, err := ParseSym(s[4:])
+		t, err := parseSym(s[4:], hist)
 		switch s[:3] {
 		case "arr":
 			return Arr(t), err
@@ -63,12 +91,12 @@ func ParseSym(s string) (Type, error) {
 	return Type{Kind: k}, err
 }
 
-func parseSeq(tree *lex.Tree) (Type, error) {
+func parseSeq(tree *lex.Tree, hist []Type) (Type, error) {
 	fst, args := tree.Seq[0], tree.Seq[1:]
 	if fst.Tok != lex.Sym {
 		return Void, fst.Err(ErrInvalid)
 	}
-	res, err := ParseSym(fst.Val)
+	res, err := parseSym(fst.Val, hist)
 	if err != nil {
 		return Void, fst.Err(err)
 	}
@@ -79,7 +107,7 @@ func parseSeq(tree *lex.Tree) (Type, error) {
 		}
 		return res, nil
 	}
-	res.Info, err = ParseInfo(tree, needRef, needFields)
+	res, err = parseInfo(res, tree, needRef, needFields, hist)
 	if err != nil {
 		return Void, err
 	}
@@ -100,29 +128,33 @@ func NeedsInfo(t Type) (ref, fields bool) {
 }
 
 // ParseInfo parses arguments of a for ref and field information and returns it or an error.
-func ParseInfo(a *lex.Tree, ref, fields bool) (n *Info, err error) {
+func ParseInfo(t Type, a *lex.Tree, ref, fields bool) (Type, error) {
+	return parseInfo(t, a, ref, fields, nil)
+}
+func parseInfo(t Type, a *lex.Tree, ref, fields bool, hist []Type) (_ Type, err error) {
 	if a == nil || !(ref || fields) {
-		return nil, nil
+		return Void, nil
 	}
 	if len(a.Seq) < 2 {
-		return nil, a.Err(ErrArgCount)
+		return Void, a.Err(ErrArgCount)
 	}
 	args := a.Seq[1:]
-	n = &Info{}
+	t.Info = &Info{}
 	if ref {
-		n.Ref, err = parseRef(args[0])
+		t.Ref, err = parseRef(args[0])
 		if err != nil {
-			return nil, args[0].Err(err)
+			return Void, args[0].Err(err)
 		}
 		args = args[1:]
 	}
 	if fields {
-		n.Fields, err = parseFields(args)
+		dt, _ := t.Deopt()
+		t.Fields, err = parseFields(args, append(hist, dt))
 		if err != nil {
-			return nil, a.Seq[0].Err(err)
+			return Void, a.Seq[0].Err(err)
 		}
 	}
-	return n, nil
+	return t, nil
 }
 
 func parseRef(t *lex.Tree) (string, error) {
@@ -134,7 +166,7 @@ func parseRef(t *lex.Tree) (string, error) {
 
 func isFieldDecl(s string) bool { return s != "" && s[0] == '+' }
 
-func parseFields(seq []*lex.Tree) ([]Field, error) {
+func parseFields(seq []*lex.Tree, hist []Type) ([]Field, error) {
 	if len(seq) == 0 {
 		return nil, ErrArgCount
 	}
@@ -159,7 +191,7 @@ func parseFields(seq []*lex.Tree) ([]Field, error) {
 				return nil, ErrNakedField
 			}
 			for _, a := range n.Seq {
-				ft, err := Parse(a)
+				ft, err := parse(a, hist)
 				if err != nil {
 					return nil, err
 				}
@@ -170,7 +202,7 @@ func parseFields(seq []*lex.Tree) ([]Field, error) {
 		if len(n.Seq) > 1 {
 			return nil, ErrFieldType
 		}
-		ft, err := Parse(n.Seq[0])
+		ft, err := parse(n.Seq[0], hist)
 		if err != nil {
 			return nil, err
 		}
