@@ -47,7 +47,7 @@ type infoMap = map[reflect.Type]*fields
 
 func getConstInfo(t reflect.Type, cs []cor.Const) *typ.Info {
 	return &typ.Info{
-		Ref:    t.PkgPath() + "." + t.Name(),
+		Ref:    t.String(),
 		Consts: cs,
 	}
 }
@@ -110,7 +110,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		if tn := t.Name(); tn != "" {
 			if c := tn[0]; c >= 'A' && c <= 'Z' {
 				k = typ.KindRec
-				nfo.Ref = t.PkgPath() + "." + t.Name()
+				nfo.Ref = t.String()
 			}
 		}
 		res = typ.Type{Kind: k, Info: nfo}
