@@ -241,19 +241,19 @@ func compareInfo(src, dst *Info) Cmp {
 	if dst.IsZero() {
 		return CmpNone
 	}
+	res := CmpSame
 	if src.Key() != dst.Key() {
-		return CmpNone
+		res = CmpConvObj
 	}
 	if len(src.Fields) == 0 {
 		if len(dst.Fields) == 0 {
-			return CmpSame
+			return res
 		}
 		return CmpNone
 	}
 	if len(dst.Fields) == 0 {
 		return CmpNone
 	}
-	var res Cmp
 	for _, df := range dst.Fields {
 		sf := findField(src.Fields, df.Name)
 		if sf == nil {

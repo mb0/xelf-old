@@ -21,7 +21,7 @@ func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 		cmp = typ.Compare(l.Typ(), dst)
 	}
 	if cmp < typ.LvlCheck {
-		return nil, fmt.Errorf("%v, incompatible %T", ErrUnconv, l)
+		return nil, fmt.Errorf("%v, incompatible %s to %s", ErrUnconv, l.Typ(), dst)
 	}
 	if cmp&typ.BitUnwrap != 0 {
 		o, ok := l.(Opter)
@@ -252,7 +252,13 @@ func checkMap(l Lit, to typ.Type) (Map, error) {
 	}
 	return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
 }
-func checkObj(l Lit, to typ.Type) (Obj, error) {
+func checkObj(l Lit, to typ.Type) (Lit, error) {
+	if v, ok := l.(Opter); ok {
+		l = v.Some()
+		if l == nil {
+			return Null(to), nil
+		}
+	}
 	if v, ok := l.(Obj); ok {
 		res, err := MakeObj(to)
 		if err != nil {
@@ -266,5 +272,5 @@ func checkObj(l Lit, to typ.Type) (Obj, error) {
 		}
 		return res, nil
 	}
-	return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
+	return nil, fmt.Errorf("%v %s to %s", ErrUnconv, l.Typ(), to)
 }
