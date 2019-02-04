@@ -17,6 +17,9 @@ func Equal(a, b Lit) bool {
 		return false
 	}
 	switch v := a.(type) {
+	case typ.Type:
+		w, ok := b.(typ.Type)
+		return ok && v.Equal(w)
 	case Numer:
 		w, ok := b.(Numer)
 		return ok && equalNumer(v, w)

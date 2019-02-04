@@ -21,6 +21,8 @@ func Zero(t typ.Type) Lit {
 		return Null(t)
 	}
 	switch t.Kind & typ.MaskRef {
+	case typ.KindTyp:
+		return typ.Void
 	case typ.BaseNum:
 		return Num(0)
 	case typ.KindBool:

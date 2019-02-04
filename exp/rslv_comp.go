@@ -10,9 +10,6 @@ func rslvEq(c *Ctx, env Env, e *Expr) (El, error) {
 	neg := e.Name == "ne"
 	res, err := resolveBinaryComp(c, env, e, false, func(a, b El) bool {
 		switch v := a.(type) {
-		case Type:
-			w, ok := b.(Type)
-			return ok && v.Equal(w)
 		case Lit:
 			w, ok := b.(Lit)
 			return ok && lit.Equiv(v, w)
@@ -29,9 +26,6 @@ func rslvEq(c *Ctx, env Env, e *Expr) (El, error) {
 func rslvEqual(c *Ctx, env Env, e *Expr) (El, error) {
 	return resolveBinaryComp(c, env, e, false, func(a, b El) bool {
 		switch v := a.(type) {
-		case Type:
-			w, ok := b.(Type)
-			return ok && v.Equal(w)
 		case Lit:
 			w, ok := b.(Lit)
 			return ok && lit.Equal(v, w)

@@ -47,14 +47,14 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	}
 	var rslv Resolver
 	switch v := x.(type) {
-	case Lit: // already resolved
-		return v, nil
 	case Type: // resolve type references
 		v, err = c.resolveTypRef(env, v)
 		if err == ErrUnres {
 			break
 		}
 		return v, err
+	case Lit: // already resolved
+		return v, nil
 	case *Ref:
 		rslv = env.Get(v.Name)
 	case Dyn:

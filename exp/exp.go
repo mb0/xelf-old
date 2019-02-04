@@ -33,7 +33,7 @@ func (s *Sym) Lookup(env Env) Resolver {
 
 // All language elements
 type (
-	// Type is a type as defined in package typ.
+	// Type is a type as defined in package typ. It also implements Lit.
 	Type = typ.Type
 
 	// Lit is a literal as defined in package lit.
