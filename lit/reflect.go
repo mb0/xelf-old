@@ -231,7 +231,11 @@ func collectFields(t reflect.Type, idx []int, col fieldCollector) error {
 		}
 		// collect embedded only if we have no key set by json tag explicitly
 		if key == "" && f.Anonymous {
-			err := collectFields(f.Type, append(idx, i), col)
+			et := f.Type
+			if et.Kind() == reflect.Ptr {
+				et = et.Elem()
+			}
+			err := collectFields(et, append(idx, i), col)
 			if err != nil {
 				return err
 			}
