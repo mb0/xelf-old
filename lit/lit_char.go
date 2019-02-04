@@ -44,10 +44,10 @@ func (v Str) MarshalJSON() ([]byte, error)  { return dblQuoteBytes(string(v)) }
 func (v Raw) MarshalJSON() ([]byte, error)  { return dblQuoteBytes(v.Char()) }
 func (v UUID) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
 
-func (v Char) WriteBfr(b bfr.Ctx) error { return quoteBuffer(string(v), b) }
-func (v Str) WriteBfr(b bfr.Ctx) error  { return quoteBuffer(string(v), b) }
-func (v Raw) WriteBfr(b bfr.Ctx) error  { return quoteBuffer(v.Char(), b) }
-func (v UUID) WriteBfr(b bfr.Ctx) error { return quoteBuffer(v.Char(), b) }
+func (v Char) WriteBfr(b bfr.Ctx) error { return b.Quote(string(v)) }
+func (v Str) WriteBfr(b bfr.Ctx) error  { return b.Quote(string(v)) }
+func (v Raw) WriteBfr(b bfr.Ctx) error  { return b.Quote(v.Char()) }
+func (v UUID) WriteBfr(b bfr.Ctx) error { return b.Quote(v.Char()) }
 
 func (v *Str) Ptr() interface{} { return v }
 func (v *Str) Assign(l Lit) error {
@@ -84,14 +84,3 @@ func (v *UUID) Assign(l Lit) error {
 
 func sglQuoteString(v string) string         { s, _ := lex.Quote(v, '\''); return s }
 func dblQuoteBytes(v string) ([]byte, error) { s, err := lex.Quote(v, '"'); return []byte(s), err }
-func quoteBuffer(v string, b bfr.Ctx) (err error) {
-	if b.JSON {
-		v, err = lex.Quote(v, '"')
-	} else {
-		v, err = lex.Quote(v, '\'')
-	}
-	if err != nil {
-		return err
-	}
-	return b.Fmt(v)
-}

@@ -3,6 +3,8 @@ package bfr
 import (
 	"fmt"
 	"strings"
+
+	"github.com/mb0/xelf/lex"
 )
 
 // Ctx is serialization context with output configuration flags
@@ -19,6 +21,20 @@ func (c Ctx) Fmt(f string, args ...interface{}) (err error) {
 		_, err = c.WriteString(f)
 	}
 	return err
+}
+
+// Quote writes the v as quoted string to the buffer or returns an error.
+// The quote used is depending on the json context flag.
+func (c Ctx) Quote(v string) (err error) {
+	if c.JSON {
+		v, err = lex.Quote(v, '"')
+	} else {
+		v, err = lex.Quote(v, '\'')
+	}
+	if err != nil {
+		return err
+	}
+	return c.Fmt(v)
 }
 
 // Writer is an interface for types that can write to a Ctx
