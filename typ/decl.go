@@ -3,6 +3,7 @@ package typ
 var (
 	Void = Type{Kind: KindVoid}
 	Any  = Type{Kind: KindAny}
+	Typ  = Type{Kind: KindTyp}
 
 	Num  = Type{Kind: BaseNum}
 	Bool = Type{Kind: KindBool}

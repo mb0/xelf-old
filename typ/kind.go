@@ -38,6 +38,7 @@ const (
 	KindVoid = 0x00
 	KindRef  = FlagRef
 	KindAny  = FlagOpt
+	KindTyp  = Spec1
 
 	KindBool = BaseNum | Spec1
 	KindInt  = BaseNum | Spec2
@@ -77,6 +78,8 @@ func ParseKind(str string) (Kind, error) {
 		return KindVoid, nil
 	case "any":
 		return KindAny, nil
+	case "typ":
+		return KindTyp, nil
 	case "list":
 		return BaseList, nil
 	case "dict":
@@ -178,6 +181,8 @@ func simpleStr(k Kind) string {
 		return "void"
 	case KindAny:
 		return "any"
+	case KindTyp:
+		return "typ"
 	}
 	switch k & MaskRef {
 	case KindRef:

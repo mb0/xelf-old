@@ -20,6 +20,7 @@ func (a Type) Sub() Type {
 	a.Kind = a.Kind >> SlotSize
 	return a
 }
+func (Type) Typ() Type { return Typ }
 
 type Const = cor.Const
 
