@@ -90,7 +90,7 @@ func decledArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 	}
 	res, err = taggedArgs(res, head)
 	for _, decl := range decls {
-		args, err := taggedArgs(nil, decl.Seq)
+		args, err := decledArgs(nil, decl.Seq)
 		if err != nil {
 			return nil, err
 		}
