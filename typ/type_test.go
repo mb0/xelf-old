@@ -14,7 +14,7 @@ func TestString(t *testing.T) {
 		{Opt(Str), `str?`},
 		{Ref("a"), `@a`},
 		{Opt(Ref("b")), `@b?`},
-		{Opt(Enum("kind")), `(enum? 'kind')`},
+		{Opt(Enum("kind", nil)), `(enum? 'kind')`},
 		{Opt(Obj([]Field{
 			{Name: "Name", Type: Str},
 		})), `(obj? +Name str)`},
@@ -56,7 +56,7 @@ func TestJSON(t *testing.T) {
 		{Opt(Str), `{"typ":"str?"}`},
 		{Ref("a"), `{"typ":"ref","ref":"a"}`},
 		{Opt(Ref("b")), `{"typ":"ref?","ref":"b"}`},
-		{Opt(Enum("kind")), `{"typ":"enum?","ref":"kind"}`},
+		{Opt(Enum("kind", nil)), `{"typ":"enum?","ref":"kind"}`},
 		{Opt(Obj([]Field{
 			{Name: "Name", Type: Str},
 		})), `{"typ":"obj?","fields":[{"name":"Name","typ":"str"}]}`},

@@ -10,10 +10,8 @@ import (
 )
 
 func TestWriteGoFile(t *testing.T) {
-	align := typ.Flag("foo.Align")
-	align.Consts = []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}}
-	kind := typ.Enum("foo.Kind")
-	kind.Consts = []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}}
+	align := typ.Flag("foo.Align", []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}})
+	kind := typ.Enum("foo.Kind", []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}})
 	tests := []struct {
 		els  []exp.El
 		want string
@@ -46,12 +44,12 @@ func TestWriteGoFile(t *testing.T) {
 			"\tStart time.Time `json:\"start\"`\n" + "}\n",
 		},
 		{[]exp.El{typ.Rec("foo.Node", []typ.Field{
-			{Name: "Kind", Type: typ.Enum("bar.Kind")},
+			{Name: "Kind", Type: typ.Enum("bar.Kind", nil)},
 		})}, "package foo\n\nimport (\n\t\"path/to/bar\"\n)\n\ntype Node struct {\n" +
 			"\tKind bar.Kind `json:\"kind\"`\n" + "}\n",
 		},
 		{[]exp.El{typ.Rec("foo.Node", []typ.Field{
-			{Name: "Kind", Type: typ.Enum("foo.Kind")},
+			{Name: "Kind", Type: typ.Enum("foo.Kind", nil)},
 		})}, "package foo\n\ntype Node struct {\n" +
 			"\tKind Kind `json:\"kind\"`\n" + "}\n",
 		},
