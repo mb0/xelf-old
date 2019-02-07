@@ -14,7 +14,7 @@ Literal can be read from and written as JSON or a xelf extension with four new s
    single quoted strings:               'no need to escape a double quote _"_'
    raw multi-line strings:              `\r\a\w \s\t\r\i\n\g`
    optional commas (as in whitespace):  [1 2], {'a': 1 'b' :2}
-   simple dict key notation:            {+foo 1 'with space': 23 "json key": 42}
+   simple dict key notation:            {foo:1 'with space': 23 "json key": 42}
 
 Literals without context default to their base type. Base types in typed context are automatically
 converted to the context. Type expressions can otherwise be used to convert literals to a specific

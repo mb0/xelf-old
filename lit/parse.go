@@ -88,26 +88,25 @@ func parseDict(tree *lex.Tree) (*Dict, error) {
 		var key string
 		switch a := tree.Seq[i]; a.Tok {
 		case lex.Sym:
-			if len(a.Val) == 0 || a.Val[0] != '+' || !lex.IsName(a.Val[1:]) {
+			if len(a.Val) == 0 || !lex.IsName(a.Val) {
 				return nil, a.Err(ErrKey)
 			}
-			key = a.Val[1:]
+			key = a.Val
 		case lex.Str:
 			var err error
 			key, err = lex.Unquote(a.Val)
 			if err != nil {
 				return nil, err
 			}
-			if i+1 >= len(tree.Seq) {
-				return nil, &lex.Error{*tree.End, ErrKeySep, 0}
-			}
-			i++
-			if b := tree.Seq[i]; b.Tok != ':' {
-				return nil, b.Err(ErrKeySep)
-			}
-
 		default:
 			return nil, a.Err(ErrKey)
+		}
+		if i+1 >= len(tree.Seq) {
+			return nil, &lex.Error{*tree.End, ErrKeySep, 0}
+		}
+		i++
+		if b := tree.Seq[i]; b.Tok != ':' {
+			return nil, b.Err(ErrKeySep)
 		}
 		if i+1 >= len(tree.Seq) {
 			return nil, &lex.Error{*tree.End, ErrKeySep, 0}

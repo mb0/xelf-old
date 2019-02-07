@@ -121,9 +121,8 @@ func (v *Dict) Assign(l Lit) error {
 
 func writeKey(b bfr.Ctx, key string) (err error) {
 	if !b.JSON && lex.IsName(key) {
-		b.WriteByte('+')
 		b.WriteString(key)
-		return b.WriteByte(' ')
+		return b.WriteByte(':')
 	}
 	if b.JSON {
 		key, err = lex.Quote(key, '"')

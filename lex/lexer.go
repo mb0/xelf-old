@@ -1,4 +1,4 @@
-// Package lex provides a token and tree lexer, tree slitter and string quoting code.
+// Package lex provides a token and tree lexer, tree splitter and string quoting code.
 package lex
 
 import (
@@ -35,8 +35,8 @@ func New(r io.Reader) *Lexer {
 }
 
 // Lex reads and returns the next token or an error.
-// If punct is true symbols can only be simple names optionally prefixed by a plus or minus sign.
-func (l *Lexer) Lex(punct bool) (Token, error) {
+// If simple is true, symbols can only be ascii names.
+func (l *Lexer) Lex(simple bool) (Token, error) {
 	r := l.next()
 	for IsSpace(r) {
 		r = l.next()
@@ -50,24 +50,24 @@ func (l *Lexer) Lex(punct bool) (Token, error) {
 	case '"', '\'', '`':
 		return l.lexChar()
 	}
-	if IsLetter(r) || r == '+' {
-		return l.lexSym(punct)
+	if IsLetter(r) {
+		return l.lexSym(simple)
 	}
 	if IsDigit(r) || r == '-' && IsDigit(l.nxt) {
 		return l.lexNum()
 	}
 	if IsPunct(r) {
-		if punct {
+		if simple {
 			return l.tok(r, ""), nil
 		}
-		return l.lexSym(punct)
+		return l.lexSym(false)
 	}
 	t := l.tok(r, "")
 	return t, &Error{t, ErrUnexpected, 0}
 }
 
 // Scan scans and returns the next tree or an error.
-// Symbols nested in sequences with curly or square brackets are read with the punct set to true.
+// Symbols nested in sequences with curly or square brackets are read as simple names.
 func (l *Lexer) Scan() (*Tree, error) {
 	t, err := l.Lex(false)
 	if err != nil {
@@ -125,11 +125,12 @@ func (l *Lexer) lexChar() (Token, error) {
 }
 
 // lexSym reads and returns a sym token starting at the current offset.
-func (l *Lexer) lexSym(punct bool) (Token, error) {
+// If simple is true, it only accepts ascii letters and digits.
+func (l *Lexer) lexSym(simple bool) (Token, error) {
 	var b strings.Builder
 	t := l.tok(Sym, "")
 	b.WriteRune(l.cur)
-	for IsNamePart(l.nxt) || !punct && IsPunct(l.nxt) {
+	for IsNamePart(l.nxt) || !simple && IsPunct(l.nxt) {
 		b.WriteRune(l.next())
 	}
 	t.Val = b.String()
@@ -201,7 +202,8 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 	default:
 		return res, nil
 	}
-	t, err := l.Lex(end != ')')
+	simple := end != ')'
+	t, err := l.Lex(simple)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +213,7 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 			return a, err
 		}
 		res.Seq = append(res.Seq, a)
-		t, err = l.Lex(end != ')')
+		t, err = l.Lex(simple)
 		if err != nil {
 			return nil, err
 		}
