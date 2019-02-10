@@ -17,6 +17,8 @@ func Core(sym string) Resolver {
 		f = rslvOr
 	case "and":
 		f = rslvAnd
+	case "bool":
+		f = rslvBool
 	case "not":
 		f = rslvNot
 	case "eq", "ne":

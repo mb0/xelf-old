@@ -69,6 +69,20 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 	return lit.True, nil
 }
 
+// rslvBool will resolve the arguments similar to short-circuiting logical 'and' to a bool literal.
+// The arguments must be plain literals and are considered true if not a zero value.
+// An empty 'bool' expression resolves to false.
+func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
+	res, err := rslvAnd(c, env, e)
+	if err != nil {
+		return e, err
+	}
+	if len(e.Args) == 0 {
+		return lit.False, nil
+	}
+	return lit.Bool(!res.(Lit).IsZero()), nil
+}
+
 // rslvNot will resolve the arguments similar to short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if a zero value.
 // An empty 'not' expression resolves to true.

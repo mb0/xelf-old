@@ -21,7 +21,8 @@ func TestParse(t *testing.T) {
 		{`bool`, typ.Bool},
 		{`name`, &Ref{Sym: Sym{Name: "name"}}},
 		{`(false)`, lit.False},
-		{`(bool 1)`, Dyn{typ.Bool, lit.Num(1)}},
+		{`(int 1)`, Dyn{typ.Int, lit.Num(1)}},
+		{`(bool 1)`, &Expr{Sym: Sym{Name: "bool"}, Args: []El{lit.Num(1)}}},
 		{`(obj +x +y int)`, typ.Obj([]typ.Field{
 			{Name: "x", Type: typ.Int},
 			{Name: "y", Type: typ.Int},

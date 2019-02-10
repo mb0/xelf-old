@@ -57,6 +57,11 @@ func Parse(a *lex.Tree) (El, error) {
 			if nr, nf := typ.NeedsInfo(f); nr || nf {
 				return typ.ParseInfo(f, a, nr, nf)
 			}
+			if f == typ.Bool {
+				// we have a special resolver for bool in the cor built-ins
+				sym = Sym{Name: "bool"}
+				break
+			}
 			// otherwise it is a constructor or conversion, handled in resolution
 			args = append(args, f)
 		case Lit:

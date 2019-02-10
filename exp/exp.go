@@ -85,11 +85,11 @@ var ErrUnres = errors.New("unresolved")
 type Resolver interface {
 	// Resolve resolves el with a context and environment and returns the result or an error.
 	//
-	// The passed in unresolved element is either a expression or a type or symbol reference.
+	// The passed in unresolved element is either a expression, a type ref or symbol ref.
 	//
-	// A successful resolution returns either a type or a literal without an error.
+	// A successful resolution returns a literal and no error.
 	// When parts of the element could not be resolved it returns the special error ErrUnres,
-	// and either the original element or a new partially resolved element.
+	// and either the original element or a new, partially resolved element.
 	// Any other error ends the whole resolution process.
 	Resolve(c *Ctx, enc Env, el El) (El, error)
 }
@@ -117,7 +117,7 @@ func (x Tag) String() string   { return bfr.String(x) }
 func (x Decl) String() string  { return bfr.String(x) }
 func (x *Expr) String() string { return bfr.String(x) }
 
-func (x *Ref) WriteBfr(b bfr.Ctx) error  { _, err := b.WriteString(x.Name); return err }
+func (x *Ref) WriteBfr(b bfr.Ctx) error  { return b.Fmt(x.Name) }
 func (x Dyn) WriteBfr(b bfr.Ctx) error   { return writeExpr(b, "", x) }
 func (x Tag) WriteBfr(b bfr.Ctx) error   { return writeExpr(b, x.Name, x.Args) }
 func (x Decl) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, x.Name, x.Args) }
