@@ -17,11 +17,16 @@ func Raw(s string) *[]byte {
 	return &v
 }
 
-// FormatRaw returns v as a string starting with '\x' and followed by the bytes as lower hex.
+// FormatRaw returns v as string, plain texts are returned as is, otherwise FormatHex is used.
 func FormatRaw(v []byte) string {
 	if isPlain(v) {
 		return string(v)
 	}
+	return FormatHex(v)
+}
+
+// FormatHex returns v as string starting with '\x' and followed by the bytes as lower hex.
+func FormatHex(v []byte) string {
 	var b strings.Builder
 	b.Grow(2 + len(v)*2)
 	b.WriteString(`\x`)
