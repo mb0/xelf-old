@@ -160,3 +160,56 @@ func TestStdResolve(t *testing.T) {
 		}
 	}
 }
+
+func TestStdResolvePart(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want string
+	}{
+		{`(or $)`, `(bool $)`},
+		{`(or 0 $)`, `(bool $)`},
+		{`(or 1 $)`, `true`},
+		{`(and $)`, `(bool $)`},
+		{`(and 0 $)`, `false`},
+		{`(and 1 $)`, `(bool $)`},
+		{`(not $)`, `(not $)`},
+		{`(if 1 $)`, `$`},
+		{`(if 0 1 $)`, `$`},
+		{`(eq 1 $)`, `(eq 1 $)`},
+		{`(eq 1 $ 1)`, `(eq 1 $)`},
+		{`(eq 1 1 $)`, `(eq 1 $)`},
+		{`(eq $ 1 1)`, `(eq $ 1)`},
+		{`(lt 0 1 $)`, `(lt 1 $)`},
+		{`(lt 0 $ 2)`, `(lt 0 $ 2)`},
+		{`(lt $ 1 2)`, `(lt $ 1)`},
+		{`(add $ 2 3)`, `(add $ 5)`},
+		{`(add 1 $ 3)`, `(add 4 $)`},
+		{`(add 1 2 $)`, `(add 3 $)`},
+		{`(sub $ 2 3)`, `(sub $ 5)`},
+		{`(sub 1 $ 3)`, `(sub -2 $)`},
+		{`(sub 1 2 $)`, `(sub -1 $)`},
+		{`(mul $ 2 3)`, `(mul $ 6)`},
+		{`(mul 6 $ 3)`, `(mul 18 $)`},
+		{`(mul 6 2 $)`, `(mul 12 $)`},
+		{`(div $ 2 3)`, `(div $ 6)`},
+		{`(div 6 $ 3)`, `(div 2 $)`},
+		{`(div 6 2 $)`, `(div 3 $)`},
+	}
+	for _, test := range tests {
+		x, err := ParseString(test.raw)
+		if err != nil {
+			t.Errorf("%s parse err: %v", test.raw, err)
+			continue
+		}
+		c := &Ctx{Exec: true, Part: true}
+		r, err := c.Resolve(NewScope(StdEnv), x)
+		if err != nil && err != ErrUnres {
+			t.Errorf("%s resolve err expect ErrUnres, got: %v\n%v", test.raw, err, c.Unres)
+			continue
+		}
+		if got := r.String(); got != test.want {
+
+			t.Errorf("%s want %s got %s", test.raw, test.want, got)
+		}
+	}
+}

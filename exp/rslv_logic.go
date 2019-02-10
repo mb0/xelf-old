@@ -27,17 +27,22 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range e.Args {
-		args := e.Args[i:]
-		fst, err := c.Resolve(env, args[0])
-		if err != nil {
+	for i, arg := range e.Args {
+		el, err := c.Resolve(env, arg)
+		if err == ErrUnres {
+			e.Type = typ.Bool
+			if c.Part {
+				e.Args = e.Args[i:]
+				if len(e.Args) == 1 {
+					e = &Expr{Sym: Sym{Name: "bool"}, Args: e.Args}
+				}
+			}
 			return e, err
 		}
-		l, ok := fst.(Lit)
-		if !ok {
-			return nil, fmt.Errorf("unexpected argument in 'or': %T", args[0])
+		if err != nil {
+			return nil, err
 		}
-		if !l.IsZero() {
+		if !el.(Lit).IsZero() {
 			return lit.True, nil
 		}
 	}
@@ -52,17 +57,22 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range e.Args {
-		args := e.Args[i:]
-		fst, err := c.Resolve(env, args[0])
-		if err != nil {
+	for i, arg := range e.Args {
+		el, err := c.Resolve(env, arg)
+		if err == ErrUnres {
+			e.Type = typ.Bool
+			if c.Part {
+				e.Args = e.Args[i:]
+				if len(e.Args) == 1 {
+					e = &Expr{Sym: Sym{Name: "bool"}, Args: e.Args}
+				}
+			}
 			return e, err
 		}
-		l, ok := fst.(Lit)
-		if !ok {
-			return nil, fmt.Errorf("unexpected argument in 'and': %T", args[0])
+		if err != nil {
+			return nil, err
 		}
-		if l.IsZero() {
+		if el.(Lit).IsZero() {
 			return lit.False, nil
 		}
 	}
@@ -74,8 +84,14 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 // An empty 'bool' expression resolves to false.
 func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
 	res, err := rslvAnd(c, env, e)
-	if err != nil {
+	if err == ErrUnres {
+		if c.Part {
+			e.Args = res.(*Expr).Args
+		}
 		return e, err
+	}
+	if err != nil {
+		return nil, err
 	}
 	if len(e.Args) == 0 {
 		return lit.False, nil
@@ -88,17 +104,19 @@ func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
 // An empty 'not' expression resolves to true.
 func rslvNot(c *Ctx, env Env, e *Expr) (El, error) {
 	res, err := rslvAnd(c, env, e)
+	if err == ErrUnres {
+		if c.Part {
+			e.Args = res.(*Expr).Args
+		}
+		return e, err
+	}
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 	if len(e.Args) == 0 {
 		return lit.True, nil
 	}
-	l, ok := res.(Lit)
-	if !ok {
-		return nil, fmt.Errorf("unexpected argument in 'not': %T", e.Args[0])
-	}
-	return lit.Bool(l.IsZero()), nil
+	return lit.Bool(res.(Lit).IsZero()), nil
 }
 
 // rslvIf will resolve the arguments as condition, action pairs as part of an if-else condition.
@@ -111,15 +129,18 @@ func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
 	// TODO check actions to find a common type
 	var i int
 	for i = 0; i+1 < len(e.Args); i += 2 {
-		condx, err := c.Resolve(env, e.Args[i])
-		if err != nil {
+		cond, err := c.Resolve(env, e.Args[i])
+		if err == ErrUnres {
+			if c.Part {
+				// previous condition turned out false
+				e.Args = e.Args[i:]
+			}
 			return e, err
 		}
-		cond, ok := condx.(Lit)
-		if !ok {
-			return nil, fmt.Errorf("unexpected condition in 'if' expression %T", condx)
+		if err != nil {
+			return nil, err
 		}
-		if !cond.IsZero() {
+		if !cond.(Lit).IsZero() {
 			return c.Resolve(env, e.Args[i+1])
 		}
 	}

@@ -10,36 +10,25 @@ import (
 
 var ErrExpectNumer = errors.New("expected numer argument")
 
+func opAdd(r, n float64) (float64, error) { return r + n, nil }
+func opMul(r, n float64) (float64, error) { return r * n, nil }
+
 // rslvAdd tries to add up all arguments and converts the sum to the first argument's type.
 func rslvAdd(c *Ctx, env Env, e *Expr) (El, error) {
-	if len(e.Args) == 0 {
-		return lit.Num(0), nil
-	}
-	args, err := resolveArgs(c, env, e.Args)
-	if err != nil {
-		return e, err
-	}
-	res, err := reduceNumers(args, 0, func(r, n float64) float64 { return r + n })
+	err := ArgsForm(e.Args)
 	if err != nil {
 		return nil, err
 	}
-	return convNumerType(args[0], res)
+	return reduceNums(c, env, e, 0, true, opAdd)
 }
 
 // rslvMul tries to multiply all arguments and converts the product to the first argument's type.
 func rslvMul(c *Ctx, env Env, e *Expr) (El, error) {
-	if len(e.Args) == 0 {
-		return lit.Num(1), nil
-	}
-	args, err := resolveArgs(c, env, e.Args)
-	if err != nil {
-		return e, err
-	}
-	res, err := reduceNumers(args, 1, func(r, n float64) float64 { return r * n })
+	err := ArgsForm(e.Args)
 	if err != nil {
 		return nil, err
 	}
-	return convNumerType(args[0], res)
+	return reduceNums(c, env, e, 1, true, opMul)
 }
 
 // rslvSub tries to subtract the sum of the rest from the first argument and
@@ -49,19 +38,31 @@ func rslvSub(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	args, err := c.ResolveAll(env, e.Args)
-	if err != nil {
-		return e, err
+	fst, err := c.Resolve(env, e.Args[0])
+	if err == ErrUnres {
+		if c.Part { // resolve the rest and return partial result
+			rest := &Expr{Sym: Sym{Name: "add"}, Args: e.Args[1:]}
+			sub, err := reduceNums(c, env, rest, 0, false, opAdd)
+			if err == nil {
+				e.Args = append(e.Args[:1], sub)
+			} else if err == ErrUnres {
+				e.Args = append(e.Args[:1], sub.(*Expr).Args...)
+			} else {
+				return nil, err
+			}
+		}
+		return e, ErrUnres
 	}
-	res := getNumer(args[0])
-	if res == nil {
+	if err != nil {
 		return nil, err
 	}
-	sub, err := reduceNumers(args[1:], 0, func(r, n float64) float64 { return r + n })
-	if err != nil {
-		return nil, err
+	num := getNumer(fst)
+	if num == nil {
+		return nil, ErrExpectNumer
 	}
-	return convNumerType(args[0], lit.Num(res.Num())-sub)
+	return reduceNums(c, env, e, 2*num.Num(), true, func(r, n float64) (float64, error) {
+		return r - n, nil
+	})
 }
 
 // rslvDiv tries to divide the product of the rest from the first argument.
@@ -72,27 +73,42 @@ func rslvDiv(c *Ctx, env Env, e *Expr) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	args, err := c.ResolveAll(env, e.Args)
-	if err != nil {
-		return e, err
+	fst, err := c.Resolve(env, e.Args[0])
+	if err == ErrUnres {
+		if c.Part { // resolve the rest and return partial result
+			rest := &Expr{Sym: Sym{Name: "mul"}, Args: e.Args[1:]}
+			sub, err := reduceNums(c, env, rest, 1, false, opMul)
+			if err == nil {
+				e.Args = append(e.Args[:1], sub)
+			} else if err == ErrUnres {
+				e.Args = append(e.Args[:1], sub.(*Expr).Args...)
+			} else {
+				return nil, err
+			}
+		}
+		return e, ErrUnres
 	}
-	res := getNumer(args[0])
-	if res == nil {
-		return nil, ErrExpectNumer
-	}
-	div, err := reduceNumers(args[1:], 1, func(r, n float64) float64 { return r * n })
 	if err != nil {
 		return nil, err
 	}
-	if div.IsZero() {
-		return nil, errors.Errorf("zero devision")
+	num := getNumer(fst)
+	if num == nil {
+		return nil, ErrExpectNumer
 	}
-	if res.Typ().Kind&typ.MaskElem == typ.KindInt {
-		res = lit.Int(res.Num()) / lit.Int(div)
-	} else {
-		res = lit.Num(res.Num()) / div
-	}
-	return convNumerType(args[0], res)
+	var i int
+	isInt := num.Typ().Kind&typ.MaskElem == typ.KindInt
+	return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
+		if i++; i == 1 {
+			return n, nil
+		}
+		if n == 0 {
+			return 0, errors.Errorf("zero devision")
+		}
+		if isInt {
+			return float64(int64(r) / int64(n)), nil
+		}
+		return r / n, nil
+	})
 }
 
 // rslvRem tries to calculate the remainder of the first two arguments and always returns an int.
@@ -133,26 +149,7 @@ func getNumer(e El) lit.Numer {
 	return v
 }
 
-func reduceNumers(es []El, res float64, f numerReducer) (lit.Num, error) {
-	for _, arg := range es {
-		v := getNumer(arg)
-		if v == nil {
-			return 0, fmt.Errorf("expected numer argument got %T", arg)
-		}
-		res = f(res, v.Num())
-	}
-	return lit.Num(res), nil
-}
-
-type numerReducer = func(r, e float64) float64
-
-func resolveArgs(c *Ctx, env Env, es []El) ([]El, error) {
-	err := ArgsForm(es)
-	if err != nil {
-		return nil, err
-	}
-	return c.ResolveAll(env, es)
-}
+type numerReducer = func(r, e float64) (float64, error)
 
 func deopt(el El) Lit {
 	if l, ok := el.(Lit); ok {
@@ -165,4 +162,59 @@ func deopt(el El) Lit {
 		return l
 	}
 	return nil
+}
+
+func reduceNums(c *Ctx, env Env, e *Expr, res float64, conv bool, f numerReducer) (_ El, err error) {
+	t := typ.Num
+	var resed int
+	var unres []El
+	for idx, el := range e.Args {
+		el, err = c.Resolve(env, el)
+		if err == ErrUnres {
+			if c.Part {
+				if len(unres) == 0 {
+					unres = make([]El, 0, len(e.Args))
+					if idx > 0 {
+						unres = append(unres, nil)
+					}
+				}
+				unres = append(unres, el)
+				continue
+			}
+			return e, err
+		}
+		if err != nil {
+			return nil, err
+		}
+		v := getNumer(el)
+		if v == nil {
+			return nil, fmt.Errorf("%v got %T", ErrExpectNumer, el)
+		}
+		if idx == 0 && conv {
+			t = el.(Lit).Typ()
+		}
+		res, err = f(res, v.Num())
+		if err != nil {
+			return nil, err
+		}
+		resed++
+	}
+	var l Lit
+	l = lit.Num(res)
+	if t != typ.Num {
+		l, err = lit.Convert(l, t, 0)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(unres) > 0 {
+		if unres[0] == nil {
+			unres[0] = l
+		} else if resed > 0 {
+			unres = append(unres, l)
+		}
+		e.Args = unres
+		return e, ErrUnres
+	}
+	return l, nil
 }
