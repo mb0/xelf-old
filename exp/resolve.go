@@ -22,14 +22,14 @@ func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 	}
 	for i, x := range els {
 		r, err := c.Resolve(env, x)
+		xs[i] = r
 		if err != nil {
-			if !c.Exec && res == ErrUnres {
+			if !c.Exec && err == ErrUnres {
 				res = err
 				continue
 			}
 			return nil, err
 		}
-		xs[i] = r
 	}
 	return xs, res
 }
