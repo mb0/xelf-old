@@ -8,7 +8,7 @@ import (
 )
 
 // Resolve creates a new non-executing resolution context and resolves x with with given env.
-func Resolve(env Env, x El) (El, error) { return (&Ctx{Exec: false}).Resolve(env, x) }
+func Resolve(env Env, x El) (El, error) { return (&Ctx{Part: true}).Resolve(env, x) }
 
 // Execute creates a new executing resolution context and evaluates x with with given env.
 func Execute(env Env, x El) (El, error) { return (&Ctx{Exec: true}).Resolve(env, x) }
