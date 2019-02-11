@@ -32,12 +32,15 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args = e.Args[i:]
+				e.Args, err = (&Ctx{}).ResolveAll(env, e.Args[i:])
+				if err != nil && err != ErrUnres {
+					return nil, err
+				}
 				if len(e.Args) == 1 {
 					e = &Expr{Sym: Sym{Name: "bool"}, Args: e.Args}
 				}
 			}
-			return e, err
+			return e, ErrUnres
 		}
 		if err != nil {
 			return nil, err
@@ -62,12 +65,15 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args = e.Args[i:]
+				e.Args, err = (&Ctx{}).ResolveAll(env, e.Args[i:])
+				if err != nil && err != ErrUnres {
+					return nil, err
+				}
 				if len(e.Args) == 1 {
 					e = &Expr{Sym: Sym{Name: "bool"}, Args: e.Args}
 				}
 			}
-			return e, err
+			return e, ErrUnres
 		}
 		if err != nil {
 			return nil, err
