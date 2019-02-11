@@ -179,6 +179,7 @@ func TestStdResolvePart(t *testing.T) {
 		{`(eq 1 $ 1)`, `(eq 1 $)`},
 		{`(eq 1 1 $)`, `(eq 1 $)`},
 		{`(eq $ 1 1)`, `(eq $ 1)`},
+		{`(eq a b 1)`, `(eq a b 1)`},
 		{`(lt 0 1 $)`, `(lt 1 $)`},
 		{`(lt 0 $ 2)`, `(lt 0 $ 2)`},
 		{`(lt $ 1 2)`, `(lt $ 1)`},

@@ -45,7 +45,7 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, neg, sym bool, cmp cmpf) (El, e
 	if err != nil {
 		return nil, err
 	}
-	var res int
+	var res, init bool
 	var unres []El
 	var last Lit
 	for _, arg := range e.Args {
@@ -56,11 +56,12 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, neg, sym bool, cmp cmpf) (El, e
 			}
 			if len(unres) == 0 {
 				unres = make([]El, 0, len(e.Args))
-				if res > 0 {
+				if res {
+					init = true
 					unres = append(unres, last)
 				}
 			}
-			res = 0
+			res = false
 			unres = append(unres, arg)
 			continue
 		}
@@ -73,11 +74,11 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, neg, sym bool, cmp cmpf) (El, e
 				return lit.False, nil
 			}
 		}
-		if res == 0 && (!sym && len(unres) > 0 || len(unres) == 1) {
+		if !res && ((!sym || !init) && len(unres) > 0) || len(unres) == 1 {
 			unres = append(unres, el)
 		}
 		last = el
-		res++
+		res = true
 	}
 	if len(unres) != 0 {
 		e.Args = unres
