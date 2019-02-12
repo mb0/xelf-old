@@ -29,16 +29,12 @@ func Parse(a *lex.Tree) (El, error) {
 		}
 		t, err := typ.ParseSym(a.Val)
 		if err == nil {
-			// check if comment
-			if t == typ.Void {
-				return nil, nil
-			}
 			return t, nil
 		}
 		return &Ref{Sym{Name: a.Val}}, nil
 	case '(':
-		if len(a.Seq) == 0 { // empty expression is null
-			return Dyn{}, nil
+		if len(a.Seq) == 0 { // empty expression is void
+			return typ.Void, nil
 		}
 		fst, err := Parse(a.Seq[0])
 		if err != nil {
@@ -47,11 +43,9 @@ func Parse(a *lex.Tree) (El, error) {
 		var sym Sym
 		args := make([]El, 0, len(a.Seq))
 		switch f := fst.(type) {
-		case nil: // comment
-			return nil, nil
 		case Type:
 			if f == typ.Void {
-				return nil, nil
+				return typ.Void, nil
 			}
 			// check if type definition
 			if nr, nf := typ.NeedsInfo(f); nr || nf {

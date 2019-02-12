@@ -100,7 +100,7 @@ func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
 	return apd, nil
 }
 
-// rslvSet sets the first keyer literal arguments with the following declaration arguments.
+// rslvSet sets the first keyer literal with the following declaration arguments.
 func rslvSet(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) == 0 {
 		return nil, errSetKeyer

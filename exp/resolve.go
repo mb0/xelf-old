@@ -3,7 +3,6 @@ package exp
 import (
 	"fmt"
 
-	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -43,7 +42,7 @@ func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 // arguments, which are then again added to the unresolved elements when appropriate.
 func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	if x == nil {
-		return nil, nil
+		return typ.Void, nil
 	}
 	var rslv Resolver
 	switch v := x.(type) {
@@ -59,7 +58,7 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 		rslv = env.Get(v.Name)
 	case Dyn:
 		if len(v) == 0 {
-			return lit.Nil, nil
+			return typ.Void, nil
 		}
 		rslv = env.Get("dyn")
 		if rslv != nil {

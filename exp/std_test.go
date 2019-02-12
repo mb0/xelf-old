@@ -31,11 +31,11 @@ func TestStdResolve(t *testing.T) {
 	}{
 		{`any`, typ.Any},
 		{`bool`, typ.Bool},
-		{`void`, nil},
+		{`void`, typ.Void},
 		{`raw`, typ.Raw},
 		{`null`, lit.Nil},
 		{`true`, lit.True},
-		{`(void anything)`, nil},
+		{`(void anything)`, typ.Void},
 		{`(true)`, lit.True},
 		{`(bool)`, lit.False},
 		{`(bool 1)`, lit.True},
@@ -43,7 +43,7 @@ func TestStdResolve(t *testing.T) {
 		{`(raw)`, lit.Raw(nil)},
 		{`7`, lit.Num(7)},
 		{`(7)`, lit.Num(7)},
-		{`()`, lit.Nil},
+		{`()`, typ.Void},
 		{`(int 7)`, lit.Int(7)},
 		{`(real 7)`, lit.Real(7)},
 		{`'abc'`, lit.Char("abc")},
@@ -142,6 +142,7 @@ func TestStdResolve(t *testing.T) {
 		{`(reduce 'hello' +e +i ['alice' 'bob'] (cat _ (if i ',') ' ' e))`,
 			lit.Str("hello alice, bob"),
 		},
+		{`(with +a int @a)`, typ.Int},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)
@@ -195,6 +196,7 @@ func TestStdResolvePart(t *testing.T) {
 		{`(div $ 2 3)`, `(div $ 6)`},
 		{`(div 6 $ 3)`, `(div 2 $)`},
 		{`(div 6 2 $)`, `(div 3 $)`},
+		{`(1 2 $)`, `(add 3 $)`},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)
