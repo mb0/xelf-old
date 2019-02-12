@@ -138,7 +138,7 @@ func plainArgs(res []El, seq []*lex.Tree) ([]El, error) {
 		if err != nil {
 			return nil, err
 		}
-		if e != nil {
+		if e != typ.Void {
 			res = append(res, e)
 		}
 	}
