@@ -122,7 +122,7 @@ func NeedsInfo(t Type) (ref, fields bool) {
 	case KindObj:
 		return false, t.Info == nil || len(t.Fields) == 0
 	case KindRec:
-		return t.Info == nil || len(t.Ref) == 0, t.Info == nil || len(t.Fields) == 0
+		return t.Info == nil || len(t.Ref) == 0, false
 	}
 	return false, false
 }

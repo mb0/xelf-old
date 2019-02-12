@@ -14,7 +14,7 @@ func TestString(t *testing.T) {
 		{Opt(Str), `str?`},
 		{Ref("a"), `@a`},
 		{Opt(Ref("b")), `@b?`},
-		{Opt(Enum("kind", nil)), `(enum? 'kind')`},
+		{Opt(Enum("kind")), `(enum? 'kind')`},
 		{Opt(Obj([]Field{
 			{Name: "Name", Type: Str},
 		})), `(obj? +Name str)`},
@@ -26,10 +26,7 @@ func TestString(t *testing.T) {
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
 		}), `(obj + @Other +Name str)`},
-		{Rec("Foo", []Field{
-			{Type: Ref("Other")},
-			{Name: "Name", Type: Str},
-		}), `(rec 'Foo' + @Other +Name str)`},
+		{Rec("Foo"), `(rec 'Foo')`},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()
@@ -56,7 +53,7 @@ func TestJSON(t *testing.T) {
 		{Opt(Str), `{"typ":"str?"}`},
 		{Ref("a"), `{"typ":"ref","ref":"a"}`},
 		{Opt(Ref("b")), `{"typ":"ref?","ref":"b"}`},
-		{Opt(Enum("kind", nil)), `{"typ":"enum?","ref":"kind"}`},
+		{Opt(Enum("kind")), `{"typ":"enum?","ref":"kind"}`},
 		{Opt(Obj([]Field{
 			{Name: "Name", Type: Str},
 		})), `{"typ":"obj?","fields":[{"name":"Name","typ":"str"}]}`},
@@ -64,10 +61,7 @@ func TestJSON(t *testing.T) {
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
 		}), `{"typ":"obj","fields":[{"typ":"ref","ref":"Other"},{"name":"Name","typ":"str"}]}`},
-		{Rec("Foo", []Field{
-			{Type: Ref("Other")},
-			{Name: "Name", Type: Str},
-		}), `{"typ":"rec","ref":"Foo","fields":[{"typ":"ref","ref":"Other"},{"name":"Name","typ":"str"}]}`},
+		{Rec("Foo"), `{"typ":"rec","ref":"Foo"}`},
 	}
 	for _, test := range tests {
 		raw, err := json.Marshal(test.typ)

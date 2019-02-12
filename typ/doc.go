@@ -62,12 +62,15 @@ in the reference name.
 Self references of the form '@1' are a special references to the current '@0' or the parent '@1' or
 the grand parent '@2' and so on for the whole object type ancestry.
 
-There are more quasi-reference types, that are treated as a specific type in most cases, but carry
-more information for handling in a domain modeled declaration context.
+There are more quasi-reference types, that are treated as a specific type in most cases.
+These types reference a global type definition and as such must be resolved. Other than normal
+references the identifier is kept alongside the full type data after resolution.
 
     flag is a named int type bit-set that consists of multiple bit constants
     enum is a named str type that consists of one string constant of an enumeration
     rec  is a named obj type that has additional type and field details
+
+The global identifier allows users to associate extra data and behaviour to these types.
 
 Minimum restrictions apply for compatibility with JavaScript and JSON:
 

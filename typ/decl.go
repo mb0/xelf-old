@@ -1,7 +1,5 @@
 package typ
 
-import "github.com/mb0/xelf/cor"
-
 var (
 	Void = Type{Kind: KindVoid}
 	Any  = Type{Kind: KindAny}
@@ -29,10 +27,10 @@ func Arr(t Type) Type     { return Type{t.Kind<<SlotSize | KindArr, t.Info} }
 func Map(t Type) Type     { return Type{t.Kind<<SlotSize | KindMap, t.Info} }
 func Obj(fs []Field) Type { return Type{KindObj, &Info{Fields: fs}} }
 
-func Ref(name string) Type                  { return Type{KindRef, &Info{Ref: name}} }
-func Flag(name string, cs []cor.Const) Type { return Type{KindFlag, &Info{Ref: name, Consts: cs}} }
-func Enum(name string, cs []cor.Const) Type { return Type{KindEnum, &Info{Ref: name, Consts: cs}} }
-func Rec(n string, fs []Field) Type         { return Type{KindRec, &Info{Ref: n, Fields: fs}} }
+func Ref(name string) Type  { return Type{KindRef, &Info{Ref: name}} }
+func Flag(name string) Type { return Type{KindFlag, &Info{Ref: name}} }
+func Enum(name string) Type { return Type{KindEnum, &Info{Ref: name}} }
+func Rec(n string) Type     { return Type{KindRec, &Info{Ref: n}} }
 
 // IsOpt returns whether t is an optional type and not any.
 func (t Type) IsOpt() bool {

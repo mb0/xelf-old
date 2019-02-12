@@ -94,10 +94,10 @@ type infoPair = struct{ a, b *Info }
 
 func (a Type) Equal(b Type) bool { return a.equal(b, nil) }
 func (a Type) equal(b Type, hist []infoPair) bool {
-	return a.Kind == b.Kind && a.Info.equal(b.Info, hist)
+	return a.Kind == b.Kind && a.Info.equal(b.Info, a.Kind&FlagRef != 0, hist)
 }
-func (a *Info) Equal(b *Info) bool { return a.equal(b, nil) }
-func (a *Info) equal(b *Info, hist []infoPair) bool {
+func (a *Info) Equal(b *Info) bool { return a.equal(b, false, nil) }
+func (a *Info) equal(b *Info, ref bool, hist []infoPair) bool {
 	if a == b {
 		return true
 	}
@@ -105,9 +105,14 @@ func (a *Info) equal(b *Info, hist []infoPair) bool {
 		return b.IsZero()
 	}
 	if b.IsZero() ||
-		len(a.Fields) != len(b.Fields) ||
-		len(a.Consts) != len(b.Consts) ||
 		a.Ref != b.Ref && a.Key() != b.Key() {
+		return false
+	}
+	if ref {
+		return true
+	}
+	if len(a.Fields) != len(b.Fields) ||
+		len(a.Consts) != len(b.Consts) {
 		return false
 	}
 	for i, av := range a.Consts {
@@ -159,6 +164,7 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 			}
 		}
 	}
+	var detail bool
 	switch last.Kind & MaskRef {
 	case KindRef:
 		ref := ""
@@ -167,7 +173,10 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 		}
 		writeRef(b, ref, a.Kind)
 		return nil
-	case KindFlag, KindEnum, KindObj, KindRec:
+	case KindObj:
+		detail = true
+		fallthrough
+	case KindFlag, KindEnum, KindRec:
 		if b.JSON {
 			b.WriteString(`"typ":"`)
 		} else {
@@ -179,10 +188,10 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 		}
 		if b.JSON {
 			b.WriteByte('"')
-			err = a.Info.writeJSON(b, append(hist, a.Info))
+			err = a.Info.writeJSON(b, detail, append(hist, a.Info))
 			b.WriteString(``)
 		} else {
-			err = a.Info.writeXelf(b, append(hist, a.Info))
+			err = a.Info.writeXelf(b, detail, append(hist, a.Info))
 			b.WriteByte(')')
 		}
 		return err
@@ -233,13 +242,16 @@ func writeRef(b bfr.Ctx, ref string, k Kind) {
 	}
 }
 
-func (a *Info) writeXelf(b bfr.Ctx, hist []*Info) error {
+func (a *Info) writeXelf(b bfr.Ctx, detail bool, hist []*Info) error {
 	if a == nil {
 		return nil
 	}
 	if a.Ref != "" {
 		b.WriteByte(' ')
 		b.Quote(a.Ref)
+	}
+	if !detail {
+		return nil
 	}
 	for i := 0; i < len(a.Fields); i++ {
 		f := a.Fields[i]
@@ -262,7 +274,7 @@ func (a *Info) writeXelf(b bfr.Ctx, hist []*Info) error {
 	return nil
 }
 
-func (a *Info) writeJSON(b bfr.Ctx, hist []*Info) error {
+func (a *Info) writeJSON(b bfr.Ctx, detail bool, hist []*Info) error {
 	if a == nil {
 		return nil
 	}
@@ -270,7 +282,7 @@ func (a *Info) writeJSON(b bfr.Ctx, hist []*Info) error {
 		b.WriteString(`,"ref":`)
 		b.Quote(a.Ref)
 	}
-	if len(a.Fields) == 0 {
+	if !detail || len(a.Fields) == 0 {
 		return nil
 	}
 	b.WriteString(`,"fields":[`)
