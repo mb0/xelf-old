@@ -186,7 +186,7 @@ func FlagSetter(key string) KeySetter {
 		if err != nil {
 			return err
 		}
-		v, ok := f.(lit.Int)
+		v, ok := f.(lit.Numer)
 		if !ok {
 			return fmt.Errorf("expect int field for %q got %T", key, f)
 		}
@@ -194,7 +194,7 @@ func FlagSetter(key string) KeySetter {
 		if !ok {
 			return fmt.Errorf("expect int lit for %q got %T", key, el)
 		}
-		return n.SetKey(key, lit.Int(uint64(v)|uint64(w)))
+		return n.SetKey(key, lit.Int(uint64(v.Num())|uint64(w)))
 	}
 }
 
