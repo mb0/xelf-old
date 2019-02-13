@@ -80,14 +80,17 @@ func (nr NodeRules) Resolve(c *exp.Ctx, env exp.Env,
 		return err
 	}
 	for _, d := range decls {
-		l, err := nr.Decl.prepper(KeyRule{})(c, env, d.Name, d.Args)
+		l, err := nr.Decl.prepper(KeyRule{})(c, env, d.Name[1:], d.Args)
 		if err != nil {
 			return err
 		}
 		if nr.Decl.KeySetter == nil {
 			return fmt.Errorf("unexpected decl %s", d)
 		}
-		return nr.Decl.KeySetter(node, d.Name, l)
+		err = nr.Decl.KeySetter(node, d.Name[1:], l)
+		if err != nil {
+			return err
+		}
 	}
 	if nr.Tail.KeySetter != nil {
 		l, err := nr.Tail.prepper(KeyRule{})(c, env, "::", tail)
