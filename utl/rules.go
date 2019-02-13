@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 )
@@ -134,6 +135,67 @@ func PathSetter(n Node, key string, el lit.Lit) error {
 		return fmt.Errorf("%v for key %s", err, key)
 	}
 	return nil
+}
+
+// ExtraMapSetter returns a key setter that tries to add to a node map field with key.
+func ExtraMapSetter(mapkey string) KeySetter {
+	return func(n Node, key string, el lit.Lit) error {
+		err := PathSetter(n, key, el)
+		if err == nil {
+			return nil
+		}
+		m, err := n.Key(mapkey)
+		if err != nil {
+			return err
+		}
+		v, ok := m.(lit.Keyer)
+		if !ok {
+			return fmt.Errorf("expect keyer field for %q got %T", key, m)
+		}
+		return v.SetKey(key, el)
+	}
+}
+
+// FlagPrepper returns a key prepper that tries to resolve a flag constant.
+func FlagPrepper(consts []cor.Const) KeyPrepper {
+	return func(c *exp.Ctx, env exp.Env, key string, args []exp.El) (lit.Lit, error) {
+		l, err := DynPrepper(c, env, key, args)
+		if err != nil {
+			return l, err
+		}
+		if l == lit.Nil {
+			for _, b := range consts {
+				if strings.EqualFold(key, b.Name) {
+					return lit.Int(b.Val), nil
+				}
+			}
+			return nil, fmt.Errorf("no constant named %q", key)
+		}
+		n, ok := l.(lit.Numer)
+		if !ok {
+			return nil, fmt.Errorf("expect numer for %q got %T", key, l)
+		}
+		return lit.Int(n.Num()), nil
+	}
+}
+
+// FlagSetter returns a key setter that tries to add to a node flag field with key.
+func FlagSetter(key string) KeySetter {
+	return func(n Node, _ string, el lit.Lit) error {
+		f, err := n.Key(key)
+		if err != nil {
+			return err
+		}
+		v, ok := f.(lit.Int)
+		if !ok {
+			return fmt.Errorf("expect int field for %q got %T", key, f)
+		}
+		w, ok := el.(lit.Int)
+		if !ok {
+			return fmt.Errorf("expect int lit for %q got %T", key, el)
+		}
+		return n.SetKey(key, lit.Int(uint64(v)|uint64(w)))
+	}
 }
 
 func (a KeyRule) prepper(r KeyRule) KeyPrepper {
