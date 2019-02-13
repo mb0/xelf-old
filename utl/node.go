@@ -1,82 +1,70 @@
 package utl
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 )
 
-// ParseNode will parse a node form expression and assign the tag values to node.
-// It returns the node as a proxy literal and the tail elements or an error.
-func ParseNode(c *exp.Ctx, env exp.Env, e *exp.Expr, node interface{}) (lit.Assignable, []exp.El, error) {
-	p, err := lit.Proxy(node)
-	if err != nil {
-		return nil, nil, err
-	}
-	o, ok := p.(lit.Obj)
-	if !ok {
-		return nil, nil, fmt.Errorf("node must be an object is %T", p)
-	}
-	tags, tail, err := exp.NodeForm(e.Args)
-	if err != nil {
-		return nil, nil, err
-	}
-	err = AssignTagsObj(c, env, tags, o, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	return p, tail, nil
+// Node is an interface for assignable object literals.
+type Node interface {
+	lit.Obj
+	Ptr() interface{}
+	Assign(lit.Lit) error
 }
 
-// AssignTagsObj assigns tags to object o or returns an error.
-// Unnamed tags are treated as positional arguments and point to field at index+offset
-func AssignTagsObj(c *exp.Ctx, env exp.Env, tags []exp.Tag, o lit.Obj, offset int) (err error) {
-	for i, v := range tags {
-		var x exp.El
-		if len(v.Args) > 1 {
-			x, err = c.Resolve(env, exp.Dyn(v.Args))
-		} else if len(v.Args) == 1 {
-			x, err = c.Resolve(env, v.Args[0])
-		} else {
-			x = lit.Nil
-		}
+// GenNode returns a node for val or an error. It tries to proxy if val is not a Node.
+func GetNode(val interface{}) (Node, error) {
+	n, ok := val.(Node)
+	if !ok {
+		p, err := lit.Proxy(val)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		el, ok := x.(lit.Lit)
+		n, ok = p.(Node)
 		if !ok {
-			return fmt.Errorf("expect literal got %T", x)
-		}
-		if v.Name == "" {
-			err = o.SetIdx(i+offset, el)
-			if err != nil {
-				return fmt.Errorf("set idx error for typ %s: %v", o.Typ(), err)
-			}
-			return nil
-		}
-		path, err := lit.ReadPath(v.Name[1:])
-		if err != nil {
-			return err
-		}
-		last := path[len(path)-1]
-		target, ok := o, true
-		if len(path) > 1 {
-			pl, err := lit.SelectPath(target, path[:len(path)-1])
-			if err != nil {
-				return err
-			}
-			target, ok = pl.(lit.Obj)
-			if !ok {
-				return errors.New("tag path expects object")
-			}
-		}
-		err = target.SetKey(last.Key, el)
-		if err != nil {
-			tt := target.Typ()
-			return fmt.Errorf("set key error for typ %s: %v", tt, err)
+			return nil, fmt.Errorf("want node got %T", p)
 		}
 	}
-	return nil
+	return n, nil
+}
+
+// ParseNode parses args as node form and sets them to v using rules or returns an error.
+func ParseNode(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules NodeRules) error {
+	n, err := GetNode(v)
+	if err != nil {
+		return err
+	}
+	tags, tail, err := exp.NodeForm(args)
+	if err != nil {
+		return err
+	}
+
+	if rules.Tags.IdxKeyer == nil {
+		rules.Tags.IdxKeyer = ZeroKeyer
+	}
+	return rules.Resolve(c, env, tags, tail, n)
+}
+
+// NodeRules is a configurable helper for assigning tags and tail elements to nodes.
+type NodeRules struct {
+	Tags TagRules
+	KeyRule
+}
+
+// Resolve resolves tags and tail using c and env and assigns them to node or returns an error
+func (nr NodeRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, tail []exp.El, node Node) error {
+	err := nr.Tags.Resolve(c, env, tags, node)
+	if err != nil {
+		return err
+	}
+	l, err := nr.prepper(KeyRule{})(c, env, "::", tail)
+	if err != nil {
+		return err
+	}
+	if nr.KeySetter == nil {
+		return fmt.Errorf("unexpected tail %s", l)
+	}
+	return nr.KeySetter(node, "::", l)
 }
