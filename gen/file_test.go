@@ -10,8 +10,10 @@ import (
 )
 
 func TestWriteGoFile(t *testing.T) {
-	align := typ.Flag("foo.Align", []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}})
-	kind := typ.Enum("foo.Kind", []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}})
+	align := typ.Flag("foo.Align")
+	align.Consts = []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}}
+	kind := typ.Enum("foo.Kind")
+	kind.Consts = []cor.Const{{"A", 1}, {"B", 2}, {"C", 3}}
 	tests := []struct {
 		els  []exp.El
 		want string
@@ -33,23 +35,23 @@ func TestWriteGoFile(t *testing.T) {
 				"\tKindC Kind = \"c\"\n" +
 				")\n",
 		},
-		{[]exp.El{typ.Rec("foo.Node", []typ.Field{
+		{[]exp.El{rec("foo.Node", []typ.Field{
 			{Name: "Name?", Type: typ.Str},
 		})}, "package foo\n\ntype Node struct {\n" +
 			"\tName string `json:\"name,omitempty\"`\n" + "}\n",
 		},
-		{[]exp.El{typ.Rec("foo.Node", []typ.Field{
+		{[]exp.El{rec("foo.Node", []typ.Field{
 			{Name: "Start", Type: typ.Time},
 		})}, "package foo\n\nimport (\n\t\"time\"\n)\n\ntype Node struct {\n" +
 			"\tStart time.Time `json:\"start\"`\n" + "}\n",
 		},
-		{[]exp.El{typ.Rec("foo.Node", []typ.Field{
-			{Name: "Kind", Type: typ.Enum("bar.Kind", nil)},
+		{[]exp.El{rec("foo.Node", []typ.Field{
+			{Name: "Kind", Type: typ.Enum("bar.Kind")},
 		})}, "package foo\n\nimport (\n\t\"path/to/bar\"\n)\n\ntype Node struct {\n" +
 			"\tKind bar.Kind `json:\"kind\"`\n" + "}\n",
 		},
-		{[]exp.El{typ.Rec("foo.Node", []typ.Field{
-			{Name: "Kind", Type: typ.Enum("foo.Kind", nil)},
+		{[]exp.El{rec("foo.Node", []typ.Field{
+			{Name: "Kind", Type: typ.Enum("foo.Kind")},
 		})}, "package foo\n\ntype Node struct {\n" +
 			"\tKind Kind `json:\"kind\"`\n" + "}\n",
 		},
@@ -71,4 +73,10 @@ func TestWriteGoFile(t *testing.T) {
 			t.Errorf("for %+v want %s got %s", test.els, test.want, got)
 		}
 	}
+}
+
+func rec(ref string, fs []typ.Field) typ.Type {
+	res := typ.Rec(ref)
+	res.Fields = fs
+	return res
 }
