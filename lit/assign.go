@@ -88,6 +88,9 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		if v, ok := ptrRef(et, refTime, ptr); ok {
 			return (*Time)(v.Interface().(*time.Time)), nil
 		}
+		if v, ok := ptrRef(et, refType, ptr); ok {
+			return typProxy{v.Interface().(*typ.Type)}, nil
+		}
 		if v, ok := toRef(ptr.Type(), refDict, ptr); ok {
 			return v.Interface().(*Dict), nil
 		}
@@ -160,4 +163,19 @@ func ptrRef(et reflect.Type, ref reflect.Type, v reflect.Value) (reflect.Value, 
 		return v.Convert(reflect.PtrTo(ref)), true
 	}
 	return v, false
+}
+
+type typProxy struct {
+	*typ.Type
+}
+
+func (p typProxy) Ptr() interface{} {
+	return p.Type
+}
+func (p typProxy) Assign(l Lit) error {
+	if t, ok := l.(typ.Type); ok {
+		*p.Type = t
+		return nil
+	}
+	return ErrNotAssignable
 }

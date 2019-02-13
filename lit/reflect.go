@@ -26,6 +26,7 @@ var (
 	refSecs = reflect.TypeOf((*MarkSpan)(nil))
 	refFlag = reflect.TypeOf((*MarkFlag)(nil))
 	refEnum = reflect.TypeOf((*MarkEnum)(nil))
+	refType = reflect.TypeOf(typ.Void)
 )
 
 // Reflect returns the xelf type for the interface value v or an error.
@@ -94,6 +95,10 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 	case reflect.Struct:
 		if isRef(t, refTime) {
 			res = typ.Time
+			break
+		}
+		if isRef(t, refType) {
+			res = typ.Typ
 			break
 		}
 		if isRef(t, refDict.Elem()) {
