@@ -10,9 +10,13 @@ import (
 )
 
 var (
-	ErrNotAssignable = errors.New("not assignable")
-	ErrRequiresPtr   = errors.New("requires non-nil pointer argument")
+	ErrRequiresPtr = errors.New("requires non-nil pointer argument")
+	ErrNotMap      = errors.New("proxy not a map")
+	ErrNotSlice    = errors.New("proxy not a slice")
+	ErrNotStruct   = errors.New("proxy not a struct")
 )
+
+func ErrAssign(src, dst typ.Type) error { return fmt.Errorf("%q not assignable to %q", src, dst) }
 
 // Assign assigns the value of l to the interface pointer value or returns an error
 func AssignTo(l Lit, ptr interface{}) error {
@@ -177,5 +181,5 @@ func (p typProxy) Assign(l Lit) error {
 		*p.Type = t
 		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), typ.Typ)
 }

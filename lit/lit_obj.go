@@ -124,11 +124,9 @@ func (a *abstrObj) WriteBfr(b bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
-var ErrObjProxyVal = errors.New("unexpected obj proxy value")
-
 func (p *proxyObj) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
-		return ErrNotAssignable
+		return ErrAssign(l.Typ(), p.typ)
 	}
 	b, ok := l.(Keyer)
 	if !ok || b.IsZero() { // a nil obj?
@@ -138,7 +136,7 @@ func (p *proxyObj) Assign(l Lit) error {
 	}
 	v, ok := p.elem(reflect.Struct)
 	if !ok {
-		return ErrObjProxyVal
+		return ErrNotStruct
 	}
 	return b.IterKey(func(k string, e Lit) error {
 		_, i, err := p.typ.FieldByKey(k)
@@ -214,7 +212,7 @@ func (p *proxyObj) SetIdx(i int, l Lit) error {
 	if v, ok := p.elem(reflect.Struct); ok {
 		return AssignToValue(l, v.FieldByIndex(p.idx[i]).Addr())
 	}
-	return ErrObjProxyVal
+	return ErrNotStruct
 }
 func (p *proxyObj) SetKey(k string, l Lit) error {
 	_, i, err := p.typ.FieldByKey(k)
@@ -224,7 +222,7 @@ func (p *proxyObj) SetKey(k string, l Lit) error {
 	if v, ok := p.elem(reflect.Struct); ok {
 		return AssignToValue(l, v.FieldByIndex(p.idx[i]).Addr())
 	}
-	return ErrObjProxyVal
+	return ErrNotStruct
 }
 func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {

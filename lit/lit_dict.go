@@ -114,7 +114,7 @@ func (v *Dict) Assign(l Lit) error {
 		}
 		v.List = res
 	default:
-		return ErrNotAssignable
+		return ErrAssign(l.Typ(), v.Typ())
 	}
 	return nil
 }

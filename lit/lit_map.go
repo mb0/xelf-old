@@ -53,11 +53,11 @@ func (a *abstrMap) SetKey(key string, el Lit) (err error) {
 
 func (p *proxyMap) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
-		return ErrNotAssignable
+		return ErrAssign(l.Typ(), p.typ)
 	}
 	v, ok := p.elem(reflect.Map)
 	if !ok {
-		return ErrNotAssignable
+		return ErrNotMap
 	}
 	b, ok := l.(Keyer)
 	if !ok || b.IsZero() { // a nil map

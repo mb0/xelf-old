@@ -48,8 +48,11 @@ func (v *Time) Assign(l Lit) error {
 			*v = Time(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = ZeroTime
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }
 
 func (v *Span) Ptr() interface{} { return v }
@@ -59,6 +62,9 @@ func (v *Span) Assign(l Lit) error {
 			*v = Span(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = 0
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }

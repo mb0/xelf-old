@@ -56,8 +56,11 @@ func (v *Str) Assign(l Lit) error {
 			*v = Str(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = ""
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }
 
 func (v *Raw) Ptr() interface{} { return v }
@@ -67,8 +70,11 @@ func (v *Raw) Assign(l Lit) error {
 			*v = Raw(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = nil
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }
 
 func (v *UUID) Ptr() interface{} { return v }
@@ -78,8 +84,11 @@ func (v *UUID) Assign(l Lit) error {
 			*v = UUID(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = ZeroUUID
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }
 
 func sglQuoteString(v string) string         { s, _ := lex.Quote(v, '\''); return s }

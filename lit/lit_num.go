@@ -58,8 +58,11 @@ func (v *Bool) Assign(l Lit) error {
 			*v = Bool(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = false
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }
 
 func (v *Int) Ptr() interface{} { return v }
@@ -69,8 +72,11 @@ func (v *Int) Assign(l Lit) error {
 			*v = Int(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = 0
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }
 
 func (v *Real) Ptr() interface{} { return v }
@@ -80,8 +86,11 @@ func (v *Real) Assign(l Lit) error {
 			*v = Real(e)
 			return nil
 		}
+	} else if v.Typ().Equal(l.Typ()) { // leaves null
+		*v = 0
+		return nil
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), v.Typ())
 }
 
 func (p *proxyNum) Val() interface{} {
@@ -119,8 +128,20 @@ func (p *proxyNum) Assign(l Lit) error {
 				}
 			}
 		}
+	} else if p.typ.Equal(l.Typ()) { // leaves null
+		if v := p.el(); v.IsValid() {
+			switch v.Kind() {
+			case reflect.Int64, reflect.Int, reflect.Int32:
+				v.SetInt(0)
+			case reflect.Float64, reflect.Float32:
+				v.SetFloat(0)
+			case reflect.Uint64, reflect.Uint, reflect.Uint32:
+				v.SetUint(0)
+			}
+			return nil
+		}
 	}
-	return ErrNotAssignable
+	return ErrAssign(l.Typ(), p.typ)
 }
 
 func (p *proxyNum) IsZero() bool {

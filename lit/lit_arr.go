@@ -59,7 +59,7 @@ func (a abstrArr) Append(ls ...Lit) (Appender, error) {
 
 func (p *proxyArr) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
-		return ErrNotAssignable
+		return ErrAssign(l.Typ(), p.typ)
 	}
 	b, ok := l.(Idxer)
 	if !ok || b.IsZero() { // a nil obj?
@@ -68,7 +68,7 @@ func (p *proxyArr) Assign(l Lit) error {
 	}
 	v, ok := p.elem(reflect.Slice)
 	if !ok {
-		return ErrNotAssignable
+		return ErrNotSlice
 	}
 	v = v.Slice(0, 0)
 	err := b.IterIdx(func(i int, e Lit) error {
@@ -98,13 +98,10 @@ func (p *proxyArr) Assign(l Lit) error {
 func (p *proxyArr) Append(ls ...Lit) (Appender, error) {
 	v, ok := p.elem(reflect.Slice)
 	if !ok {
-		return nil, ErrNotAssignable
+		return nil, ErrNotSlice
 	}
 	rt := v.Type().Elem()
 	for _, e := range ls {
-		if e == nil {
-			return nil, ErrNotAssignable
-		}
 		fp := reflect.New(rt)
 		err := AssignToValue(e, fp)
 		if err != nil {

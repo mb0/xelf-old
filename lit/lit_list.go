@@ -72,7 +72,7 @@ func (l *List) Assign(val Lit) error {
 		}
 		*l = res
 	default:
-		return ErrNotAssignable
+		return ErrAssign(l.Typ(), v.Typ())
 	}
 	return nil
 }
