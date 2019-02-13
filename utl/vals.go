@@ -26,10 +26,8 @@ type LitResolver struct{ lit.Lit }
 
 func (r LitResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error) {
 	switch x := e.(type) {
-	case *exp.Ref:
-		return r.Lit, nil
 	case *exp.Expr:
 		return c.Resolve(env, append(exp.Dyn{r.Lit}, x.Args...))
 	}
-	return e, exp.ErrUnres
+	return r.Lit, nil
 }
