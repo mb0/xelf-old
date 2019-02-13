@@ -2,6 +2,7 @@ package exp
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/lit"
@@ -21,12 +22,20 @@ type Sym struct {
 	Name string
 	Rslv Resolver
 	Type Type
+	key  string
+}
+
+func (s *Sym) Key() string {
+	if s.key == "" {
+		s.key = strings.ToLower(s.Name)
+	}
+	return s.key
 }
 
 // Lookup returns the cached resolver, if nil it queries and caches if from env.
 func (s *Sym) Lookup(env Env) Resolver {
 	if s.Rslv == nil {
-		s.Rslv = env.Get(s.Name)
+		s.Rslv = env.Get(s.Key())
 	}
 	return s.Rslv
 }

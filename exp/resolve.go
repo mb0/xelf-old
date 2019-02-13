@@ -55,7 +55,11 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	case Lit: // already resolved
 		return v, nil
 	case *Ref:
-		rslv = env.Get(v.Name)
+		if c.Part {
+			rslv = v.Lookup(env)
+		} else {
+			rslv = env.Get(v.Key())
+		}
 	case Dyn:
 		if len(v) == 0 {
 			return typ.Void, nil
@@ -91,7 +95,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 		// TODO infer type
 		return t, ErrUnres
 	}
-	rslv := env.Get(t.Info.Ref)
+	rslv := env.Get(t.Info.Key())
 	if rslv == nil {
 		return t, ErrUnres
 	}
@@ -99,7 +103,11 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 	if err != nil {
 		return t, err
 	}
-	return elType(el)
+	et, err := elType(el)
+	if err != nil {
+		return t, err
+	}
+	return replaceRef(t, et)
 }
 
 func elType(el El) (Type, error) {
@@ -118,4 +126,18 @@ func elType(el El) (Type, error) {
 		}
 	}
 	return typ.Void, ErrUnres
+}
+func replaceRef(t, el Type) (Type, error) {
+	var mask, shift typ.Kind
+	for shift = 0; ; shift += typ.SlotSize {
+		k := t.Kind >> shift
+		switch k & typ.MaskElem {
+		case typ.KindArr, typ.KindMap:
+			mask |= k << shift
+			continue
+		}
+		el.Kind |= k & typ.FlagOpt
+		el.Kind = (el.Kind << shift) | mask
+		return el, nil
+	}
 }
