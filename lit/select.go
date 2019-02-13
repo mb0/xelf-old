@@ -97,3 +97,37 @@ func SelectPath(l Lit, p Path) (_ Lit, err error) {
 	}
 	return l, nil
 }
+
+// SetPath sets literal l at path p to el or returns an error. If create is true it tries to
+// create or resize intermediate containers so they can hold el.
+func SetPath(l Lit, p Path, el Lit, create bool) (err error) {
+	// TODO implement create
+	for i, s := range p {
+		last := i == len(p)-1
+		if s.Key != "" {
+			v, ok := l.(Keyer)
+			if !ok {
+				return ErrKeySeg
+			}
+			if last {
+				err = v.SetKey(s.Key, el)
+			} else {
+				l, err = v.Key(s.Key)
+			}
+		} else {
+			v, ok := l.(Idxer)
+			if !ok {
+				return ErrIdxSeg
+			}
+			if last {
+				err = v.SetIdx(s.Idx, el)
+			} else {
+				l, err = v.Idx(s.Idx)
+			}
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
