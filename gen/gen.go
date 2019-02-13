@@ -12,6 +12,7 @@ type Ctx struct {
 	bfr.B
 	Pkg    string
 	Target string
+	Header string
 	Pkgs   map[string]string
 	Imports
 }

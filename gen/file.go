@@ -2,6 +2,7 @@ package gen
 
 import (
 	"fmt"
+	"go/format"
 	"strings"
 
 	"github.com/mb0/xelf/bfr"
@@ -60,6 +61,7 @@ func WriteGoFile(c *Ctx, els []exp.El) error {
 	}
 	// swap back
 	c.B = f
+	f.WriteString(c.Header)
 	f.WriteString("package ")
 	f.WriteString(pkgName(c.Pkg))
 	f.WriteString("\n")
@@ -72,8 +74,18 @@ func WriteGoFile(c *Ctx, els []exp.El) error {
 		}
 		f.WriteString(")\n")
 	}
-	_, err := b.WriteTo(f)
-	return err
+	res, err := format.Source(b.Bytes())
+	if err != nil {
+		return err
+	}
+	for len(res) > 0 {
+		n, err := f.Write(res)
+		if err != nil {
+			return err
+		}
+		res = res[n:]
+	}
+	return nil
 }
 
 // DeclareGoType writes a type declaration for flag, enum and rec types.
@@ -123,7 +135,7 @@ func refName(t typ.Type) string {
 		n = n[i+1:]
 	}
 	if len(n) > 0 {
-		if c := n[0]; c < 'A' || c > 'Z' {
+		if c := n[0]; c < 'A' || -c > 'Z' {
 			n = strings.ToUpper(n[:1]) + n[1:]
 		}
 	}
