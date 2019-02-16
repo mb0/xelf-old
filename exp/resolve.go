@@ -88,14 +88,33 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 }
 
 func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
-	if t.Last().Kind&typ.MaskRef != typ.KindRef {
+	k := t.Last().Kind
+	if k&typ.FlagRef == 0 {
 		return t, nil
 	}
 	if t.Info == nil || t.Info.Ref == "" {
+		if k != typ.FlagRef {
+			return t, fmt.Errorf("unnamed %s not allowed", k)
+		}
 		// TODO infer type
 		return t, ErrUnres
 	}
-	rslv := env.Get(t.Info.Key())
+	key := t.Info.Key()
+	// return already resolved quasi ref types, otherwise add schema prefix '~'
+	switch k {
+	case typ.KindFlag, typ.KindEnum:
+		if len(t.Consts) > 0 {
+			return t, nil
+		}
+		key = "~" + key
+	case typ.KindRec:
+		if len(t.Fields) > 0 {
+			return t, nil
+		}
+		key = "~" + key
+	}
+
+	rslv := env.Get(key)
 	if rslv == nil {
 		return t, ErrUnres
 	}
