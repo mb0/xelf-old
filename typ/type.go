@@ -31,7 +31,7 @@ type Info struct {
 	key    string
 }
 
-// Key returns the lowercase ref key
+// Key returns the lowercase ref key.
 func (a *Info) Key() string {
 	if a == nil {
 		return ""
@@ -44,7 +44,7 @@ func (a *Info) Key() string {
 
 var errFieldNotFound = errors.New("field not found")
 
-// FieldByIdx returns a pointer to the field at idx or an error
+// FieldByIdx returns a pointer to the field at idx or an error.
 func (a *Info) FieldByIdx(idx int) (*Field, error) {
 	if a != nil && idx >= 0 && idx < len(a.Fields) {
 		return &a.Fields[idx], nil
@@ -52,7 +52,7 @@ func (a *Info) FieldByIdx(idx int) (*Field, error) {
 	return nil, errFieldNotFound
 }
 
-// FieldByKey returns a pointer to the field with key or an error
+// FieldByKey returns a pointer to the field and its idex at key or an error.
 func (a *Info) FieldByKey(key string) (*Field, int, error) {
 	if a != nil {
 		for i, f := range a.Fields {
