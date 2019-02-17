@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mb0/xelf/typ"
 	"github.com/pkg/errors"
 )
 
@@ -79,17 +80,35 @@ func Select(l Lit, path string) (Lit, error) {
 func SelectPath(l Lit, p Path) (_ Lit, err error) {
 	for _, s := range p {
 		if s.Key != "" {
-			v, ok := l.(Keyer)
-			if !ok {
+			switch v := l.(type) {
+			case typ.Type:
+				switch v.Kind & typ.MaskElem {
+				case typ.KindMap:
+					l = v.Next()
+				case typ.KindObj:
+					var f *typ.Field
+					f, _, err = v.FieldByKey(s.Key)
+					if f != nil {
+						l = f.Type
+					}
+				}
+			case Keyer:
+				l, err = v.Key(s.Key)
+			default:
 				return nil, ErrKeySeg
 			}
-			l, err = v.Key(s.Key)
 		} else {
-			v, ok := l.(Idxer)
-			if !ok {
+			switch v := l.(type) {
+			case typ.Type:
+				if v.Kind&typ.MaskElem != typ.KindArr {
+					return nil, ErrIdxSeg
+				}
+				l = v.Next()
+			case Idxer:
+				l, err = v.Idx(s.Idx)
+			default:
 				return nil, ErrIdxSeg
 			}
-			l, err = v.Idx(s.Idx)
 		}
 		if err != nil {
 			return nil, err
