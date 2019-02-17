@@ -143,6 +143,7 @@ func TestStdResolve(t *testing.T) {
 			lit.Str("hello alice, bob"),
 		},
 		{`(with +a int @a)`, typ.Int},
+		{`(with +a (obj +b int) @a.b)`, typ.Int},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)

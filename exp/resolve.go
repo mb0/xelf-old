@@ -2,7 +2,10 @@ package exp
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/mb0/xelf/lex"
+	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -99,7 +102,8 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 		// TODO infer type
 		return t, ErrUnres
 	}
-	key := t.Info.Key()
+	var key, rest string
+	key = t.Info.Key()
 	// return already resolved quasi ref types, otherwise add schema prefix '~'
 	switch k {
 	case typ.KindFlag, typ.KindEnum:
@@ -112,8 +116,14 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 			return t, nil
 		}
 		key = "~" + key
+	default:
+		if lex.IsLetter(rune(key[0])) {
+			split := strings.SplitN(key, ".", 2)
+			if len(split) > 1 {
+				key, rest = split[0], split[1]
+			}
+		}
 	}
-
 	rslv := env.Get(key)
 	if rslv == nil {
 		return t, ErrUnres
@@ -122,11 +132,39 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 	if err != nil {
 		return t, err
 	}
-	et, err := elType(el)
+	l, err := elTypeOrLit(el)
+	if err != nil {
+		return t, err
+	}
+	if rest != "" {
+		l, err = lit.Select(l, rest)
+		if err != nil {
+			return t, err
+		}
+	}
+	et, err := elType(l)
 	if err != nil {
 		return t, err
 	}
 	return replaceRef(t, et)
+}
+
+func elTypeOrLit(el El) (Lit, error) {
+	switch v := el.(type) {
+	case Type:
+		return v, nil
+	case Lit:
+		return v, nil
+	case *Ref:
+		if v.Type != typ.Void {
+			return v.Type, nil
+		}
+	case *Expr:
+		if v.Type != typ.Void {
+			return v.Type, nil
+		}
+	}
+	return nil, ErrUnres
 }
 
 func elType(el El) (Type, error) {
