@@ -37,7 +37,10 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{Sym: Sym{Name: "bool"}, Args: e.Args}
+					e = &Expr{Sym: Sym{
+						Name: "bool",
+						Type: typ.Bool},
+						Args: e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -70,7 +73,10 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{Sym: Sym{Name: "bool"}, Args: e.Args}
+					e = &Expr{Sym: Sym{
+						Name: "bool",
+						Type: typ.Bool},
+						Args: e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -142,10 +148,13 @@ func simplifyBool(e *Expr, args []El) *Expr {
 	if e.Name == "bool" {
 		return fst
 	}
+	res := *fst
 	if fst.Name == "bool" {
-		return &Expr{Sym: Sym{Name: "not"}, Args: fst.Args}
+		res.Name = "not"
+	} else {
+		res.Name = "bool"
 	}
-	return &Expr{Sym: Sym{Name: "bool"}, Args: fst.Args}
+	return &res
 }
 
 // rslvIf will resolve the arguments as condition, action pairs as part of an if-else condition.

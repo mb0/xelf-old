@@ -119,6 +119,7 @@ func rslvRem(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
+		e.Type = typ.Int
 		return e, err
 	}
 	res := getNumer(args[0])
@@ -165,7 +166,7 @@ func deopt(el El) Lit {
 }
 
 func reduceNums(c *Ctx, env Env, e *Expr, res float64, conv bool, f numerReducer) (_ El, err error) {
-	t := typ.Num
+	t := typ.Void
 	var resed int
 	var unres []El
 	for idx, el := range e.Args {
@@ -201,7 +202,7 @@ func reduceNums(c *Ctx, env Env, e *Expr, res float64, conv bool, f numerReducer
 	}
 	var l Lit
 	l = lit.Num(res)
-	if t != typ.Num {
+	if t != typ.Void && t != typ.Num {
 		l, err = lit.Convert(l, t, 0)
 		if err != nil {
 			return nil, err
@@ -212,6 +213,9 @@ func reduceNums(c *Ctx, env Env, e *Expr, res float64, conv bool, f numerReducer
 			unres[0] = l
 		} else if resed > 0 {
 			unres = append(unres, l)
+		}
+		if t != typ.Void {
+			e.Type = t
 		}
 		e.Args = unres
 		return e, ErrUnres

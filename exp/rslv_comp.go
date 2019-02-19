@@ -2,6 +2,7 @@ package exp
 
 import (
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/typ"
 )
 
 // rslvEq returns a bool whether the arguments are equivalent literals.
@@ -51,6 +52,7 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, neg, sym bool, cmp cmpf) (El, e
 	for _, arg := range e.Args {
 		arg, err = c.Resolve(env, arg)
 		if err == ErrUnres {
+			e.Type = typ.Bool
 			if !c.Part {
 				return e, err
 			}

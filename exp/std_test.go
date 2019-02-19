@@ -167,45 +167,46 @@ func TestStdResolvePart(t *testing.T) {
 	tests := []struct {
 		raw  string
 		want string
+		typ  string
 	}{
-		{`(or $)`, `(bool $)`},
-		{`(or 0 $)`, `(bool $)`},
-		{`(or 1 $)`, `true`},
-		{`(and $)`, `(bool $)`},
-		{`(and 0 $)`, `false`},
-		{`(and 1 $)`, `(bool $)`},
-		{`(not $)`, `(not $)`},
-		{`(if 1 $)`, `$`},
-		{`(if 0 1 $)`, `$`},
-		{`(eq 1 $)`, `(eq 1 $)`},
-		{`(eq 1 $ 1)`, `(eq 1 $)`},
-		{`(eq 1 1 $)`, `(eq 1 $)`},
-		{`(eq $ 1 1)`, `(eq $ 1)`},
-		{`(eq a b 1)`, `(eq a b 1)`},
-		{`(lt 0 1 $)`, `(lt 1 $)`},
-		{`(lt 0 $ 2)`, `(lt 0 $ 2)`},
-		{`(lt $ 1 2)`, `(lt $ 1)`},
-		{`(add $ 2 3)`, `(add $ 5)`},
-		{`(add 1 $ 3)`, `(add 4 $)`},
-		{`(add 1 2 $)`, `(add 3 $)`},
-		{`(sub $ 2 3)`, `(sub $ 5)`},
-		{`(sub 1 $ 3)`, `(sub -2 $)`},
-		{`(sub 1 2 $)`, `(sub -1 $)`},
-		{`(mul $ 2 3)`, `(mul $ 6)`},
-		{`(mul 6 $ 3)`, `(mul 18 $)`},
-		{`(mul 6 2 $)`, `(mul 12 $)`},
-		{`(div $ 2 3)`, `(div $ 6)`},
-		{`(div 6 $ 3)`, `(div 2 $)`},
-		{`(div 6 2 $)`, `(div 3 $)`},
-		{`(1 2 $)`, `(add 3 $)`},
-		{`(not (bool $))`, `(not $)`},
-		{`(not (not $))`, `(bool $)`},
-		{`(not (not (not $)))`, `(not $)`},
-		{`(not (not (not (not $))))`, `(bool $)`},
-		{`(bool (bool $))`, `(bool $)`},
-		{`(bool (not $))`, `(not $)`},
-		{`(bool (not (bool $)))`, `(not $)`},
-		{`(bool (not (bool (not $))))`, `(bool $)`},
+		{`(or $)`, `(bool $)`, "bool"},
+		{`(or 0 $)`, `(bool $)`, "bool"},
+		{`(or 1 $)`, `true`, "bool"},
+		{`(and $)`, `(bool $)`, "bool"},
+		{`(and 0 $)`, `false`, "bool"},
+		{`(and 1 $)`, `(bool $)`, "bool"},
+		{`(not $)`, `(not $)`, "bool"},
+		{`(if 1 $)`, `$`, "void"},
+		{`(if 0 1 $)`, `$`, "void"},
+		{`(eq 1 $)`, `(eq 1 $)`, "bool"},
+		{`(eq 1 $ 1)`, `(eq 1 $)`, "bool"},
+		{`(eq 1 1 $)`, `(eq 1 $)`, "bool"},
+		{`(eq $ 1 1)`, `(eq $ 1)`, "bool"},
+		{`(eq a b 1)`, `(eq a b 1)`, "bool"},
+		{`(lt 0 1 $)`, `(lt 1 $)`, "bool"},
+		{`(lt 0 $ 2)`, `(lt 0 $ 2)`, "bool"},
+		{`(lt $ 1 2)`, `(lt $ 1)`, "bool"},
+		{`(add $ 2 3)`, `(add $ 5)`, "void"},
+		{`(add 1 $ 3)`, `(add 4 $)`, "num"},
+		{`(add 1 2 $)`, `(add 3 $)`, "num"},
+		{`(sub $ 2 3)`, `(sub $ 5)`, "void"},
+		{`(sub 1 $ 3)`, `(sub -2 $)`, "num"},
+		{`(sub 1 2 $)`, `(sub -1 $)`, "num"},
+		{`(mul $ 2 3)`, `(mul $ 6)`, "void"},
+		{`(mul 6 $ 3)`, `(mul 18 $)`, "num"},
+		{`(mul 6 2 $)`, `(mul 12 $)`, "num"},
+		{`(div $ 2 3)`, `(div $ 6)`, "void"},
+		{`(div 6 $ 3)`, `(div 2 $)`, "num"},
+		{`(div 6 2 $)`, `(div 3 $)`, "num"},
+		{`(1 2 $)`, `(add 3 $)`, "num"},
+		{`(not (bool $))`, `(not $)`, "bool"},
+		{`(not (not $))`, `(bool $)`, "bool"},
+		{`(not (not (not $)))`, `(not $)`, "bool"},
+		{`(not (not (not (not $))))`, `(bool $)`, "bool"},
+		{`(bool (bool $))`, `(bool $)`, "bool"},
+		{`(bool (not $))`, `(not $)`, "bool"},
+		{`(bool (not (bool $)))`, `(not $)`, "bool"},
+		{`(bool (not (bool (not $))))`, `(bool $)`, "bool"},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)
@@ -221,6 +222,9 @@ func TestStdResolvePart(t *testing.T) {
 		}
 		if got := r.String(); got != test.want {
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)
+		}
+		if got, _ := elType(r); got.String() != test.typ {
+			t.Errorf("%s want %s got %s", test.raw, test.typ, got)
 		}
 	}
 }
