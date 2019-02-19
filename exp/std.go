@@ -39,6 +39,12 @@ func Core(sym string) Resolver {
 		f = rslvDiv
 	case "rem":
 		f = rslvRem
+	case "abs":
+		f = rslvAbs
+	case "min":
+		f = rslvMin
+	case "max":
+		f = rslvMax
 	case "cat":
 		f = rslvCat
 	case "apd":

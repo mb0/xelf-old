@@ -133,6 +133,82 @@ func rslvRem(c *Ctx, env Env, e *Expr) (El, error) {
 	return lit.Int(res.Num()) % lit.Int(mod.Num()), nil
 }
 
+func rslvAbs(c *Ctx, env Env, e *Expr) (El, error) {
+	err := ArgsExact(e.Args, 1)
+	if err != nil {
+		return nil, err
+	}
+	fst, err := c.Resolve(env, e.Args[0])
+	if err != nil {
+		if err != ErrUnres {
+			return nil, err
+		}
+		return e, err
+	}
+	switch v := fst.(type) {
+	case lit.Int:
+		if v < 0 {
+			fst = -v
+		}
+	case lit.Num:
+		if v < 0 {
+			fst = -v
+		}
+	case lit.Real:
+		if v < 0 {
+			fst = -v
+		}
+	case lit.Numer:
+		n := v.Num()
+		if n >= 0 {
+			break
+		}
+		nl := lit.Num(-n)
+		if a, ok := v.(lit.Assignable); ok {
+			err = a.Assign(nl)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			fst, err = lit.Convert(nl, v.Typ(), 0)
+			if err != nil {
+				return nil, err
+			}
+		}
+	default:
+		return nil, fmt.Errorf("%v got %T", ErrExpectNumer, fst)
+	}
+	return fst, nil
+}
+
+func rslvMin(c *Ctx, env Env, e *Expr) (El, error) {
+	err := ArgsMin(e.Args, 1)
+	if err != nil {
+		return nil, err
+	}
+	var i int
+	return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
+		if i++; i > 1 && r < n {
+			return r, nil
+		}
+		return n, nil
+	})
+}
+
+func rslvMax(c *Ctx, env Env, e *Expr) (El, error) {
+	err := ArgsMin(e.Args, 1)
+	if err != nil {
+		return nil, err
+	}
+	var i int
+	return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
+		if i++; i > 1 && r > n {
+			return r, nil
+		}
+		return n, nil
+	})
+}
+
 func convNumerType(e El, r lit.Numer) (El, error) {
 	l, ok := e.(Lit)
 	if ok {
