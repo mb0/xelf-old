@@ -32,7 +32,7 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args, err = (&Ctx{}).ResolveAll(env, e.Args[i:])
+				e.Args, err = (&Ctx{Part: true}).ResolveAll(env, e.Args[i:])
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
@@ -65,7 +65,7 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args, err = (&Ctx{}).ResolveAll(env, e.Args[i:])
+				e.Args, err = (&Ctx{Part: true}).ResolveAll(env, e.Args[i:])
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
@@ -92,7 +92,7 @@ func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
 	res, err := rslvAnd(c, env, e)
 	if err == ErrUnres {
 		if c.Part {
-			e.Args = res.(*Expr).Args
+			e = simplifyBool(e, res.(*Expr).Args)
 		}
 		return e, err
 	}
@@ -112,7 +112,7 @@ func rslvNot(c *Ctx, env Env, e *Expr) (El, error) {
 	res, err := rslvAnd(c, env, e)
 	if err == ErrUnres {
 		if c.Part {
-			e.Args = res.(*Expr).Args
+			e = simplifyBool(e, res.(*Expr).Args)
 		}
 		return e, err
 	}
@@ -123,6 +123,29 @@ func rslvNot(c *Ctx, env Env, e *Expr) (El, error) {
 		return lit.True, nil
 	}
 	return lit.Bool(res.(Lit).IsZero()), nil
+}
+
+func simplifyBool(e *Expr, args []El) *Expr {
+	e.Args = args
+	if len(args) != 1 {
+		return e
+	}
+	fst, ok := args[0].(*Expr)
+	if !ok {
+		return e
+	}
+	switch fst.Name {
+	case "bool", "not":
+	default:
+		return e
+	}
+	if e.Name == "bool" {
+		return fst
+	}
+	if fst.Name == "bool" {
+		return &Expr{Sym: Sym{Name: "not"}, Args: fst.Args}
+	}
+	return &Expr{Sym: Sym{Name: "bool"}, Args: fst.Args}
 }
 
 // rslvIf will resolve the arguments as condition, action pairs as part of an if-else condition.

@@ -198,6 +198,14 @@ func TestStdResolvePart(t *testing.T) {
 		{`(div 6 $ 3)`, `(div 2 $)`},
 		{`(div 6 2 $)`, `(div 3 $)`},
 		{`(1 2 $)`, `(add 3 $)`},
+		{`(not (bool $))`, `(not $)`},
+		{`(not (not $))`, `(bool $)`},
+		{`(not (not (not $)))`, `(not $)`},
+		{`(not (not (not (not $))))`, `(bool $)`},
+		{`(bool (bool $))`, `(bool $)`},
+		{`(bool (not $))`, `(not $)`},
+		{`(bool (not (bool $)))`, `(not $)`},
+		{`(bool (not (bool (not $))))`, `(bool $)`},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)
@@ -212,7 +220,6 @@ func TestStdResolvePart(t *testing.T) {
 			continue
 		}
 		if got := r.String(); got != test.want {
-
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)
 		}
 	}

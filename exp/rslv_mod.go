@@ -24,7 +24,17 @@ func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	args, err := c.ResolveAll(env, e.Args)
 	if err != nil {
-		return e, err
+		if err != ErrUnres {
+			return nil, err
+		}
+		t, err := elType(args[0])
+		if err == nil {
+			if t.Kind&typ.MaskElem == typ.BaseChar {
+				t.Kind |= typ.KindStr
+			}
+			e.Type = t
+		}
+		return e, ErrUnres
 	}
 	t := args[0].(Lit).Typ()
 	t, opt := t.Deopt()
@@ -45,6 +55,7 @@ func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
 		}
 		res = lit.Raw(b.Bytes())
 	default:
+		e.Type = typ.Raw
 		apd, ok := args[0].(lit.Appender)
 		if !ok {
 			break
@@ -107,7 +118,14 @@ func rslvSet(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	fst, err := c.Resolve(env, e.Args[0])
 	if err != nil {
-		return e, err
+		if err != ErrUnres {
+			return nil, err
+		}
+		t, err := elType(fst)
+		if err == nil {
+			e.Type = t
+		}
+		return e, ErrUnres
 	}
 	res, ok := deopt(fst).(lit.Keyer)
 	if !ok {
