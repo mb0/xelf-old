@@ -188,7 +188,6 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 		if b.JSON {
 			b.WriteByte('"')
 			err = a.Info.writeJSON(b, detail, append(hist, a.Info))
-			b.WriteString(``)
 		} else {
 			err = a.Info.writeXelf(b, detail, append(hist, a.Info))
 			b.WriteByte(')')
@@ -198,7 +197,7 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 	if b.JSON {
 		b.WriteString(`"typ":"`)
 		err := a.Kind.WriteBfr(b)
-		b.WriteString(`"`)
+		b.WriteByte('"')
 		return err
 	}
 	return a.Kind.WriteBfr(b)
@@ -230,7 +229,7 @@ func writeRef(b bfr.Ctx, ref string, k Kind) {
 			b.WriteString(`","ref":"`)
 			b.WriteString(ref)
 		}
-		b.WriteString(`"`)
+		b.WriteByte('"')
 	} else {
 		k = writeArrAndMap(b, k)
 		b.WriteByte('@')
@@ -294,14 +293,14 @@ func (a *Info) writeJSON(b bfr.Ctx, detail bool, hist []*Info) error {
 		if f.Name != "" {
 			b.WriteString(`"name":`)
 			b.Quote(f.Name)
-			b.WriteString(`,`)
+			b.WriteByte(',')
 		}
 		err := f.Type.writeBfr(b, hist)
 		if err != nil {
 			return err
 		}
-		b.WriteString(`}`)
+		b.WriteByte('}')
 	}
-	b.WriteString(`]`)
+	b.WriteByte(']')
 	return nil
 }
