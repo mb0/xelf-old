@@ -120,10 +120,13 @@ func (c Cmp) Mirror() (m Cmp) {
 
 func compare(src, dst Type) Cmp {
 	s, d := src.Kind, dst.Kind
-	if s == d {
+	if s == d && s != KindRef {
 		if src.Info.equal(dst.Info, s&FlagRef != 0, nil) {
 			return CmpSame
 		}
+	}
+	if s == KindRef {
+		return CmpCheckRef
 	}
 	if d == KindRef {
 		if dst.Info == nil || dst.Info.Ref == "" {
@@ -131,9 +134,6 @@ func compare(src, dst Type) Cmp {
 			return CmpInfer
 		}
 		// ref needs to be resolved first
-		return CmpCheckRef
-	}
-	if s == KindRef {
 		return CmpCheckRef
 	}
 	// we can work with flags and enums as is but rec must be resolved
