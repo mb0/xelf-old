@@ -4,8 +4,6 @@ import (
 	"encoding/hex"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/mb0/xelf/lex"
 )
 
 // Raw parses s and returns a pointer to a byte slice or nil on error.
@@ -46,10 +44,15 @@ func ParseRaw(s string) ([]byte, error) {
 func isPlain(b []byte) bool {
 	for len(b) > 0 {
 		r, n := utf8.DecodeRune(b)
-		if !(lex.IsSpace(r) || r > 0x20 && r < 0x7f || r >= 0xad && r <= 0xff) {
+		if !isPlainRune(r) {
 			return false
 		}
 		b = b[n:]
 	}
 	return true
+}
+
+func isPlainRune(r rune) bool {
+	return r == ' ' || r == '\t' || r == '\n' || r == '\r' ||
+		r > 0x20 && r < 0x7f || r >= 0xad && r <= 0xff
 }
