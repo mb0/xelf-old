@@ -1,8 +1,7 @@
 package exp
 
 import (
-	"errors"
-
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -85,7 +84,7 @@ func decledArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 	seq, tail := lex.SplitAfter(seq, lex.SymPred(0, func(s string) bool { return s == "-" }))
 	head, rest, decls := lex.SplitKeyed(seq, false, lex.IsDecl)
 	if len(rest) != 0 {
-		return nil, errors.New("unexpected decl tail")
+		return nil, cor.Error("unexpected decl tail")
 	}
 	res, err = taggedArgs(res, head)
 	for _, decl := range decls {

@@ -1,8 +1,7 @@
 package exp
 
 import (
-	"fmt"
-
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -14,7 +13,7 @@ import (
 func rslvFail(c *Ctx, env Env, e *Expr) (El, error) {
 	e.Type = typ.Any
 	if c.Exec {
-		return nil, fmt.Errorf("%s", e)
+		return nil, cor.Errorf("%s", e)
 	}
 	return e, ErrUnres
 }
@@ -191,7 +190,7 @@ func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
 	c.Exec = org
 	et, err := elType(act)
 	if err != nil || et == typ.Void {
-		return nil, fmt.Errorf("when else action is omitted then must provide type information")
+		return nil, cor.Errorf("when else action is omitted then must provide type information")
 	}
 	return lit.Zero(et), nil
 }

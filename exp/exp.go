@@ -1,10 +1,10 @@
 package exp
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -88,7 +88,7 @@ type Env interface {
 
 // ErrUnres is a special error value that is returned by a resolver when
 // the result is unresolved but otherwise valid.
-var ErrUnres = errors.New("unresolved")
+var ErrUnres = cor.StrError("unresolved")
 
 // Resolver is the common interface of all element resolvers.
 type Resolver interface {

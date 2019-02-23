@@ -1,14 +1,12 @@
 package exp
 
 import (
-	"fmt"
-
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
-	"github.com/pkg/errors"
 )
 
-var ErrExpectNumer = errors.New("expected numer argument")
+var ErrExpectNumer = cor.StrError("expected numer argument")
 
 func opAdd(r, n float64) (float64, error) { return r + n, nil }
 func opMul(r, n float64) (float64, error) { return r * n, nil }
@@ -102,7 +100,7 @@ func rslvDiv(c *Ctx, env Env, e *Expr) (El, error) {
 			return n, nil
 		}
 		if n == 0 {
-			return 0, errors.Errorf("zero devision")
+			return 0, cor.Error("zero devision")
 		}
 		if isInt {
 			return float64(int64(r) / int64(n)), nil
@@ -176,7 +174,7 @@ func rslvAbs(c *Ctx, env Env, e *Expr) (El, error) {
 			}
 		}
 	default:
-		return nil, fmt.Errorf("%v got %T", ErrExpectNumer, fst)
+		return nil, cor.Errorf("%v got %T", ErrExpectNumer, fst)
 	}
 	return fst, nil
 }
@@ -218,7 +216,7 @@ func convNumerType(e El, r lit.Numer) (El, error) {
 		}
 		return n, nil
 	}
-	return nil, fmt.Errorf("%v got %T", ErrExpectNumer, e)
+	return nil, cor.Errorf("%v got %T", ErrExpectNumer, e)
 }
 
 func getNumer(e El) lit.Numer {
@@ -265,7 +263,7 @@ func reduceNums(c *Ctx, env Env, e *Expr, res float64, conv bool, f numerReducer
 		}
 		v := getNumer(el)
 		if v == nil {
-			return nil, fmt.Errorf("%v got %T", ErrExpectNumer, el)
+			return nil, cor.Errorf("%v got %T", ErrExpectNumer, el)
 		}
 		if idx == 0 && conv {
 			t = el.(Lit).Typ()

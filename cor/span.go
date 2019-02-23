@@ -1,7 +1,6 @@
 package cor
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,7 +8,7 @@ import (
 )
 
 // ErrSpan indicates an invalid input format when parsing a span.
-var ErrSpan = errors.New("invalid span format")
+var ErrSpan = StrError("invalid span format")
 
 // Milli returns the milliseconds in v as integer.
 func Milli(v time.Duration) int64 { return int64(v / time.Millisecond) }

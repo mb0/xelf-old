@@ -1,14 +1,13 @@
 package lit
 
 import (
-	"errors"
-
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/typ"
 )
 
-var ErrNilKeyer = errors.New("nil keyer")
+var ErrNilKeyer = cor.StrError("nil keyer")
 
 // Dict is a generic container implementing Keyer.
 type Dict struct {

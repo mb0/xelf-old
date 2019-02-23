@@ -1,8 +1,6 @@
 package lit
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -125,7 +123,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		}
 	case reflect.Map:
 		if !isRef(t.Key(), refStr) {
-			return typ.Void, errors.New("map key must by string type")
+			return typ.Void, cor.Error("map key must by string type")
 		}
 		et, err := reflectType(t.Elem(), nfos)
 		if err != nil {
@@ -205,7 +203,7 @@ func fieldIndices(t reflect.Type, fs []typ.Field) ([][]int, error) {
 	for _, f := range fs {
 		fi, ok := m[f.Key()]
 		if !ok {
-			return nil, fmt.Errorf("field %s not found", f.Key())
+			return nil, cor.Errorf("field %s not found", f.Key())
 		}
 		res = append(res, fi.idx)
 	}

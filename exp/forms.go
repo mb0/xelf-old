@@ -1,17 +1,17 @@
 package exp
 
-import "errors"
+import "github.com/mb0/xelf/cor"
 
 var (
-	ErrArgCount  = errors.New("unexpected argument count")
-	ErrRogueEl   = errors.New("unexpected element")
-	ErrRogueTag  = errors.New("unexpected tag")
-	ErrRogueDecl = errors.New("unexpected declaration")
-	ErrRogueHead = errors.New("unexpected head element")
-	ErrRogueTail = errors.New("unexpected tail element")
-	ErrTailTag   = errors.New("unexpected tail tag")
-	ErrTailDecl  = errors.New("unexpected tail declaration")
-	ErrNakedDecl = errors.New("unexpected naked declaration")
+	ErrArgCount  = cor.StrError("unexpected argument count")
+	ErrRogueEl   = cor.StrError("unexpected element")
+	ErrRogueTag  = cor.StrError("unexpected tag")
+	ErrRogueDecl = cor.StrError("unexpected declaration")
+	ErrRogueHead = cor.StrError("unexpected head element")
+	ErrRogueTail = cor.StrError("unexpected tail element")
+	ErrTailTag   = cor.StrError("unexpected tail tag")
+	ErrTailDecl  = cor.StrError("unexpected tail declaration")
+	ErrNakedDecl = cor.StrError("unexpected naked declaration")
 )
 
 // Forms are helper functions to check expression arguments

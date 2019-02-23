@@ -1,7 +1,6 @@
 package utl
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/mb0/xelf/cor"
@@ -64,7 +63,7 @@ func (tr TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) (
 			key = tr.IdxKeyer(node, i)
 		}
 		if key == "" {
-			return fmt.Errorf("unrecognized tag %s", t)
+			return cor.Errorf("unrecognized tag %s", t)
 		}
 		r := tr.Rules[key]
 		l, err := tr.prepper(r)(c, env, key, t.Args)
@@ -128,11 +127,11 @@ func DynPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (_ lit.Lit, er
 func PathSetter(n Node, key string, el lit.Lit) error {
 	path, err := lit.ReadPath(key)
 	if err != nil {
-		return fmt.Errorf("%v for key %s", err, key)
+		return cor.Errorf("%v for key %s", err, key)
 	}
 	err = lit.SetPath(n, path, el, true)
 	if err != nil {
-		return fmt.Errorf("%v for key %s", err, key)
+		return cor.Errorf("%v for key %s", err, key)
 	}
 	return nil
 }
@@ -150,7 +149,7 @@ func ExtraMapSetter(mapkey string) KeySetter {
 		}
 		v, ok := m.(lit.Keyer)
 		if !ok {
-			return fmt.Errorf("expect keyer field for %q got %T", key, m)
+			return cor.Errorf("expect keyer field for %q got %T", key, m)
 		}
 		return v.SetKey(key, el)
 	}
@@ -169,11 +168,11 @@ func FlagPrepper(consts []cor.Const) KeyPrepper {
 					return lit.Int(b.Val), nil
 				}
 			}
-			return nil, fmt.Errorf("no constant named %q", key)
+			return nil, cor.Errorf("no constant named %q", key)
 		}
 		n, ok := l.(lit.Numer)
 		if !ok {
-			return nil, fmt.Errorf("expect numer for %q got %T", key, l)
+			return nil, cor.Errorf("expect numer for %q got %T", key, l)
 		}
 		return lit.Int(n.Num()), nil
 	}
@@ -188,11 +187,11 @@ func FlagSetter(key string) KeySetter {
 		}
 		v, ok := f.(lit.Numer)
 		if !ok {
-			return fmt.Errorf("expect int field for %q got %T", key, f)
+			return cor.Errorf("expect int field for %q got %T", key, f)
 		}
 		w, ok := el.(lit.Int)
 		if !ok {
-			return fmt.Errorf("expect int lit for %q got %T", key, el)
+			return cor.Errorf("expect int lit for %q got %T", key, el)
 		}
 		return n.SetKey(key, lit.Int(uint64(v.Num())|uint64(w)))
 	}

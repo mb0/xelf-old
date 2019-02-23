@@ -2,12 +2,11 @@ package cor
 
 import (
 	"encoding/hex"
-	"errors"
 	"strings"
 )
 
 // ErrUUID indicates an invalid input format when parsing an uuid.
-var ErrUUID = errors.New("invalid uuid format")
+var ErrUUID = StrError("invalid uuid format")
 
 // UUID parses s and returns a pointer to the uuid bytes or nil on error.
 func UUID(s string) *[16]byte {

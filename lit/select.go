@@ -4,14 +4,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
-	"github.com/pkg/errors"
 )
 
 var (
-	ErrEmptySeg = errors.New("empty segment")
-	ErrIdxSeg   = errors.New("idx segment expects idxer")
-	ErrKeySeg   = errors.New("key segment expects keyer")
+	ErrEmptySeg = cor.StrError("empty segment")
+	ErrIdxSeg   = cor.StrError("idx segment expects idxer")
+	ErrKeySeg   = cor.StrError("key segment expects keyer")
 )
 
 // Seg is one segment of a path it can either be a non-empty key or an index.

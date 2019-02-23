@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -47,7 +48,7 @@ func (r *FuncResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error
 			}
 		}
 		if idx >= len(args) {
-			return nil, fmt.Errorf("unexpected argument index for %v", x.Name)
+			return nil, cor.Errorf("unexpected argument index for %v", x.Name)
 		}
 		// resolve tag arg
 		el, err := c.Resolve(env, tag.Args[0])
@@ -56,13 +57,13 @@ func (r *FuncResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error
 		}
 		l, ok := el.(lit.Lit)
 		if !ok {
-			return nil, fmt.Errorf("expect literal got %T", el)
+			return nil, cor.Errorf("expect literal got %T", el)
 		}
 		// assign into arg list
 		val := args[idx].Addr()
 		err = lit.AssignToValue(l, val)
 		if err != nil {
-			return nil, fmt.Errorf("%v have %s", err, val)
+			return nil, cor.Errorf("%v have %s", err, val)
 		}
 	}
 	// get reflect values from argument
@@ -89,11 +90,11 @@ var refErr = reflect.TypeOf((*error)(nil)).Elem()
 func ReflectFunc(val interface{}, names ...string) (*FuncResolver, error) {
 	f := FuncResolver{val: reflect.ValueOf(val)}
 	if f.val.Kind() != reflect.Func {
-		return nil, fmt.Errorf("expect function argument got %T", val)
+		return nil, cor.Errorf("expect function argument got %T", val)
 	}
 	t := f.val.Type()
 	if t.IsVariadic() {
-		return nil, fmt.Errorf("variadic fuctions are not yet supported")
+		return nil, cor.Error("variadic fuctions are not yet supported")
 	}
 	n := t.NumIn()
 	fs := make([]typ.Field, 0, n)
@@ -122,12 +123,12 @@ func ReflectFunc(val interface{}, names ...string) (*FuncResolver, error) {
 		if rt.ConvertibleTo(refErr) {
 			f.err = true
 			if i+1 < n {
-				return nil, fmt.Errorf("error can only be last result")
+				return nil, cor.Error("error can only be last result")
 			}
 			break
 		}
 		if i > 0 {
-			return nil, fmt.Errorf("expect at most one compatible result and an optional error")
+			return nil, cor.Error("expect at most one compatible result and an optional error")
 		}
 		xt, err := lit.ReflectType(rt)
 		if err != nil {

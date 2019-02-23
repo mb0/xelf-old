@@ -1,17 +1,17 @@
 package lit
 
 import (
-	"errors"
 	"strconv"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 )
 
 var (
-	ErrKey     = errors.New("expect key name")
-	ErrKeySep  = errors.New("expect key separator")
-	ErrKeyVal  = errors.New("expect key value")
-	ErrUnknown = errors.New("unknown literal")
+	ErrKey     = cor.StrError("expect key name")
+	ErrKeySep  = cor.StrError("expect key separator")
+	ErrKeyVal  = cor.StrError("expect key value")
+	ErrUnknown = cor.StrError("unknown literal")
 )
 
 // ParseString scans and parses string s and returns a literal or an error.

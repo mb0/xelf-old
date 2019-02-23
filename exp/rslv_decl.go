@@ -1,9 +1,7 @@
 package exp
 
 import (
-	"errors"
-	"fmt"
-
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -29,7 +27,7 @@ func rslvWith(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	err = ArgsMin(tail, 1)
 	if err != nil {
-		return nil, fmt.Errorf("%v %v %v", err, decls, tail)
+		return nil, cor.Errorf("%v %v %v", err, decls, tail)
 	}
 	s := NewScope(env)
 	_, err = letDecls(c, s, decls)
@@ -47,7 +45,7 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 	var res El
 	for _, d := range decls {
 		if len(d.Name) < 2 {
-			return nil, errors.New("unnamed declaration")
+			return nil, cor.Error("unnamed declaration")
 		}
 		args, err := c.ResolveAll(env, d.Args)
 		if err != nil {
@@ -62,7 +60,7 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 			res = dv
 			rslv = litResolver{dv}
 		default:
-			return nil, fmt.Errorf("unexpected element as declaration value %v", d.Args[0])
+			return nil, cor.Errorf("unexpected element as declaration value %v", d.Args[0])
 		}
 		err = env.Def(d.Name[1:], rslv)
 		if err != nil {
@@ -84,11 +82,11 @@ func (r typeResolver) Resolve(c *Ctx, env Env, e El) (El, error) {
 	case Type:
 		// must by a type ref
 		if v.Last().Kind&typ.MaskRef != typ.KindRef {
-			return nil, fmt.Errorf("expected type reference got %s", v)
+			return nil, cor.Errorf("expected type reference got %s", v)
 		}
 		return Type(r), nil
 	}
-	return nil, fmt.Errorf("expected type or expression reference %s", e)
+	return nil, cor.Errorf("expected type or expression reference %s", e)
 }
 
 // litResolver is a resolver that wraps a literal from package lit.
@@ -99,5 +97,5 @@ func (r litResolver) Resolve(c *Ctx, env Env, e El) (El, error) {
 	case *Ref:
 		return r.Lit, nil
 	}
-	return nil, fmt.Errorf("expected expression reference %s", e)
+	return nil, cor.Errorf("expected expression reference %s", e)
 }

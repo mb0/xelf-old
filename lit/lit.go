@@ -1,8 +1,6 @@
 package lit
 
 import (
-	"errors"
-
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
@@ -10,7 +8,7 @@ import (
 
 // BreakIter is a special error value that can be returned from iterators.
 // It indicates that the iteration should be stopped even though no actual failure occurred.
-var BreakIter = errors.New("break iter")
+var BreakIter = cor.StrError("break iter")
 
 // Lit is the common interface for all literal adapters.
 // A nil Lit represents an absent value.

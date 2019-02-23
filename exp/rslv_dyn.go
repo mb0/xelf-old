@@ -1,14 +1,12 @@
 package exp
 
 import (
-	"errors"
-	"fmt"
-
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
-var errAsType = errors.New("the 'as' expression must start with a type")
+var errAsType = cor.StrError("the 'as' expression must start with a type")
 
 // rslvDyn resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'as' expression. If it is a literal it selects an appropriate combine
@@ -47,7 +45,7 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (El, error) {
 			return rslv.Resolve(c, env, &Expr{Sym: Sym{Name: sym, Rslv: rslv}, Args: e.Args})
 		}
 	}
-	return nil, fmt.Errorf("unexpected first argument %T in dynamic expression", e.Args[0])
+	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", e.Args[0])
 }
 
 // rslvAs is a type conversion or constructor and must start with a type. It has four forms:
@@ -98,7 +96,7 @@ func rslvAs(c *Ctx, env Env, e *Expr) (El, error) {
 		for _, d := range decls {
 			el, ok := d.Args[0].(Lit)
 			if !ok {
-				return nil, errors.New("want literal in declaration argument")
+				return nil, cor.Error("want literal in declaration argument")
 			}
 			err = res.SetKey(d.Name[1:], el)
 			if err != nil {
@@ -118,7 +116,7 @@ func rslvAs(c *Ctx, env Env, e *Expr) (El, error) {
 		for i, a := range args {
 			el, ok := a.(Lit)
 			if !ok {
-				return nil, errors.New("want literal in argument list")
+				return nil, cor.Error("want literal in argument list")
 			}
 			if apd != nil { // list or arr uses append
 				apd, err = apd.Append(el)
@@ -134,5 +132,5 @@ func rslvAs(c *Ctx, env Env, e *Expr) (El, error) {
 		}
 		return res, nil
 	}
-	return nil, errors.New("not implemented")
+	return nil, cor.Error("not implemented")
 }

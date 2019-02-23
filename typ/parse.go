@@ -1,20 +1,19 @@
 package typ
 
 import (
-	"errors"
-	"fmt"
 	"strconv"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 )
 
 var (
-	ErrInvalid    = errors.New("invalid type")
-	ErrArgCount   = errors.New("wrong type argument count")
-	ErrRefName    = errors.New("expect ref name")
-	ErrFieldName  = errors.New("expect field name")
-	ErrFieldType  = errors.New("expect field type")
-	ErrNakedField = errors.New("naked field declaration")
+	ErrInvalid    = cor.StrError("invalid type")
+	ErrArgCount   = cor.StrError("wrong type argument count")
+	ErrRefName    = cor.StrError("expect ref name")
+	ErrFieldName  = cor.StrError("expect field name")
+	ErrFieldType  = cor.StrError("expect field type")
+	ErrNakedField = cor.StrError("naked field declaration")
 )
 
 // ParseString scans and parses string s and returns a type or an error.
@@ -64,10 +63,10 @@ func parseSym(s string, hist []Type) (res Type, _ error) {
 			if c := ref[0]; c >= '0' && c <= '9' { // self reference by index
 				idx, err := strconv.Atoi(ref)
 				if err != nil {
-					return Void, fmt.Errorf("self ref index must be a number: %v", err)
+					return Void, cor.Errorf("self ref index must be a number: %w", err)
 				}
 				if idx < 0 || idx >= len(hist) {
-					return Void, fmt.Errorf("self ref index out of bounds")
+					return Void, cor.Error("self ref index out of bounds")
 				}
 				res = hist[len(hist)-1-idx]
 			}

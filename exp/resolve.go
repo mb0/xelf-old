@@ -1,9 +1,9 @@
 package exp
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -80,7 +80,7 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	case *Expr:
 		rslv = v.Lookup(env)
 	default:
-		return x, fmt.Errorf("unexpected expression %T %v", x, x)
+		return x, cor.Errorf("unexpected expression %T %v", x, x)
 	}
 	if rslv == nil {
 		c.Unres = append(c.Unres, x)
@@ -97,7 +97,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 	}
 	if t.Info == nil || t.Info.Ref == "" {
 		if k != typ.FlagRef {
-			return t, fmt.Errorf("unnamed %s not allowed", k)
+			return t, cor.Errorf("unnamed %s not allowed", k)
 		}
 		// TODO infer type
 		return t, ErrUnres

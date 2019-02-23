@@ -1,8 +1,7 @@
 package utl
 
 import (
-	"fmt"
-
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 )
@@ -24,7 +23,7 @@ func GetNode(val interface{}) (Node, error) {
 		}
 		n, ok = p.(Node)
 		if !ok {
-			return nil, fmt.Errorf("want node got %T", p)
+			return nil, cor.Errorf("want node got %T", p)
 		}
 	}
 	return n, nil
@@ -85,7 +84,7 @@ func (nr NodeRules) Resolve(c *exp.Ctx, env exp.Env,
 			return err
 		}
 		if nr.Decl.KeySetter == nil {
-			return fmt.Errorf("unexpected decl %s", d)
+			return cor.Errorf("unexpected decl %s", d)
 		}
 		err = nr.Decl.KeySetter(node, d.Name[1:], l)
 		if err != nil {

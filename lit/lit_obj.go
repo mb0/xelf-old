@@ -1,10 +1,10 @@
 package lit
 
 import (
-	"errors"
 	"reflect"
 
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -145,7 +145,7 @@ func (p *proxyObj) Assign(l Lit) error {
 		}
 		idx := p.idx[i]
 		if len(idx) == 0 {
-			return errors.New("no field index")
+			return cor.Error("no field index")
 		}
 		fv := v.FieldByIndex(idx)
 		fl, err := ProxyValue(fv.Addr())

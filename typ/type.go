@@ -1,7 +1,6 @@
 package typ
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 
@@ -42,7 +41,7 @@ func (a *Info) Key() string {
 	return a.key
 }
 
-var errFieldNotFound = errors.New("field not found")
+var errFieldNotFound = cor.StrError("field not found")
 
 // FieldByIdx returns a pointer to the field at idx or an error.
 func (a *Info) FieldByIdx(idx int) (*Field, error) {

@@ -1,13 +1,12 @@
 package lit
 
 import (
-	"errors"
-
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
-var ErrIdxBounds = errors.New("idx out of bounds")
+var ErrIdxBounds = cor.StrError("idx out of bounds")
 
 // List is a generic container implementing Idxer.
 type List []Lit

@@ -1,10 +1,10 @@
 package lit
 
 import (
-	"errors"
 	"reflect"
 	"time"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -91,7 +91,7 @@ func AdaptValue(val reflect.Value) (Lit, error) {
 		return Any{l}, nil
 	}
 	if l == nil {
-		return nil, errors.New("not adaptable")
+		return nil, cor.Error("not adaptable")
 	}
 	if ptr {
 		l = Some{l}

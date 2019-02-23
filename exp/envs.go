@@ -1,14 +1,12 @@
 package exp
 
-import (
-	"errors"
-)
+import "github.com/mb0/xelf/cor"
 
 var (
 	// ErrNoDefEnv is returned when the environment cannot define any resolvers
-	ErrNoDefEnv = errors.New("not a definition env")
+	ErrNoDefEnv = cor.StrError("not a definition env")
 	// ErrRedefine is returned when the symbol is redefined in the same scope.
-	ErrRedefine = errors.New("redefined symbol")
+	ErrRedefine = cor.StrError("redefined symbol")
 )
 
 // Lookup is a simple resolver lookup function used by builtins and libraries.

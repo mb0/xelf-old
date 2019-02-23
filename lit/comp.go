@@ -2,9 +2,9 @@ package lit
 
 import (
 	"bytes"
-	"errors"
 	"time"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -158,7 +158,7 @@ func equalCharer(a, b Charer) bool {
 	return false
 }
 
-var notEqual = errors.New("not equal")
+var notEqual = cor.StrError("not equal")
 
 func equalIdxer(a, b Idxer) bool {
 	n := a.Len()

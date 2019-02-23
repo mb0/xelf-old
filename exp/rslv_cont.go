@@ -1,10 +1,9 @@
 package exp
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 )
 
@@ -16,7 +15,7 @@ import (
 //            (cat _ (if i ',') ' ' e)))
 func rslvReduce(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) < 3 {
-		return nil, errors.New("expect at least three arguments in 'reduce'")
+		return nil, cor.Error("expect at least three arguments in 'reduce'")
 	}
 	args, err := c.ResolveAll(env, e.Args[:1])
 	if err != nil {
@@ -102,13 +101,13 @@ func (it *iter) newScope(env Env, l Lit, i int, k string, red El) *Scope {
 //    (reduce '' + +idx +key myobj (cat _ (if idx ', ') key))
 func iterDecls(c *Ctx, env Env, decls []Decl) (*iter, Lit, error) {
 	if n := len(decls); n < 1 || n > 3 {
-		return nil, nil, fmt.Errorf("expect one, two or three declaration")
+		return nil, nil, cor.Errorf("expect one, two or three declaration")
 	}
 	res := iter{el: decls[0].Name[1:]}
 	args := decls[0].Args
 	for i, d := range decls[1:] {
 		if !reflect.DeepEqual(d.Args[0], args[0]) {
-			return nil, nil, fmt.Errorf("expect same declaration expression")
+			return nil, nil, cor.Errorf("expect same declaration expression")
 		}
 		if i == 0 {
 			res.idx = d.Name[1:]
@@ -125,9 +124,9 @@ func iterDecls(c *Ctx, env Env, decls []Decl) (*iter, Lit, error) {
 		return &res, a, nil
 	case lit.Idxer:
 		if len(decls) > 2 {
-			return nil, nil, fmt.Errorf("expect one or two declarations for list and arr")
+			return nil, nil, cor.Errorf("expect one or two declarations for list and arr")
 		}
 		return &res, a, nil
 	}
-	return nil, nil, fmt.Errorf("unexpect declaration expression in 'each' %T", args[0])
+	return nil, nil, cor.Errorf("unexpect declaration expression in 'each' %T", args[0])
 }

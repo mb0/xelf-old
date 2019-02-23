@@ -1,32 +1,29 @@
 package lit
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
 // ErrUnconv is the default conversion error.
-var ErrUnconv = errors.New("cannot convert literal")
+var ErrUnconv = cor.StrError("cannot convert literal")
 
 // Convert converts l to the dst type and returns the result or an error.
 // Cmp is used if not CmpNone, otherwise Compare is called with the type of l and dst.
 func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 	if l == nil {
-		return nil, fmt.Errorf("%v, is nil %T", ErrUnconv, l)
+		return nil, cor.Errorf("%v, is nil %T", ErrUnconv, l)
 	}
 	if cmp == typ.CmpNone {
 		cmp = typ.Compare(l.Typ(), dst)
 	}
 	if cmp < typ.LvlCheck {
-		return nil, fmt.Errorf("%v, incompatible %s to %s", ErrUnconv, l.Typ(), dst)
+		return nil, cor.Errorf("%v, incompatible %s to %s", ErrUnconv, l.Typ(), dst)
 	}
 	if cmp&typ.BitUnwrap != 0 {
 		o, ok := l.(Opter)
 		if !ok {
-			return nil, fmt.Errorf("%v, not an opter %T", ErrUnconv, l)
+			return nil, cor.Errorf("%v, not an opter %T", ErrUnconv, l)
 		}
 		l, cmp = o.Some(), cmp&^typ.BitUnwrap
 		if l == nil {
@@ -81,7 +78,7 @@ func convBase(l Lit, to typ.Type) (Lit, error) {
 			return Char(v.Char()), nil
 		}
 	}
-	return nil, fmt.Errorf("%v %T to base", ErrUnconv, l)
+	return nil, cor.Errorf("%v %T to base", ErrUnconv, l)
 }
 func convList(l Lit) (Lit, error) {
 	if v, ok := l.(Idxer); ok {
@@ -95,7 +92,7 @@ func convList(l Lit) (Lit, error) {
 		}
 		return res, nil
 	}
-	return nil, fmt.Errorf("%v %T to list", ErrUnconv, l)
+	return nil, cor.Errorf("%v %T to list", ErrUnconv, l)
 }
 func convDict(l Lit) (Lit, error) {
 	if v, ok := l.(Keyer); ok {
@@ -109,7 +106,7 @@ func convDict(l Lit) (Lit, error) {
 		}
 		return &Dict{res}, nil
 	}
-	return nil, fmt.Errorf("%v %T to dict", ErrUnconv, l)
+	return nil, cor.Errorf("%v %T to dict", ErrUnconv, l)
 }
 func checkAny(l Lit, to typ.Type) (Lit, error) {
 	if v, ok := l.(Opter); ok {
@@ -127,7 +124,7 @@ func checkAny(l Lit, to typ.Type) (Lit, error) {
 		}
 		return vl, nil
 	}
-	return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
+	return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 }
 func checkSpec(l Lit, to typ.Type) (res Lit, err error) {
 	switch v := l.(type) {
@@ -177,7 +174,7 @@ func checkSpec(l Lit, to typ.Type) (res Lit, err error) {
 		}
 	}
 	if res == nil {
-		return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
+		return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 	}
 	return res, nil
 }
@@ -188,7 +185,7 @@ func checkList(l List, to typ.Type) (res Idxer, err error) {
 	case typ.KindObj:
 		res, err = MakeObj(to)
 	default:
-		return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
+		return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 	}
 	if err != nil {
 		return nil, err
@@ -208,7 +205,7 @@ func checkDict(l *Dict, to typ.Type) (res Keyer, err error) {
 	case typ.KindObj:
 		res, err = MakeObj(to)
 	default:
-		return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
+		return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 	}
 	if l != nil {
 		for _, e := range l.List {
@@ -234,7 +231,7 @@ func checkArr(l Lit, to typ.Type) (Arr, error) {
 		}
 		return res, nil
 	}
-	return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
+	return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 }
 func checkMap(l Lit, to typ.Type) (Map, error) {
 	if v, ok := l.(Map); ok {
@@ -250,7 +247,7 @@ func checkMap(l Lit, to typ.Type) (Map, error) {
 		}
 		return res, nil
 	}
-	return nil, fmt.Errorf("%v %T to %s", ErrUnconv, l, to)
+	return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 }
 func checkObj(l Lit, to typ.Type) (Lit, error) {
 	if v, ok := l.(Opter); ok {
@@ -272,5 +269,5 @@ func checkObj(l Lit, to typ.Type) (Lit, error) {
 		}
 		return res, nil
 	}
-	return nil, fmt.Errorf("%v %s to %s", ErrUnconv, l.Typ(), to)
+	return nil, cor.Errorf("%v %s to %s", ErrUnconv, l.Typ(), to)
 }

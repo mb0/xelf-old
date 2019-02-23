@@ -1,22 +1,21 @@
 package lit
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
 var (
-	ErrRequiresPtr = errors.New("requires non-nil pointer argument")
-	ErrNotMap      = errors.New("proxy not a map")
-	ErrNotSlice    = errors.New("proxy not a slice")
-	ErrNotStruct   = errors.New("proxy not a struct")
+	ErrRequiresPtr = cor.StrError("requires non-nil pointer argument")
+	ErrNotMap      = cor.StrError("proxy not a map")
+	ErrNotSlice    = cor.StrError("proxy not a slice")
+	ErrNotStruct   = cor.StrError("proxy not a struct")
 )
 
-func ErrAssign(src, dst typ.Type) error { return fmt.Errorf("%q not assignable to %q", src, dst) }
+func ErrAssign(src, dst typ.Type) error { return cor.Errorf("%q not assignable to %q", src, dst) }
 
 // Assign assigns the value of l to the interface pointer value or returns an error
 func AssignTo(l Lit, ptr interface{}) error {
@@ -122,7 +121,7 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		}
 		return &proxyObj{p, idx}, nil
 	}
-	return nil, fmt.Errorf("cannot proxy type %s", ptr.Type())
+	return nil, cor.Errorf("cannot proxy type %s", ptr.Type())
 }
 
 type proxy struct {

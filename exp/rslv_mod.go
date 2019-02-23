@@ -2,18 +2,17 @@ package exp
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
 var (
-	errCatLit   = errors.New("unexpected argument in 'cat' expression")
-	errSetKeyer = errors.New("expected keyer literal as first argument in 'set' expression")
+	errCatLit   = cor.StrError("unexpected argument in 'cat' expression")
+	errSetKeyer = cor.StrError("expected keyer literal as first argument in 'set' expression")
 )
 
 // rslvCat concatenates one or more arguments to a str, raw or idxer literal.
@@ -76,7 +75,7 @@ func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
 		return apd, nil
 	}
 	if res == nil {
-		return nil, fmt.Errorf("cannot cat %s", t)
+		return nil, cor.Errorf("cannot cat %s", t)
 	}
 	if opt {
 		res = lit.Some{res}
@@ -96,7 +95,7 @@ func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	apd, ok := args[0].(lit.Appender)
 	if !ok {
-		return nil, fmt.Errorf("cannot append to %T", args[0])
+		return nil, cor.Errorf("cannot append to %T", args[0])
 	}
 	for _, arg := range args[1:] {
 		if l, ok := arg.(Lit); ok {
@@ -106,7 +105,7 @@ func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
 			}
 			continue
 		}
-		return nil, fmt.Errorf("cannot append arg %T", arg)
+		return nil, cor.Errorf("cannot append arg %T", arg)
 	}
 	return apd, nil
 }
@@ -147,7 +146,7 @@ func rslvSet(c *Ctx, env Env, e *Expr) (El, error) {
 	for _, d := range decls {
 		el, ok := d.Args[0].(Lit)
 		if !ok {
-			return nil, errors.New("want literal in declaration argument")
+			return nil, cor.Error("want literal in declaration argument")
 		}
 		err = res.SetKey(d.Name[1:], el)
 		if err != nil {
@@ -164,19 +163,19 @@ func catChar(b bfr.B, raw bool, args []El) error {
 	for _, arg := range args {
 		l, ok := arg.(Lit)
 		if !ok {
-			return fmt.Errorf("%v, not a literal", errCatLit)
+			return cor.Errorf("%v, not a literal", errCatLit)
 		}
 		k := l.Typ().Kind
 		if raw && k&typ.MaskElem == typ.KindRaw {
 			v, ok := deopt(arg).(lit.Raw)
 			if !ok {
-				return fmt.Errorf("%v, not a raw literal", errCatLit)
+				return cor.Errorf("%v, not a raw literal", errCatLit)
 			}
 			b.Write(v.Val().([]byte))
 		} else if k&typ.BaseChar != 0 {
 			v, ok := deopt(arg).(lit.Charer)
 			if !ok {
-				return fmt.Errorf("%v, not a char literal", errCatLit)
+				return cor.Errorf("%v, not a char literal", errCatLit)
 			}
 			b.WriteString(v.Char())
 		} else {
