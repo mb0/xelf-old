@@ -44,7 +44,7 @@ func (l *Lexer) Lex(simple bool) (Token, error) {
 	switch r {
 	case EOF:
 		t := l.tok(r, "")
-		return t, &Error{t, l.err, 0}
+		return t, ErrorAt(t, l.err)
 	case ',', '(', ')', '[', ']', '{', '}':
 		return l.tok(r, ""), nil
 	case '"', '\'', '`':
@@ -63,7 +63,7 @@ func (l *Lexer) Lex(simple bool) (Token, error) {
 		return l.lexSym(false)
 	}
 	t := l.tok(r, "")
-	return t, &Error{t, ErrUnexpected, 0}
+	return t, ErrorAt(t, ErrUnexpected)
 }
 
 // Scan scans and returns the next tree or an error.
@@ -118,7 +118,7 @@ func (l *Lexer) lexChar() (Token, error) {
 	}
 	if c == EOF {
 		t := l.tok(Str, b.String())
-		return t, &Error{t, ErrUnterminated, q}
+		return t, ErrorWant(t, ErrUnterminated, q)
 	}
 	b.WriteRune(q)
 	return l.tok(Str, b.String()), nil
@@ -154,7 +154,7 @@ func (l *Lexer) lexNum() (Token, error) {
 		l.next()
 		if ok := l.lexDigits(&b); !ok {
 			l.next()
-			return t, &Error{t, ErrExpectDigit, 0}
+			return t, ErrorAt(t, ErrExpectDigit)
 		}
 	}
 	if l.nxt == 'e' || l.nxt == 'E' {
@@ -166,7 +166,7 @@ func (l *Lexer) lexNum() (Token, error) {
 		}
 		if ok := l.lexDigits(&b); !ok {
 			l.next()
-			return t, &Error{t, ErrExpectDigit, 0}
+			return t, ErrorAt(t, ErrExpectDigit)
 		}
 	}
 	t.Val = b.String()
@@ -219,7 +219,7 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 		}
 	}
 	if t.Tok != end {
-		return res, &Error{t, ErrUnterminated, end}
+		return res, ErrorWant(t, ErrUnterminated, end)
 	}
 	res.End = &t
 	return res, nil

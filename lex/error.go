@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mb0/xelf/cor"
+	"golang.org/x/xerrors"
 )
 
 var (
@@ -19,30 +20,56 @@ var (
 // Error is a special lexer error with token information.
 type Error struct {
 	Token
-	Err  error
-	Want rune
+	Want  rune
+	err   error
+	frame xerrors.Frame
 }
 
 // Error builds and returns an error string of e.
 func (e *Error) Error() string {
 	var b strings.Builder
-	b.WriteString(e.Unwrap().Error())
+	b.WriteString(fmt.Sprintf("%d:%d: ", e.Line, e.Col))
+	b.WriteString(e.err.Error())
 	if e.Want != 0 {
 		b.WriteString(" want token ")
 		b.WriteString(TokStr(e.Want))
 	}
 	if e.Tok != 0 {
-		b.WriteString(" at: ")
-		b.WriteString(e.Token.String())
-		b.WriteString(fmt.Sprintf(" :%d:%d", e.Line, e.Col))
+		b.WriteString(" got ")
+		b.WriteString(TokStr(e.Tok))
 	}
 	return b.String()
 }
 
-// Unwrap returns the underlying error.
-func (e *Error) Unwrap() error {
-	if e.Err == nil {
-		return ErrUnexpected
+func (e *Error) Format(f fmt.State, c rune) {
+	xerrors.FormatError(e, f, c)
+}
+
+func (e *Error) FormatError(p xerrors.Printer) error {
+	p.Print(e.Error())
+	if p.Detail() {
+		e.frame.Format(p)
 	}
-	return e.Err
+	return nil
+}
+
+func (e *Error) Unwrap() error {
+	return e.err
+}
+
+func (*Error) Is(t error) bool {
+	_, ok := t.(*Error)
+	return ok
+}
+
+func ErrorAt(t Token, err error) error {
+	return ErrorSkip(t, err, 0, 2)
+}
+
+func ErrorWant(t Token, err error, want rune) error {
+	return ErrorSkip(t, err, want, 2)
+}
+
+func ErrorSkip(t Token, err error, want rune, skip int) error {
+	return &Error{t, want, err, xerrors.Caller(skip)}
 }

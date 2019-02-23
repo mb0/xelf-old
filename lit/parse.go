@@ -102,14 +102,14 @@ func parseDict(tree *lex.Tree) (*Dict, error) {
 			return nil, a.Err(ErrKey)
 		}
 		if i+1 >= len(tree.Seq) {
-			return nil, &lex.Error{*tree.End, ErrKeySep, 0}
+			return nil, lex.ErrorAt(*tree.End, ErrKeySep)
 		}
 		i++
 		if b := tree.Seq[i]; b.Tok != ':' {
 			return nil, b.Err(ErrKeySep)
 		}
 		if i+1 >= len(tree.Seq) {
-			return nil, &lex.Error{*tree.End, ErrKeySep, 0}
+			return nil, lex.ErrorAt(*tree.End, ErrKeySep)
 		}
 		i++
 		el, err := Parse(tree.Seq[i])

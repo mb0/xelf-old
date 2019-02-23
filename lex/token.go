@@ -70,5 +70,5 @@ type Tree struct {
 
 // Err wraps and returns the given err as a token error with position information.
 func (t *Tree) Err(err error) error {
-	return &Error{t.Token, err, 0}
+	return ErrorSkip(t.Token, err, 0, 2)
 }
