@@ -32,6 +32,13 @@ func Flag(name string) Type { return Type{KindFlag, &Info{Ref: name}} }
 func Enum(name string) Type { return Type{KindEnum, &Info{Ref: name}} }
 func Rec(n string) Type     { return Type{KindRec, &Info{Ref: n}} }
 
+func Func(params []Field, result Type) Type {
+	fs := make([]Field, 0, len(params)+1)
+	fs = append(fs, params...)
+	fs = append(fs, Field{Type: result})
+	return Type{KindFunc, &Info{Fields: fs}}
+}
+
 // IsOpt returns whether t is an optional type and not any.
 func (t Type) IsOpt() bool {
 	return t.Kind&FlagOpt != 0 && t.Kind&MaskRef != 0

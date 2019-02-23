@@ -2,8 +2,9 @@
 Package typ provides a restricted but combinable type system.
 
 There are five groups of types that share some behaviour: numeric, character, list, dictionary and
-special types. Special types are void, any and ref. The other four groups each have a base type:
-    num, char, list and dict
+special types. Special types are void, any and ref, typ and func.
+
+The other four groups each have a base type are num, char, list and dict.
 
 The base types are use when a specific type is not known or required. Base types can not be used in
 obj field, list or map declarations, but can be use in variable or parameter declarations.
@@ -42,6 +43,9 @@ suffix.
 
     (obj +top10 (arr|obj? +name str +score int?) +err str?)
 
+The function type represents a function signature represented by the info fields. The last field
+signifies the result type and is usually unnamed. All the previous fields can represent the
+function parameters and can be named.
 
 Type references start with an at sign '@name' and represent the type of what 'name' resolves to.
 References need to be resolved in a declaration context for this reason.
@@ -62,8 +66,8 @@ in the reference name.
 Self references of the form '@1' are a special references to the current '@0' or the parent '@1' or
 the grand parent '@2' and so on for the whole object type ancestry.
 
-There are more quasi-reference types, that are treated as a specific type in most cases.
-These types reference a global type definition and as such must be resolved. Other than normal
+Schema types are also a kind of type references, that are treated as a specific type in most cases.
+Schema types reference a global type definition and as such must be resolved. Other than normal
 references the identifier is kept alongside the full type data after resolution.
 
     flag is a named int type bit-set that consists of multiple bit constants
@@ -71,6 +75,10 @@ references the identifier is kept alongside the full type data after resolution.
     rec  is a named obj type that has additional type and field details
 
 The global identifier allows users to associate extra data and behaviour to these types.
+
+All non-special types and the any type are called literal types. Concrete literal types are all
+literal types except the base types. All the other special types are not considered literal types.
+Even though reference may resolve to a literal and types themself can be considered a literal.
 
 Minimum restrictions apply for compatibility with JavaScript and JSON:
 

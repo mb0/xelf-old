@@ -172,7 +172,7 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 		}
 		writeRef(b, ref, a.Kind)
 		return nil
-	case KindObj:
+	case KindObj, KindFunc:
 		detail = true
 		fallthrough
 	case KindFlag, KindEnum, KindRec:

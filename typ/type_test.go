@@ -27,6 +27,10 @@ func TestString(t *testing.T) {
 			{Name: "Name", Type: Str},
 		}), `(obj + @Other +Name str)`},
 		{Rec("Foo"), `(rec 'Foo')`},
+		{Func([]Field{
+			{Name: "text", Type: Str},
+			{Name: "sub", Type: Str},
+		}, Int), `(func +text +sub str + int)`},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()
