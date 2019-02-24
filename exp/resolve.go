@@ -72,10 +72,10 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 			x = &Expr{Sym: Sym{Name: "dyn", Rslv: rslv}, Args: v}
 		}
 	case Tag:
-		v.Args, err = c.ResolveAll(env, v.Args)
+		_, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case Decl:
-		v.Args, err = c.ResolveAll(env, v.Args)
+		_, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case *Expr:
 		rslv = v.Lookup(env)
@@ -104,7 +104,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 	}
 	var key, rest string
 	key = t.Info.Key()
-	// return already resolved quasi ref types, otherwise add schema prefix '~'
+	// return already resolved schema types, otherwise add schema prefix '~'
 	switch k {
 	case typ.KindFlag, typ.KindEnum:
 		if len(t.Consts) > 0 {
