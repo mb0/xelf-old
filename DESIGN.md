@@ -242,9 +242,12 @@ by the parent expression's resolver. They are formed automatically by the parser
 declaration symbols in expression arguments.
 
 Dynamic expressions start with a literal or sub expression. Dynamic expressions starting with a
-type are transformed to a normal expression with the predefined name 'as', and starting with any
-other literal the name 'dyn' is used. Dynamic expressions starting with nested expression must
-resolve resolve that first expression before a resolver can be selected.
+literal or sub expression are transformed to a normal expression with the predefined name 'dyn'.
+
+The default 'dyn' resolver again delegates to other resolvers based on the arguments. If the first
+argument is a type the expression is treated as the 'as' type conversion and constructor resolver.
+For other literals a appropriate combination operator is used if available. Users can redefine and
+reuse the 'dyn' resolver to add custom delegations.
 
 Dynamic expressions fill an otherwise corner-case of the syntax with a configurable way to provide
 syntax sugar for common type casting or literal operations.
