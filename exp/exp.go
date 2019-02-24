@@ -98,7 +98,7 @@ type Resolver interface {
 	//
 	// A successful resolution returns a literal and no error.
 	// When parts of the element could not be resolved it returns the special error ErrUnres,
-	// and either the original element or a new, partially resolved element.
+	// and either the original element or if the context allows a partially resolved element.
 	// Any other error ends the whole resolution process.
 	Resolve(c *Ctx, enc Env, el El) (El, error)
 }
@@ -110,6 +110,7 @@ type Ctx struct {
 
 	// Exec indicates that the resolution is expected to successfully resolve.
 	//
+	// A resolver will only be called once with exec set to true for each instance.
 	// This means that all sub-expressions must also successfully resolve and any error
 	// even the special ErrUnres will end resolution.
 	// Expressions with side effects or any interaction outside the resolution environment
@@ -118,6 +119,18 @@ type Ctx struct {
 
 	// Unres is a list of all unresolved expressions and type and symbol references.
 	Unres []El
+}
+
+// WithPart returns a copy of c with part set to val.
+func (c Ctx) WithPart(val bool) *Ctx {
+	c.Part = val
+	return &c
+}
+
+// WithExec returns a copy of c with exec set to val.
+func (c Ctx) WithExec(val bool) *Ctx {
+	c.Exec = val
+	return &c
 }
 
 func (x *Ref) String() string  { return bfr.String(x) }

@@ -31,7 +31,7 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args, err = (&Ctx{Part: true}).ResolveAll(env, e.Args[i:])
+				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:])
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
@@ -67,7 +67,7 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args, err = (&Ctx{Part: true}).ResolveAll(env, e.Args[i:])
+				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:])
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
@@ -184,10 +184,7 @@ func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
 	if i < len(e.Args) {
 		return c.Resolve(env, e.Args[i])
 	}
-	org := c.Exec
-	c.Exec = false
-	act, _ := c.Resolve(env, e.Args[1])
-	c.Exec = org
+	act, _ := c.WithExec(false).Resolve(env, e.Args[1])
 	et, err := elType(act)
 	if err != nil || et == typ.Void {
 		return nil, cor.Errorf("when else action is omitted then must provide type information")
