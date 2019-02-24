@@ -87,3 +87,24 @@ func (t Type) Ordered() bool {
 	}
 	return false
 }
+
+// IsFunc returns whether t is a valid function type.
+func (t Type) IsFunc() bool {
+	return t.Kind == KindFunc && t.Info != nil && len(t.Fields) != 0
+}
+
+// FuncParams returns the parameter fields of function type t or nil.
+func (t Type) FuncParams() []Field {
+	if !t.IsFunc() {
+		return nil
+	}
+	return t.Fields[:len(t.Fields)-1]
+}
+
+// FuncResult returns the result type of function type t or void.
+func (t Type) FuncResult() Type {
+	if !t.IsFunc() {
+		return Void
+	}
+	return t.Fields[len(t.Fields)-1].Type
+}
