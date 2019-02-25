@@ -58,7 +58,7 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	case Lit: // already resolved
 		return v, nil
 	case *Ref:
-		rslv = env.Get(v.Key())
+		rslv, err = c.symResolver(env, &v.Sym)
 	case Dyn:
 		if len(v) == 0 {
 			return typ.Void, nil
@@ -74,9 +74,12 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case *Expr:
-		rslv = env.Get(v.Key())
+		rslv, err = c.symResolver(env, &v.Sym)
 	default:
 		return x, cor.Errorf("unexpected expression %T %v", x, x)
+	}
+	if err != nil && err != ErrUnres {
+		return nil, err
 	}
 	if rslv == nil {
 		c.Unres = append(c.Unres, x)
@@ -84,6 +87,14 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	}
 	// resolvers add to unres list themselves
 	return rslv.Resolve(c, env, x)
+}
+
+func (c *Ctx) symResolver(env Env, sym *Sym) (Resolver, error) {
+	if sym.Name == "" {
+		return nil, cor.Error("empty symbol")
+	}
+	r := env.Get(sym.Key())
+	return r, nil
 }
 
 func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {

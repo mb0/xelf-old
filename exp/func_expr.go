@@ -72,9 +72,6 @@ func (f funcScope) Supports(x byte) bool {
 }
 
 func (f funcScope) Get(s string) Resolver {
-	if s == "" {
-		return nil
-	}
 	if s[0] == '$' {
 		l, err := lit.Select(f.Param, s[1:])
 		if err != nil {

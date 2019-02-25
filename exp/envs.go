@@ -29,9 +29,6 @@ func (Builtin) Def(string, Resolver) error { return ErrNoDefEnv }
 
 // Get returns a resolver for the given sym
 func (b Builtin) Get(sym string) Resolver {
-	if sym == "" {
-		return nil
-	}
 	for _, f := range b {
 		r := f(sym)
 		if r != nil {
@@ -72,9 +69,6 @@ func (c *Scope) Def(s string, d Resolver) error {
 // Get returns the resolver with symbol s or nil. If no resolver is found in this scope
 // the parent scope is called.
 func (c *Scope) Get(s string) Resolver {
-	if s == "" {
-		return nil
-	}
 	d, ok := c.decl[s]
 	if ok {
 		return d

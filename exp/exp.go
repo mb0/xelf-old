@@ -71,7 +71,8 @@ type Env interface {
 	// Def defines a symbol resolver binding in this environment.
 	Def(string, Resolver) error
 
-	// Get looks for resolver with symbol sym in this or the parent environments.
+	// Get looks for a resolver with symbol sym in this or the parent environments.
+	// Implementation assume sym is not empty. Callers must ensure that sym is not empty.
 	Get(sym string) Resolver
 
 	// Supports returns whether the environment supports a special behaviour represented by x.
