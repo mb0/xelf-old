@@ -129,7 +129,7 @@ Types do implement the main literal interface and can be used as literals in som
 simplifies the already heavy resolution API, as a successful resolution will always return a valid
 literal, an alleviates another check after each resolution step.
 
-Symbols, names and keys
+Symbols, Names and Keys
 -----------------------
 
 Xelf symbols are ascii identifiers that allow a large number of punctuation characters. Some
@@ -222,11 +222,18 @@ which is also a type name.
 
 If a symbol does not start with a special lookup modifier prefix and instead starts with a name
 start character, it is parsed as a path in case it contains interior dots. And each path segment
-is resolved after another.  The first segment path segment can only be a key in this context.
+is resolved after another.  The first path segment can only be a key in the current context.
 This key is used to lookup the resolver. Following path segments are used to select into the
 resolved literal. This implies that resolver names cannot contains dots and instead should
 use other punctuation without special meaning. Library resolvers use a colon for that reason.
 
+To avoid checking the symbol in each environment the default resolution should do most of the heavy
+lifting. It should check if a symbol has a special prefix or is a path, and with that information
+select the appropriate environment from the whole ancestry of the current one. Environments need a
+a way to advertise special behaviour for this to work. Because interface calles where tested to be
+cheaper than type checks we add a method the environment, instead of using marker interfaces. We
+could expand the use of types for all expression elements to avoid type checking where the typed
+value is not required anyway.
 
 Expression Resolution
 ---------------------
@@ -263,8 +270,8 @@ built-ins include basic operators, conditional and the dyn and as resolvers. The
 have basic resolvers that include declarations. The library built-ins are usually provide extra
 functionality centered around a type of literals.
 
-Function type
--------------
+Function Type and Literal
+-------------------------
 
 This is a work in progress.
 
@@ -297,7 +304,7 @@ and work like closures or be completely side effect free and treated as an isola
 isolation approach is much simpler to reason about for sure and allows us to reuse the parameter
 lookup prefix.
 
-Type inference
+Type Inference
 --------------
 
 This is a work in progress.
@@ -310,7 +317,7 @@ language elements. We still might need a type hint because of the automatic base
 rules. We can store type options in unnamed inferred reference type to work with intermediate
 poly types in the resolution phase or express overloaded resolvers like the arithmetic resolvers.
 
-Overloaded type expressions
+Overloaded Type Expressions
 ---------------------------
 
 I cannot decide whether type expression for the schema, object and function types should have
