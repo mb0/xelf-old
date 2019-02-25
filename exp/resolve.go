@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/mb0/xelf/cor"
-	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -43,27 +42,32 @@ func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 // context's unresolved slice.
 // The resolver implementations usually use this method either directly or indirectly to resolve
 // arguments, which are then again added to the unresolved elements when appropriate.
-func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
+func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
 	if x == nil {
 		return typ.Void, nil
 	}
 	var rslv Resolver
 	switch v := x.(type) {
 	case Type: // resolve type references
-		v, err = c.resolveTypRef(env, v)
-		if err == ErrUnres {
-			break
+		last := v.Last()
+		if last.Kind&typ.FlagRef != 0 {
+			v, err = c.resolveTypRef(env, v, last)
+			if err == ErrUnres {
+				break
+			}
+		} else if last.Kind == typ.KindFunc {
+			// TODO resolve func signatures
 		}
 		return v, err
 	case Lit: // already resolved
 		return v, nil
 	case *Ref:
-		rslv, err = c.symResolver(env, &v.Sym)
+		return c.resolveRef(env, v)
 	case Dyn:
 		if len(v) == 0 {
 			return typ.Void, nil
 		}
-		rslv = env.Get("dyn")
+		rslv = Lookup(env, "dyn")
 		if rslv != nil {
 			x = &Expr{Sym: Sym{Name: "dyn"}, Args: v}
 		}
@@ -74,7 +78,7 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case *Expr:
-		rslv, err = c.symResolver(env, &v.Sym)
+		rslv = Lookup(env, v.Key())
 	default:
 		return x, cor.Errorf("unexpected expression %T %v", x, x)
 	}
@@ -89,19 +93,31 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	return rslv.Resolve(c, env, x)
 }
 
-func (c *Ctx) symResolver(env Env, sym *Sym) (Resolver, error) {
-	if sym.Name == "" {
-		return nil, cor.Error("empty symbol")
+func (c *Ctx) resolveRef(env Env, ref *Ref) (El, error) {
+	sym := ref.Key()
+	r, name, path, err := findResolver(env, sym)
+	if err != nil {
+		return ref, err
 	}
-	r := env.Get(sym.Key())
-	return r, nil
+	if r == nil {
+		return ref, ErrUnres
+	}
+	if sym == name {
+		return r.Resolve(c, env, ref)
+	}
+	tmp := &Ref{Sym: Sym{Name: name}}
+	res, err := r.Resolve(c, env, tmp)
+	if err != nil {
+		return ref, err
+	}
+	if path == "" {
+		return res, nil
+	}
+	return lit.Select(res.(Lit), path)
 }
 
-func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
-	k := t.Last().Kind
-	if k&typ.FlagRef == 0 {
-		return t, nil
-	}
+func (c *Ctx) resolveTypRef(env Env, t Type, last Type) (_ Type, err error) {
+	k := last.Kind
 	if t.Info == nil || t.Info.Ref == "" {
 		if k != typ.FlagRef {
 			return t, cor.Errorf("unnamed %s not allowed", k)
@@ -109,69 +125,62 @@ func (c *Ctx) resolveTypRef(env Env, t Type) (_ Type, err error) {
 		// TODO infer type
 		return t, ErrUnres
 	}
-	var key, rest string
-	key = t.Info.Key()
-	// return already resolved schema types, otherwise add schema prefix '~'
+	key := t.Info.Key()
 	switch k {
-	case typ.KindFlag, typ.KindEnum:
-		if len(t.Consts) > 0 {
+	case typ.KindFlag, typ.KindEnum, typ.KindRec:
+		// return already resolved schema types, otherwise add schema prefix '~'
+		if len(t.Fields) > 0 || len(t.Consts) > 0 {
 			return t, nil
 		}
 		key = "~" + key
-	case typ.KindRec:
-		if len(t.Fields) > 0 {
-			return t, nil
-		}
-		key = "~" + key
-	default:
-		if lex.IsLetter(rune(key[0])) {
-			split := strings.SplitN(key, ".", 2)
-			if len(split) > 1 {
-				key, rest = split[0], split[1]
-			}
-		}
 	}
-	rslv := env.Get(key)
-	if rslv == nil {
-		return t, ErrUnres
-	}
-	el, err := rslv.Resolve(c, env, t)
+	res, err := c.resolveRef(env, &Ref{Sym: Sym{Name: key}})
 	if err != nil {
 		return t, err
 	}
-	l, err := elTypeOrLit(el)
-	if err != nil {
-		return t, err
-	}
-	if rest != "" {
-		l, err = lit.Select(l, rest)
-		if err != nil {
-			return t, err
-		}
-	}
-	et, err := elType(l)
+	et, err := elType(res)
 	if err != nil {
 		return t, err
 	}
 	return replaceRef(t, et)
 }
 
-func elTypeOrLit(el El) (Lit, error) {
-	switch v := el.(type) {
-	case Type:
-		return v, nil
-	case Lit:
-		return v, nil
-	case *Ref:
-		if v.Type != typ.Void {
-			return v.Type, nil
-		}
-	case *Expr:
-		if v.Type != typ.Void {
-			return v.Type, nil
-		}
+func findResolver(env Env, sym string) (r Resolver, name, path string, err error) {
+	if sym == "" {
+		return nil, "", "", cor.Error("empty symbol")
 	}
-	return nil, ErrUnres
+	// check for relative paths prefixes
+	var lookup bool
+	switch x := sym[0]; x {
+	case '~', '$', '/':
+		return LookupSupports(env, sym, x), sym, "", nil
+	case '.':
+		sym = sym[1:]
+		for len(sym) > 0 && sym[0] == '.' {
+			sym = sym[1:]
+			env = env.Parent()
+			if env == nil {
+				return nil, "", "", cor.Errorf("no env found for prefix %q", x)
+			}
+		}
+		if len(sym) > 0 && sym[0] == '?' {
+			lookup = true
+			sym = sym[1:]
+		}
+	default:
+		lookup = true
+	}
+	// check for path
+	idx := strings.IndexByte(sym, '.')
+	if idx > 0 {
+		sym, path = sym[:idx], sym[idx+1:]
+	}
+	if lookup {
+		r = Lookup(env, sym)
+	} else {
+		r = env.Get(sym)
+	}
+	return r, sym, path, nil
 }
 
 func elType(el El) (Type, error) {
@@ -191,6 +200,7 @@ func elType(el El) (Type, error) {
 	}
 	return typ.Void, ErrUnres
 }
+
 func replaceRef(t, el Type) (Type, error) {
 	var mask, shift typ.Kind
 	for shift = 0; ; shift += typ.SlotSize {

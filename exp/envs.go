@@ -66,24 +66,29 @@ func (c *Scope) Def(s string, d Resolver) error {
 	return nil
 }
 
-// Get returns the resolver with symbol s or nil. If no resolver is found in this scope
-// the parent scope is called.
+// Get returns a resolver with symbol s defined in this scope or nil.
 func (c *Scope) Get(s string) Resolver {
 	d, ok := c.decl[s]
 	if ok {
 		return d
 	}
-	if c.parent == nil {
-		return nil
-	}
-	return c.parent.Get(s)
+	return nil
 }
 
-// Supported returns env or a parent environment that supports behaviour indicated by x or nil.
-func Supported(env Env, x byte) Env {
+// Lookup returns a first resolver with symbol sym found in env or one of its ancestors.
+// If sym starts with a known special prefix only the appropriate environments are called.
+func Lookup(env Env, sym string) Resolver {
+	return LookupSupports(env, sym, 0)
+}
+
+// LookupSupports looks up and returns a resolver that supports behaviour indicated by x or nil.
+func LookupSupports(env Env, sym string, x byte) Resolver {
 	for env != nil {
-		if env.Supports(x) {
-			return env
+		if x == 0 || env.Supports(x) {
+			r := env.Get(sym)
+			if r != nil {
+				return r
+			}
 		}
 		env = env.Parent()
 	}

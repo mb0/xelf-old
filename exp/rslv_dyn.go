@@ -41,7 +41,7 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (El, error) {
 		}
 	}
 	if sym != "" {
-		if rslv := env.Get(sym); rslv != nil {
+		if rslv := Lookup(env, sym); rslv != nil {
 			return rslv.Resolve(c, env, &Expr{Sym: Sym{Name: sym}, Args: e.Args})
 		}
 	}
