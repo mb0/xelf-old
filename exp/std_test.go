@@ -151,6 +151,8 @@ func TestStdResolve(t *testing.T) {
 		},
 		{`(with +a int @a)`, typ.Int},
 		{`(with +a (obj +b int) @a.b)`, typ.Int},
+		{`(with +f (fn + int 1) (f))`, lit.Int(1)},
+		{`(with +f (fn +a int + int (add $a 1)) (f 1))`, lit.Int(2)},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)

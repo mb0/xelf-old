@@ -2,6 +2,7 @@ package exp
 
 import (
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -24,28 +25,42 @@ func (f *ExprBody) WriteBfr(b bfr.Ctx) error {
 
 func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call) (El, error) {
 	// build a parameter object from all arguments
-	param, err := lit.MakeObj(typ.Obj(fc.Type.FuncParams()))
-	if err != nil {
-		return fc.Expr, err
+	ps := fc.Sig.FuncParams()
+	if len(ps) != len(fc.Args) {
+		return nil, cor.Error("argument mismatch")
 	}
-	for i, a := range fc.Args {
-		l, err := c.Resolve(env, a.Args[0])
+	var fenv Env
+	if len(ps) > 0 {
+		param, err := lit.MakeObj(typ.Obj(ps))
 		if err != nil {
-			return fc.Expr, err
+			return fc.Expr, cor.Errorf("make param obj for %s: %w", fc.Type, err)
 		}
-		param.SetIdx(i, l.(Lit))
+		for i, a := range fc.Args {
+			l, err := c.Resolve(env, a.Args[0])
+			if err != nil {
+				return fc.Expr, err
+			}
+			param.SetIdx(i, l.(Lit))
+		}
+		// create a function scope and set the parameter object
+		fenv = funcScope{NewScope(env), param}
+	} else {
+		fenv = NewScope(env)
 	}
-	// create a function scope and set the parameter object
-	s := funcScope{NewScope(env), param}
 	// and execute all body elements using the new scope
 	var res El
 	for _, e := range f.Els {
-		res, err = c.WithPart(false).Resolve(s, e)
+		var err error
+		res, err = c.WithPart(false).Resolve(fenv, e)
 		if err != nil {
 			return fc.Expr, err
 		}
 	}
-	return res, nil
+	rt := fc.Sig.FuncResult()
+	if rt == typ.Void {
+		return rt, nil
+	}
+	return lit.Convert(res.(Lit), rt, 0)
 }
 
 type funcScope struct {

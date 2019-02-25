@@ -2,6 +2,7 @@ package exp
 
 import (
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/typ"
 )
 
 // rslvLet declares one or more resolvers in the existing scope.
@@ -40,6 +41,35 @@ func rslvWith(c *Ctx, env Env, e *Expr) (El, error) {
 	return tail[len(tail)-1], nil
 }
 
+// rslvFn declares a function literal from its arguments.
+func rslvFn(c *Ctx, env Env, e *Expr) (El, error) {
+	decls, tail, err := UniDeclRest(e.Args)
+	if err != nil {
+		return nil, err
+	}
+	var sig Type
+	if len(decls) == 0 {
+		// TODO infer signature
+		return nil, cor.Errorf("inferred fn expressions not implemented")
+	} else {
+		// construct sig from decls
+		fs := make([]typ.Field, 0, len(decls))
+		for _, d := range decls {
+			l, err := c.Resolve(env, d.Args[0])
+			if err != nil {
+				return e, err
+			}
+			dt, ok := l.(Type)
+			if !ok {
+				return nil, cor.Errorf("want type in func parameters got %T", l)
+			}
+			fs = append(fs, typ.Field{Name: d.Name[1:], Type: dt})
+		}
+		sig = Type{Kind: typ.KindFunc, Info: &typ.Info{Fields: fs}}
+	}
+	return &Func{sig, &ExprBody{tail}}, nil
+}
+
 func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 	var res El
 	for _, d := range decls {
@@ -54,7 +84,11 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 		switch dv := args[0].(type) {
 		case Lit:
 			res = dv
-			rslv = LitResolver{dv}
+			if r, ok := dv.(Resolver); ok {
+				rslv = r
+			} else {
+				rslv = LitResolver{dv}
+			}
 		default:
 			return nil, cor.Errorf("unexpected element as declaration value %v", d.Args[0])
 		}

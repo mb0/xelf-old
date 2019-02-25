@@ -61,6 +61,8 @@ func Core(sym string) Resolver {
 func Std(sym string) Resolver {
 	var f ExprResolverFunc
 	switch sym {
+	case "fn":
+		f = rslvFn
 	case "let":
 		f = rslvLet
 	case "with":

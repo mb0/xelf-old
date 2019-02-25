@@ -279,8 +279,16 @@ form. Functions are also handy to factor out common expressions from large queri
 Functions as literals also imply a function type that represents the type's signature. A declared
 signature allows us to factor the default type checking and inference out of each resolver and
 provide a more stable and comfortable user experience. Each resolver can decide whether to call
-into the default type checking machinery. The resolver only returns a custom function literal when
-treated as a symbol reference.
+into the default type checking machinery.
+
+Because we have different kinds of function implementation we use a common function literal type,
+that implements the literal and resolver interface and delegates expression resolution to a
+function body implementation. The different kinds builtin functions with custom or reflection base
+resolvers and normal function bodies with a list of expression elements.
+
+A new resolver 'fn' is used to construct function literal. It has the same parameter and result
+declaration as the function type syntax but ends in a tail of body elements. Simple function
+expression should be able to omit and infer the function signature.
 
 Function can be inlined in environments without function literals and can avoid work along the way.
 
@@ -301,3 +309,12 @@ If we embrace function types for all resolvers we already have a enough type inf
 language elements. We still might need a type hint because of the automatic base type conversion
 rules. We can store type options in unnamed inferred reference type to work with intermediate
 poly types in the resolution phase or express overloaded resolvers like the arithmetic resolvers.
+
+Overloaded type expressions
+---------------------------
+
+I cannot decide whether type expression for the schema, object and function types should have
+a syntax addition that will transform any tail elements to a 'as' expression to that type.
+
+Type references and the fn resolver alleviate the need in many cases and the new syntax would
+make it harder to spot whether an expression is a type or literal.
