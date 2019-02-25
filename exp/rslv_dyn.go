@@ -42,7 +42,7 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	if sym != "" {
 		if rslv := env.Get(sym); rslv != nil {
-			return rslv.Resolve(c, env, &Expr{Sym: Sym{Name: sym, Rslv: rslv}, Args: e.Args})
+			return rslv.Resolve(c, env, &Expr{Sym: Sym{Name: sym}, Args: e.Args})
 		}
 	}
 	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", e.Args[0])

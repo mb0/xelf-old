@@ -58,18 +58,14 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 	case Lit: // already resolved
 		return v, nil
 	case *Ref:
-		if c.Part {
-			rslv = v.Lookup(env)
-		} else {
-			rslv = env.Get(v.Key())
-		}
+		rslv = env.Get(v.Key())
 	case Dyn:
 		if len(v) == 0 {
 			return typ.Void, nil
 		}
 		rslv = env.Get("dyn")
 		if rslv != nil {
-			x = &Expr{Sym: Sym{Name: "dyn", Rslv: rslv}, Args: v}
+			x = &Expr{Sym: Sym{Name: "dyn"}, Args: v}
 		}
 	case Tag:
 		_, err = c.ResolveAll(env, v.Args)
@@ -78,7 +74,7 @@ func (c *Ctx) Resolve(env Env, x El) (_ El, err error) {
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case *Expr:
-		rslv = v.Lookup(env)
+		rslv = env.Get(v.Key())
 	default:
 		return x, cor.Errorf("unexpected expression %T %v", x, x)
 	}

@@ -20,7 +20,6 @@ type El interface {
 // Sym holds symbol data and is used by expressions and symbol references.
 type Sym struct {
 	Name string
-	Rslv Resolver
 	Type Type
 	key  string
 }
@@ -30,14 +29,6 @@ func (s *Sym) Key() string {
 		s.key = strings.ToLower(s.Name)
 	}
 	return s.key
-}
-
-// Lookup returns the cached resolver, if nil it queries and caches if from env.
-func (s *Sym) Lookup(env Env) Resolver {
-	if s.Rslv == nil {
-		s.Rslv = env.Get(s.Key())
-	}
-	return s.Rslv
 }
 
 type Named = struct {
