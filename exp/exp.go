@@ -40,6 +40,11 @@ func (s *Sym) Lookup(env Env) Resolver {
 	return s.Rslv
 }
 
+type Named = struct {
+	Name string
+	Args []El
+}
+
 // All language elements
 type (
 	// Type is a type as defined in package typ. It also implements Lit.
@@ -49,23 +54,16 @@ type (
 	Lit = lit.Lit
 
 	// Ref is a unresolved symbol that refers to an element.
-	Ref struct {
-		Sym
-	}
+	Ref struct{ Sym }
+
 	// Dyn represents an unresolved dynamic expression where the spec is not yet resolved.
 	Dyn []El
 
 	// Tag is a tag element; its meaning is determined by the parent expression spec.
-	Tag struct {
-		Name string
-		Args []El
-	}
+	Tag Named
 
 	// Decl is a declaration element; its meaning is determined by the parent expression spec.
-	Decl struct {
-		Name string
-		Args []El
-	}
+	Decl Named
 
 	// Expr is unresolved expression with a resolved spec.
 	Expr struct {

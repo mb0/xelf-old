@@ -268,19 +268,26 @@ Function type
 
 This is a work in progress.
 
-For now all of xelf is built around the concept of resolvers which does not differentiate between
-variables, functions or built-in expressions. This is by design, as heavy use of function as first
-class literal would complicate translations to environments that do not support these contexts.
+In the beginning xelf tried to build around the concept of resolvers that do not differentiate
+between variables, functions or built-in expressions. This was by design, as heavy use of function
+was thought to complicate translations to environments that do not support these contexts.
 
-However this means that even simple resolvers that could be expressed in xelf expressions need to
-be implemented in every environment used. We face much of the same concerns for loop actions of
-any form. It would also be handy to factor out common expressions from large queries. Those function
-would ultimately be inlined for environments without function literals, but can avoid some work
-along the way.
+However this meant that even simple resolvers that could be expressed in xelf expressions needed to
+be implemented in every environment used. We face much of the same concerns for loop actions of any
+form. Functions are also handy to factor out common expressions from large queries.
 
-We could both reuse the parameter lookup prefix and model function types as special object type
-that has one optionally named field for each parameter and another unnamed field for the result
-type at the end.
+Functions as literals also imply a function type that represents the type's signature. A declared
+signature allows us to factor the default type checking and inference out of each resolver and
+provide a more stable and comfortable user experience. Each resolver can decide whether to call
+into the default type checking machinery. The resolver only returns a custom function literal when
+treated as a symbol reference.
+
+Function can be inlined in environments without function literals and can avoid work along the way.
+
+I am not sure if functions should be allowed to access or modify their non-immediate environment
+and work like closures or be completely side effect free and treated as an isolated program. The
+isolation approach is much simpler to reason about for sure and allows us to reuse the parameter
+lookup prefix.
 
 Type inference
 --------------
@@ -290,7 +297,7 @@ This is a work in progress.
 After some study over the hindley-milner type system, I come to the conclusion, that it does not
 lend itself to be faithfully applied to xelf.
 
-Instead of providing type signatures for each resolver, the resolver itself should have all the
-decision power and use the existing environments and type references. All we need is a type hint
-for resolvers so we can use the default machinery and maybe a way to express poly types during the
-resolution process.
+If we embrace function types for all resolvers we already have a enough type information for all
+language elements. We still might need a type hint because of the automatic base type conversion
+rules. We can store type options in unnamed inferred reference type to work with intermediate
+poly types in the resolution phase or express overloaded resolvers like the arithmetic resolvers.

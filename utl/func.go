@@ -1,9 +1,7 @@
 package utl
 
 import (
-	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
@@ -11,71 +9,44 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// FuncResolver is a resolver wrapping a reflected go function.
-type FuncResolver struct {
+// ReflectBody is a funcition resolver wrapping a reflected go function.
+type ReflectBody struct {
 	val   reflect.Value
-	param typ.Type
 	ptyps []reflect.Type
-	res   typ.Type
 	err   bool
 }
 
-func (r *FuncResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error) {
-	// we only resolve function when used as expression
-	x, ok := e.(*exp.Expr)
-	if !ok {
-		return e, exp.ErrUnres
-	}
-	// valided tags form
-	tags, err := exp.TagsForm(x.Args)
-	if err != nil {
-		return nil, err
-	}
-	// prime args with parameter reflect types
-	args := make([]reflect.Value, len(r.ptyps))
-	for i, pt := range r.ptyps {
-		args[i] = reflect.New(pt).Elem()
-	}
-	// collect args from tags
-	for i, tag := range tags {
-		// find index
-		idx := i
-		if tag.Name != "" { // not positional arg
-			key := strings.ToLower(tag.Name[1:])
-			_, idx, err = r.param.FieldByKey(key)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if idx >= len(args) {
-			return nil, cor.Errorf("unexpected argument index for %v", x.Name)
+func (f *ReflectBody) ResolveCall(c *exp.Ctx, env exp.Env, fc *exp.Call) (exp.El, error) {
+	args := make([]reflect.Value, len(f.ptyps))
+	for i, pt := range f.ptyps {
+		v := reflect.New(pt)
+		args[i] = v.Elem()
+		n := fc.Args[i]
+		if len(n.Args) == 0 {
+			// reflect already provides a zero value
+			continue
 		}
 		// resolve tag arg
-		el, err := c.Resolve(env, tag.Args[0])
+		l, err := c.Resolve(env, n.Args[0])
 		if err != nil {
-			return nil, err
+			return fc.Expr, err
 		}
-		l, ok := el.(lit.Lit)
-		if !ok {
-			return nil, cor.Errorf("expect literal got %T", el)
-		}
-		// assign into arg list
-		val := args[idx].Addr()
-		err = lit.AssignToValue(l, val)
+		err = lit.AssignToValue(l.(lit.Lit), v)
 		if err != nil {
-			return nil, cor.Errorf("%v have %s", err, val)
+			return nil, cor.Errorf("have %s: %w", v, err)
 		}
 	}
 	// get reflect values from argument
 	// call reflect function with value
-	res := r.val.Call(args)
-	if r.err { // check last result
+	res := f.val.Call(args)
+	if f.err { // check last result
 		last := res[len(res)-1]
 		if !last.IsNil() {
 			return nil, last.Interface().(error)
 		}
+		res = res[:len(res)-1]
 	}
-	if r.res == typ.Void { // nothing to return
+	if len(res) == 0 { // nothing to return
 		return nil, nil
 	}
 	// create a proxy from the result and return
@@ -84,11 +55,10 @@ func (r *FuncResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error
 
 var refErr = reflect.TypeOf((*error)(nil)).Elem()
 
-// ReflectFunc will reflect val and return a function resolver or an error.
+// ReflectFunc reflects val and returns a function literal or an error.
 // The names are optionally and associated to the arguments by index.
-// If no name is defined, it uses a uppercase p and the index as name: 'P0'.
-func ReflectFunc(val interface{}, names ...string) (*FuncResolver, error) {
-	f := FuncResolver{val: reflect.ValueOf(val)}
+func ReflectFunc(val interface{}, names ...string) (*exp.Func, error) {
+	f := ReflectBody{val: reflect.ValueOf(val)}
 	if f.val.Kind() != reflect.Func {
 		return nil, cor.Errorf("expect function argument got %T", val)
 	}
@@ -97,7 +67,7 @@ func ReflectFunc(val interface{}, names ...string) (*FuncResolver, error) {
 		return nil, cor.Error("variadic fuctions are not yet supported")
 	}
 	n := t.NumIn()
-	fs := make([]typ.Field, 0, n)
+	fs := make([]typ.Field, 0, n+1)
 	pt := make([]reflect.Type, 0, n)
 	for i := 0; i < n; i++ {
 		rt := t.In(i)
@@ -109,15 +79,12 @@ func ReflectFunc(val interface{}, names ...string) (*FuncResolver, error) {
 		if i < len(names) {
 			name = names[i]
 		}
-		if name == "" {
-			name = fmt.Sprintf("P%d", i)
-		}
 		pt = append(pt, rt)
 		fs = append(fs, typ.Field{Name: name, Type: xt})
 	}
 	f.ptyps = pt
-	f.param = typ.Obj(fs)
 	n = t.NumOut()
+	var res typ.Type
 	for i := 0; i < n; i++ {
 		rt := t.Out(i)
 		if rt.ConvertibleTo(refErr) {
@@ -128,13 +95,13 @@ func ReflectFunc(val interface{}, names ...string) (*FuncResolver, error) {
 			break
 		}
 		if i > 0 {
-			return nil, cor.Error("expect at most one compatible result and an optional error")
+			return nil, cor.Error("expect at most one compatible result and optionally an error")
 		}
 		xt, err := lit.ReflectType(rt)
 		if err != nil {
 			return nil, err
 		}
-		f.res = xt
+		res = xt
 	}
-	return &f, nil
+	return &exp.Func{typ.Func(fs, res), &f}, nil
 }
