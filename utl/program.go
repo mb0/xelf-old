@@ -18,7 +18,10 @@ func Prog(arg *lit.Dict, b ...func(string) exp.Resolver) exp.Env {
 	})
 }
 
-func (*Program) Parent() exp.Env                        { return nil }
+func (*Program) Parent() exp.Env { return nil }
+func (*Program) Supports(x byte) bool {
+	return x == '$' || x == '/'
+}
 func (p *Program) Def(sym string, r exp.Resolver) error { return exp.ErrNoDefEnv }
 func (p *Program) Get(sym string) exp.Resolver {
 	var pr PathResolver

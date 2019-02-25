@@ -29,9 +29,10 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call) (El, error) {
 	if len(ps) != len(fc.Args) {
 		return nil, cor.Error("argument mismatch")
 	}
-	var fenv Env
+	var param lit.Obj
 	if len(ps) > 0 {
-		param, err := lit.MakeObj(typ.Obj(ps))
+		var err error
+		param, err = lit.MakeObj(typ.Obj(ps))
 		if err != nil {
 			return fc.Expr, cor.Errorf("make param obj for %s: %w", fc.Type, err)
 		}
@@ -43,10 +44,8 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call) (El, error) {
 			param.SetIdx(i, l.(Lit))
 		}
 		// create a function scope and set the parameter object
-		fenv = funcScope{NewScope(env), param}
-	} else {
-		fenv = NewScope(env)
 	}
+	fenv := funcScope{NewScope(env), param}
 	// and execute all body elements using the new scope
 	var res El
 	for _, e := range f.Els {
@@ -66,6 +65,10 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call) (El, error) {
 type funcScope struct {
 	*Scope
 	Param lit.Obj
+}
+
+func (f funcScope) Supports(x byte) bool {
+	return x == '$'
 }
 
 func (f funcScope) Get(s string) Resolver {

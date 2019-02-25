@@ -18,10 +18,13 @@ type Lookup = func(sym string) Resolver
 // A builtin environment has no parent and cannot define resolvers.
 type Builtin []Lookup
 
-// Parent always returns nil for the built-in resolver
+// Parent always returns nil for the built-in lookups
 func (Builtin) Parent() Env { return nil }
 
-// Def always returns ErrNoDefEnv for the built-in resolver
+// Supports returns always false for the built-in lookups
+func (Builtin) Supports(byte) bool { return false }
+
+// Def always returns ErrNoDefEnv for the built-in lookups
 func (Builtin) Def(string, Resolver) error { return ErrNoDefEnv }
 
 // Get returns a resolver for the given sym
@@ -54,6 +57,9 @@ func (c *Scope) Parent() Env {
 	return c.parent
 }
 
+// Supports returns always false for simple scopes
+func (*Scope) Supports(byte) bool { return false }
+
 // Def defines a symbol resolver binding for s and d or returns an error.
 func (c *Scope) Def(s string, d Resolver) error {
 	if _, ok := c.decl[s]; ok {
@@ -77,4 +83,15 @@ func (c *Scope) Get(s string) Resolver {
 		return nil
 	}
 	return c.parent.Get(s)
+}
+
+// Supported returns env or a parent environment that supports behaviour indicated by x or nil.
+func Supported(env Env, x byte) Env {
+	for env != nil {
+		if env.Supports(x) {
+			return env
+		}
+		env = env.Parent()
+	}
+	return nil
 }

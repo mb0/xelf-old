@@ -73,6 +73,9 @@ type Env interface {
 
 	// Get looks for resolver with symbol sym in this or the parent environments.
 	Get(sym string) Resolver
+
+	// Supports returns whether the environment supports a special behaviour represented by x.
+	Supports(x byte) bool
 }
 
 // ErrUnres is a special error value that is returned by a resolver when
