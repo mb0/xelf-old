@@ -9,14 +9,14 @@ var (
 	ErrRedefine = cor.StrError("redefined symbol")
 )
 
-// Lookup is a simple resolver lookup function used by builtins and libraries.
-type Lookup = func(sym string) Resolver
+// LookupFunc is a simple resolver lookup function used by builtins and libraries.
+type LookupFunc = func(sym string) Resolver
 
 // Builtin is an environment based on a slice of simple resolver lookup functions.
 //
 // The lookup functions are check from start to finish returning the first result.
 // A builtin environment has no parent and cannot define resolvers.
-type Builtin []Lookup
+type Builtin []LookupFunc
 
 // Parent always returns nil for the built-in lookups
 func (Builtin) Parent() Env { return nil }

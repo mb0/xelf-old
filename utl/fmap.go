@@ -10,7 +10,7 @@ import (
 type Fmap = map[string]interface{}
 
 // MustReflectFmap reflects m and returns a lookup function or panics.
-func MustReflectFmap(m Fmap) exp.Lookup {
+func MustReflectFmap(m Fmap) exp.LookupFunc {
 	f, err := ReflectFmap(m)
 	if err != nil {
 		panic(err)
@@ -19,7 +19,7 @@ func MustReflectFmap(m Fmap) exp.Lookup {
 }
 
 // ReflectFmap reflects m and returns a lookup function or an error.
-func ReflectFmap(m Fmap) (exp.Lookup, error) {
+func ReflectFmap(m Fmap) (exp.LookupFunc, error) {
 	res := make(map[string]exp.Resolver, len(m))
 	for key, val := range m {
 		f, err := ReflectFunc(val)
@@ -37,7 +37,7 @@ func ReflectFmap(m Fmap) (exp.Lookup, error) {
 type LazyFmap struct {
 	mu sync.Mutex
 	m  Fmap
-	l  exp.Lookup
+	l  exp.LookupFunc
 }
 
 // Lazy returns a LazyFmap for fmap
@@ -46,7 +46,7 @@ func Lazy(fmap Fmap) *LazyFmap {
 }
 
 // Lookup returns the same fmap lookup function, it is created once on the first call
-func (m *LazyFmap) Lookup() exp.Lookup {
+func (m *LazyFmap) Lookup() exp.LookupFunc {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.l == nil {
