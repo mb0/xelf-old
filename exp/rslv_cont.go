@@ -76,20 +76,18 @@ func (it *iter) newScope(env Env, l Lit, i int, k string, red El) *Scope {
 	s := NewScope(env)
 	if it.red != "" {
 		switch v := red.(type) {
-		case Type:
-			s.Def(it.red, typeResolver(v))
 		case Lit:
-			s.Def(it.red, litResolver{v})
+			s.Def(it.red, LitResolver{v})
 		}
 	}
 	if it.el != "" {
-		s.Def(it.el, litResolver{l})
+		s.Def(it.el, LitResolver{l})
 	}
 	if it.idx != "" {
-		s.Def(it.idx, litResolver{lit.Int(i)})
+		s.Def(it.idx, LitResolver{lit.Int(i)})
 	}
 	if it.key != "" {
-		s.Def(it.key, litResolver{lit.Str(k)})
+		s.Def(it.key, LitResolver{lit.Str(k)})
 	}
 	return s
 }

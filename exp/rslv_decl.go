@@ -2,7 +2,6 @@ package exp
 
 import (
 	"github.com/mb0/xelf/cor"
-	"github.com/mb0/xelf/typ"
 )
 
 // rslvLet declares one or more resolvers in the existing scope.
@@ -53,12 +52,9 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 		}
 		var rslv Resolver
 		switch dv := args[0].(type) {
-		case Type:
-			res = dv
-			rslv = typeResolver(dv)
 		case Lit:
 			res = dv
-			rslv = litResolver{dv}
+			rslv = LitResolver{dv}
 		default:
 			return nil, cor.Errorf("unexpected element as declaration value %v", d.Args[0])
 		}
@@ -68,34 +64,4 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 		}
 	}
 	return res, nil
-}
-
-// typeResolver is a resolver that wraps a type from package typ.
-//
-// The wrapped type is expected to be fully resolved.
-type typeResolver Type
-
-func (r typeResolver) Resolve(c *Ctx, env Env, e El) (El, error) {
-	switch v := e.(type) {
-	case *Ref:
-		return Type(r), nil
-	case Type:
-		// must by a type ref
-		if v.Last().Kind&typ.MaskRef != typ.KindRef {
-			return nil, cor.Errorf("expected type reference got %s", v)
-		}
-		return Type(r), nil
-	}
-	return nil, cor.Errorf("expected type or expression reference %s", e)
-}
-
-// litResolver is a resolver that wraps a literal from package lit.
-type litResolver struct{ Lit }
-
-func (r litResolver) Resolve(c *Ctx, env Env, e El) (El, error) {
-	switch e.(type) {
-	case *Ref:
-		return r.Lit, nil
-	}
-	return nil, cor.Errorf("expected expression reference %s", e)
 }
