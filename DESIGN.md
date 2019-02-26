@@ -280,25 +280,23 @@ functionality centered around a type of literals.
 Function Type and Literal
 -------------------------
 
-This is a work in progress.
-
-In the beginning xelf tried to build around the concept of resolvers that do not differentiate
-between variables, functions or built-in expressions. This was by design, as heavy use of function
-was thought to complicate translations to environments that do not support these contexts.
-
-However this meant that even simple resolvers that could be expressed in xelf expressions needed to
-be implemented in every environment used. We face much of the same concerns for loop actions of any
-form. Functions are also handy to factor out common expressions from large queries.
+Xelf tried to build around the concept of resolvers that do not differentiate between variables,
+functions or built-in expressions. However this meant that even simple resolvers that could be
+expressed in xelf expressions needed to be implemented in every environment used. The concept
+of function is also common enough to justify special handling to reduce code duplication.
 
 Functions as literals also imply a function type that represents the type's signature. A declared
-signature allows us to factor the default type checking and inference out of each resolver and
-provide a more stable and comfortable user experience. Each resolver can decide whether to call
-into the default type checking machinery.
+signature allows us to factor out the default type checking and inference and provide a more stable
+and comfortable user experience. Functions are called only if all their arguments are successfully
+resolved and then use their declaration environment for evaluation.
+
+Resolvers that need to have control over type checking or can partially resolve their arguments
+must be implemented as form resolver.
 
 Because we have different kinds of function implementation we use a common function literal type,
 that implements the literal and resolver interface and delegates expression resolution to a
-function body implementation. The different kinds builtin functions with custom or reflection base
-resolvers and normal function bodies with a list of expression elements.
+function body implementation. The different are kinds built-in functions with custom or reflection
+base resolvers and normal function bodies with a list of expression elements.
 
 A new resolver 'fn' is used to construct function literal. It has the same parameter and result
 declaration as the function type syntax but ends in a tail of body elements. Simple function
@@ -306,10 +304,13 @@ expression should be able to omit and infer the function signature.
 
 Function can be inlined in environments without function literals and can avoid work along the way.
 
-I am not sure if functions should be allowed to access or modify their non-immediate environment
-and work like closures or be completely side effect free and treated as an isolated program. The
-isolation approach is much simpler to reason about for sure and allows us to reuse the parameter
-lookup prefix.
+Functions are allowed to access the environment chain they were declared in. This is only useful
+for normal function and means their implementations need to remember the declaration environment.
+A special function scope provides the parameter declarations that were resolved in the calling
+environment.
+
+Functions should be used to model all expressions that use their own isolated and parameterized
+environment like loop actions or the with expressions.
 
 Form Type and Literal
 ---------------------

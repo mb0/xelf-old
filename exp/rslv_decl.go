@@ -76,7 +76,7 @@ func rslvFn(c *Ctx, env Env, e *Expr) (El, error) {
 		}
 		sig = Type{Kind: typ.KindFunc, Info: &typ.Info{Fields: fs}}
 	}
-	return &Func{sig, &ExprBody{tail}}, nil
+	return &Func{sig, &ExprBody{tail, env}}, nil
 }
 
 func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
