@@ -4,78 +4,21 @@ import "github.com/mb0/xelf/typ"
 
 var StdEnv = Builtin{Core, Std}
 
+var core = make(formMap, 32)
+var std = make(formMap, 8)
+
 func Core(sym string) Resolver {
-	var f ExprResolverFunc
-	switch sym {
-	case "fail":
-		f = rslvFail
-	case "if":
-		f = rslvIf
-	case "dyn":
-		f = rslvDyn
-	case "as":
-		f = rslvAs
-	case "or":
-		f = rslvOr
-	case "and":
-		f = rslvAnd
-	case "bool":
-		f = rslvBool
-	case "not":
-		f = rslvNot
-	case "eq", "ne":
-		f = rslvEq
-	case "equal":
-		f = rslvEqual
-	case "lt", "ge":
-		f = rslvLt
-	case "gt", "le":
-		f = rslvGt
-	case "add":
-		f = rslvAdd
-	case "sub":
-		f = rslvSub
-	case "mul":
-		f = rslvMul
-	case "div":
-		f = rslvDiv
-	case "rem":
-		f = rslvRem
-	case "abs":
-		f = rslvAbs
-	case "min":
-		f = rslvMin
-	case "max":
-		f = rslvMax
-	case "cat":
-		f = rslvCat
-	case "apd":
-		f = rslvApd
-	case "set":
-		f = rslvSet
+	if f, ok := core[sym]; ok {
+		return f
 	}
-	if f == nil {
-		return nil
-	}
-	return f
+	return nil
 }
 
 func Std(sym string) Resolver {
-	var f ExprResolverFunc
-	switch sym {
-	case "fn":
-		f = rslvFn
-	case "let":
-		f = rslvLet
-	case "with":
-		f = rslvWith
-	case "reduce":
-		f = rslvReduce
+	if f, ok := std[sym]; ok {
+		return f
 	}
-	if f == nil {
-		return nil
-	}
-	return f
+	return nil
 }
 
 type ExprResolverFunc func(*Ctx, Env, *Expr) (El, error)
@@ -86,4 +29,15 @@ func (rf ExprResolverFunc) Resolve(c *Ctx, env Env, e El) (El, error) {
 		return &Form{Type{Kind: typ.KindForm}, rf}, nil
 	}
 	return rf(c, env, xp)
+}
+
+type formMap map[string]*Form
+
+func (m formMap) add(ref string, res Type, params []typ.Field, r ExprResolverFunc) *Form {
+	f := &Form{Type{Kind: typ.KindForm, Info: &typ.Info{
+		Ref:    ref,
+		Fields: append(params, typ.Field{Type: res}),
+	}}, r}
+	m[ref] = f
+	return f
 }

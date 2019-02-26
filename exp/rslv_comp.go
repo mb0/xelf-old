@@ -5,8 +5,19 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+func init() {
+	core.add("eq", typ.Bool, nil, rslvEq)
+	core.add("ne", typ.Bool, nil, rslvEq)
+	core.add("equal", typ.Bool, nil, rslvEqual)
+	core.add("lt", typ.Bool, nil, rslvLt)
+	core.add("ge", typ.Bool, nil, rslvLt)
+	core.add("gt", typ.Bool, nil, rslvGt)
+	core.add("le", typ.Bool, nil, rslvGt)
+}
+
 // rslvEq returns a bool whether the arguments are equivalent literals.
 // The result is negated, if the expression symbol is 'ne'.
+// (form +a +b any +rest? list - bool)
 func rslvEq(c *Ctx, env Env, e *Expr) (El, error) {
 	neg := e.Name == "ne"
 	res, err := resolveBinaryComp(c, env, e, false, true, lit.Equiv)
@@ -17,12 +28,14 @@ func rslvEq(c *Ctx, env Env, e *Expr) (El, error) {
 }
 
 // rslvEqual returns a bool whether the arguments are same types or same literals.
+// (form +a +b any +rest? list - bool)
 func rslvEqual(c *Ctx, env Env, e *Expr) (El, error) {
 	return resolveBinaryComp(c, env, e, false, true, lit.Equal)
 }
 
 // rslvLt returns a bool whether the arguments are monotonic increasing literals.
 // Or the inverse, if the expression symbol is 'ge'.
+// (form +a +b any +rest? list - bool)
 func rslvLt(c *Ctx, env Env, e *Expr) (El, error) {
 	return resolveBinaryComp(c, env, e, e.Name == "ge", false, func(a, b Lit) bool {
 		res, ok := lit.Less(a, b)
@@ -32,6 +45,7 @@ func rslvLt(c *Ctx, env Env, e *Expr) (El, error) {
 
 // rslvGt returns a bool whether the arguments are monotonic decreasing literals.
 // Or the inverse, if the expression symbol is 'le'.
+// (form +a +b any +rest? list - bool)
 func rslvGt(c *Ctx, env Env, e *Expr) (El, error) {
 	return resolveBinaryComp(c, env, e, e.Name == "le", false, func(a, b Lit) bool {
 		res, ok := lit.Less(b, a)

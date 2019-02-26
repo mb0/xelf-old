@@ -15,7 +15,14 @@ var (
 	errSetKeyer = cor.StrError("expected keyer literal as first argument in 'set' expression")
 )
 
+func init() {
+	core.add("cat", typ.Infer, nil, rslvCat)
+	core.add("apd", typ.Infer, nil, rslvApd)
+	core.add("set", typ.Infer, nil, rslvSet)
+}
+
 // rslvCat concatenates one or more arguments to a str, raw or idxer literal.
+// (form +a (poly str raw list) +b? list - @a)
 func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsMin(e.Args, 1)
 	if err != nil {
@@ -84,6 +91,7 @@ func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
 }
 
 // rslvApd appends the rest literal arguments to the first literal appender argument.
+// (form +a (poly list) +b? @a - @a)
 func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsMin(e.Args, 1)
 	if err != nil {
@@ -111,6 +119,7 @@ func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
 }
 
 // rslvSet sets the first keyer literal with the following declaration arguments.
+// (form +a (poly dict) +decls? dict - @a)
 func rslvSet(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) == 0 {
 		return nil, errSetKeyer

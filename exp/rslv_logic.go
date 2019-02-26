@@ -6,7 +6,16 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// rslvFail will return an error and set the expressions type to any.
+func init() {
+	core.add("fail", typ.Infer, nil, rslvFail)
+	core.add("or", typ.Bool, nil, rslvOr)
+	core.add("and", typ.Bool, nil, rslvAnd)
+	core.add("bool", typ.Bool, nil, rslvBool)
+	core.add("not", typ.Bool, nil, rslvNot)
+	core.add("if", typ.Infer, nil, rslvIf)
+}
+
+// rslvFail returns an error and set the expressions type to any.
 // If c is an execution context it fails expression string as error, otherwise it uses ErrUnres.
 //
 // This is primarily useful for testing.
@@ -18,9 +27,10 @@ func rslvFail(c *Ctx, env Env, e *Expr) (El, error) {
 	return e, ErrUnres
 }
 
-// rslvOr will resolve the arguments as short-circuiting logical or to a bool literal.
+// rslvOr resolves the arguments as short-circuiting logical or to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
+// (form +args? arr|any - bool)
 func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsForm(e.Args)
 	if err != nil {
@@ -56,9 +66,10 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 	return lit.False, nil
 }
 
-// rslvAnd will resolve the arguments as short-circuiting logical 'and' to a bool literal.
+// rslvAnd resolves the arguments as short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'and' expression resolves to true.
+// (form +args? arr|any - bool)
 func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsForm(e.Args)
 	if err != nil {
@@ -94,9 +105,10 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 	return lit.True, nil
 }
 
-// rslvBool will resolve the arguments similar to short-circuiting logical 'and' to a bool literal.
+// rslvBool resolves the arguments similar to short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'bool' expression resolves to false.
+// (form +args? arr|any - bool)
 func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
 	res, err := rslvAnd(c, env, e)
 	if err == ErrUnres {
@@ -117,6 +129,7 @@ func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
 // rslvNot will resolve the arguments similar to short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if a zero value.
 // An empty 'not' expression resolves to true.
+// (form +args? arr|any - bool)
 func rslvNot(c *Ctx, env Env, e *Expr) (El, error) {
 	res, err := rslvAnd(c, env, e)
 	if err == ErrUnres {
@@ -160,8 +173,9 @@ func simplifyBool(e *Expr, args []El) *Expr {
 	return &res
 }
 
-// rslvIf will resolve the arguments as condition, action pairs as part of an if-else condition.
+// rslvIf resolves the arguments as condition, action pairs as part of an if-else condition.
 // The odd end is the else action otherwise a zero value of the first action's type is used.
+// (form +cond any +act any +tail? list - @)
 func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsMin(e.Args, 2)
 	if err != nil {

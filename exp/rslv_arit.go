@@ -8,10 +8,22 @@ import (
 
 var ErrExpectNumer = cor.StrError("expected numer argument")
 
+func init() {
+	core.add("add", typ.Num, nil, rslvAdd)
+	core.add("mul", typ.Num, nil, rslvMul)
+	core.add("sub", typ.Num, nil, rslvSub)
+	core.add("div", typ.Num, nil, rslvDiv)
+	core.add("rem", typ.Int, nil, rslvRem)
+	core.add("abs", typ.Num, nil, rslvAbs)
+	core.add("min", typ.Num, nil, rslvMin)
+	core.add("max", typ.Num, nil, rslvMax)
+}
+
 func opAdd(r, n float64) (float64, error) { return r + n, nil }
 func opMul(r, n float64) (float64, error) { return r * n, nil }
 
-// rslvAdd tries to add up all arguments and converts the sum to the first argument's type.
+// rslvAdd adds up all arguments and converts the sum to the first argument's type.
+// (form +args? arr|num - num)
 func rslvAdd(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsForm(e.Args)
 	if err != nil {
@@ -20,7 +32,8 @@ func rslvAdd(c *Ctx, env Env, e *Expr) (El, error) {
 	return reduceNums(c, env, e, 0, true, opAdd)
 }
 
-// rslvMul tries to multiply all arguments and converts the product to the first argument's type.
+// rslvMul multiplies all arguments and converts the product to the first argument's type.
+// (form +args? arr|num - num)
 func rslvMul(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsForm(e.Args)
 	if err != nil {
@@ -29,8 +42,9 @@ func rslvMul(c *Ctx, env Env, e *Expr) (El, error) {
 	return reduceNums(c, env, e, 1, true, opMul)
 }
 
-// rslvSub tries to subtract the sum of the rest from the first argument and
+// rslvSub subtracts the sum of the rest from the first argument and
 // converts to the first argument's type.
+// (form +a num +rest arr|num - num)
 func rslvSub(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsMin(e.Args, 2)
 	if err != nil {
@@ -64,9 +78,10 @@ func rslvSub(c *Ctx, env Env, e *Expr) (El, error) {
 	})
 }
 
-// rslvDiv tries to divide the product of the rest from the first argument.
+// rslvDiv divides the product of the rest from the first argument.
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
+// (form +a num +rest arr|num - num)
 func rslvDiv(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsMin(e.Args, 2)
 	if err != nil {
@@ -111,7 +126,8 @@ func rslvDiv(c *Ctx, env Env, e *Expr) (El, error) {
 	})
 }
 
-// rslvRem tries to calculate the remainder of the first two arguments and always returns an int.
+// rslvRem calculates the remainder of the first two arguments and always returns an int.
+// (form +a +b num - int)
 func rslvRem(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsExact(e.Args, 2)
 	if err != nil {
@@ -133,6 +149,8 @@ func rslvRem(c *Ctx, env Env, e *Expr) (El, error) {
 	return lit.Int(res.Num()) % lit.Int(mod.Num()), nil
 }
 
+// rslvAbs returns the argument with the absolute numeric value.
+// (form +a num - num)
 func rslvAbs(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsExact(e.Args, 1)
 	if err != nil {
@@ -181,6 +199,8 @@ func rslvAbs(c *Ctx, env Env, e *Expr) (El, error) {
 	return fst, nil
 }
 
+// rslvMin returns the argument with the smalles numeric value or an error.
+// (form +a num +rest? arr|num - num)
 func rslvMin(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsMin(e.Args, 1)
 	if err != nil {
@@ -195,6 +215,8 @@ func rslvMin(c *Ctx, env Env, e *Expr) (El, error) {
 	})
 }
 
+// rslvMax returns the argument with the greatest numeric value or an error.
+// (form +a num +rest? arr|num - num)
 func rslvMax(c *Ctx, env Env, e *Expr) (El, error) {
 	err := ArgsMin(e.Args, 1)
 	if err != nil {

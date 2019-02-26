@@ -5,7 +5,12 @@ import (
 
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/typ"
 )
+
+func init() {
+	std.add("reduce", typ.Infer, nil, rslvReduce)
+}
 
 // rslvReduce reduces a container to a single element. The first argument is the initial reducer
 // value, after that comes an iterator declaration as documented in iterDecl and one or more
@@ -13,6 +18,7 @@ import (
 //    (eq (str 'hello alice, bob')
 //        (reduce 'hello' +e +i ['alice' 'bob']
 //            (cat _ (if i ',') ' ' e)))
+// (form +decls dict +tail list - @)
 func rslvReduce(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) < 3 {
 		return nil, cor.Error("expect at least three arguments in 'reduce'")

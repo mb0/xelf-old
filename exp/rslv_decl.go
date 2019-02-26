@@ -5,7 +5,14 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+func init() {
+	std.add("let", typ.Infer, nil, rslvLet)
+	std.add("with", typ.Infer, nil, rslvWith)
+	std.add("fn", typ.Infer, nil, rslvFn)
+}
+
 // rslvLet declares one or more resolvers in the existing scope.
+// (form +decls dict - @)
 func rslvLet(c *Ctx, env Env, e *Expr) (El, error) {
 	decls, err := UniDeclForm(e.Args)
 	if err != nil {
@@ -20,6 +27,7 @@ func rslvLet(c *Ctx, env Env, e *Expr) (El, error) {
 
 // rslvWith declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
+// (form +decls dict +tail list - @)
 func rslvWith(c *Ctx, env Env, e *Expr) (El, error) {
 	decls, tail, err := UniDeclRest(e.Args)
 	if err != nil {
@@ -42,6 +50,7 @@ func rslvWith(c *Ctx, env Env, e *Expr) (El, error) {
 }
 
 // rslvFn declares a function literal from its arguments.
+// (form +decls? dict +tail list - @)
 func rslvFn(c *Ctx, env Env, e *Expr) (El, error) {
 	decls, tail, err := UniDeclRest(e.Args)
 	if err != nil {

@@ -325,7 +325,9 @@ type quasi-literal for resolvers that do not fit a function definition.
 
 Form types can have a signature and the default resolution does use result types if specified.
 Form parameters could be formalized and used to validate the form arguments at some point, but are
-only used as documentation hint for now.
+only used as documentation hint for now. The plan is to interpret base types in form signatures in
+a differnt way than in funcition signatures. Base types in form signatures signify poly a type that
+includes the base type itself and all special types based on it.
 
 Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
 but usually matches the definition name of that form.

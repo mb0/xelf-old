@@ -20,6 +20,8 @@ var (
 
 	List = Type{Kind: BaseList}
 	Dict = Type{Kind: BaseDict}
+
+	Infer = Type{Kind: KindRef}
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | FlagOpt, t.Info} }

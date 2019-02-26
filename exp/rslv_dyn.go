@@ -8,9 +8,15 @@ import (
 
 var errAsType = cor.StrError("the 'as' expression must start with a type")
 
+func init() {
+	core.add("dyn", typ.Bool, nil, rslvDyn)
+	core.add("as", typ.Bool, nil, rslvAs)
+}
+
 // rslvDyn resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'as' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
+// (form +args? list +decls? dict - @)
 func rslvDyn(c *Ctx, env Env, e *Expr) (_ El, err error) {
 	if len(e.Args) == 0 {
 		return typ.Void, nil
@@ -75,6 +81,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn) (_ El, err error) {
 //    With one literal compatible to that type it returns the converted literal.
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
+// (form +t typ +rest? list - @t)
 func rslvAs(c *Ctx, env Env, e *Expr) (El, error) {
 	if len(e.Args) == 0 {
 		return nil, errAsType
