@@ -3,6 +3,7 @@ package utl
 import (
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/typ"
 )
 
 type Program struct {
@@ -35,25 +36,25 @@ func (p *Program) Get(sym string) exp.Resolver {
 	}
 	return pr
 }
-func (p *Program) resolveArg(c *exp.Ctx, env exp.Env, s string) (exp.El, error) {
+func (p *Program) resolveArg(c *exp.Ctx, env exp.Env, s string, hint typ.Type) (exp.El, error) {
 	return lit.Select(p.Arg, s[1:])
 }
-func (p *Program) resolveRes(c *exp.Ctx, env exp.Env, s string) (exp.El, error) {
+func (p *Program) resolveRes(c *exp.Ctx, env exp.Env, s string, hint typ.Type) (exp.El, error) {
 	return lit.Select(p.Res, s[1:])
 }
 
-type PathResolver func(*exp.Ctx, exp.Env, string) (exp.El, error)
+type PathResolver func(*exp.Ctx, exp.Env, string, typ.Type) (exp.El, error)
 
-func (rf PathResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El) (exp.El, error) {
+func (rf PathResolver) Resolve(c *exp.Ctx, env exp.Env, e exp.El, hint typ.Type) (exp.El, error) {
 	switch x := e.(type) {
 	case *exp.Ref:
-		return rf(c, env, x.Name)
+		return rf(c, env, x.Name, hint)
 	case *exp.Expr:
-		l, err := rf(c, env, x.Name)
+		l, err := rf(c, env, x.Name, hint)
 		if err != nil {
 			return e, err
 		}
-		return c.Resolve(env, append(exp.Dyn{l}, x.Args...))
+		return c.Resolve(env, append(exp.Dyn{l}, x.Args...), hint)
 	}
 	return e, exp.ErrUnres
 }

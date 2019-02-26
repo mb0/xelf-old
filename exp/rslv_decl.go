@@ -13,7 +13,7 @@ func init() {
 
 // rslvLet declares one or more resolvers in the existing scope.
 // (form +decls dict - @)
-func rslvLet(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	decls, err := UniDeclForm(e.Args)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func rslvLet(c *Ctx, env Env, e *Expr) (El, error) {
 // rslvWith declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
 // (form +decls dict +tail list - @)
-func rslvWith(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvWith(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	decls, tail, err := UniDeclRest(e.Args)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func rslvWith(c *Ctx, env Env, e *Expr) (El, error) {
 
 // rslvFn declares a function literal from its arguments.
 // (form +decls? dict +tail list - @)
-func rslvFn(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	decls, tail, err := UniDeclRest(e.Args)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func rslvFn(c *Ctx, env Env, e *Expr) (El, error) {
 		// construct sig from decls
 		fs := make([]typ.Field, 0, len(decls))
 		for _, d := range decls {
-			l, err := c.Resolve(env, d.Args[0])
+			l, err := c.Resolve(env, d.Args[0], typ.Void)
 			if err != nil {
 				return e, err
 			}

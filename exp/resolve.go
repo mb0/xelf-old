@@ -9,10 +9,14 @@ import (
 )
 
 // Resolve creates a new non-executing resolution context and resolves x with with given env.
-func Resolve(env Env, x El) (El, error) { return (&Ctx{Part: true}).Resolve(env, x) }
+func Resolve(env Env, x El) (El, error) {
+	return (&Ctx{Part: true}).Resolve(env, x, typ.Void)
+}
 
 // Execute creates a new executing resolution context and evaluates x with with given env.
-func Execute(env Env, x El) (El, error) { return (&Ctx{Exec: true}).Resolve(env, x) }
+func Execute(env Env, x El) (El, error) {
+	return (&Ctx{Exec: true}).Resolve(env, x, typ.Void)
+}
 
 // ResolveAll tries to resolve each element in xs in place and returns the first error if any.
 func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
@@ -22,7 +26,7 @@ func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 		xs = make([]El, len(els))
 	}
 	for i, x := range els {
-		r, err := c.Resolve(env, x)
+		r, err := c.Resolve(env, x, typ.Void)
 		xs[i] = r
 		if err != nil {
 			if !c.Exec && err == ErrUnres {
@@ -42,7 +46,7 @@ func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 // context's unresolved slice.
 // The resolver implementations usually use this method either directly or indirectly to resolve
 // arguments, which are then again added to the unresolved elements when appropriate.
-func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
+func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	switch v := x.(type) {
 	case nil:
 		return typ.Void, nil
@@ -61,7 +65,7 @@ func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
 	case Lit: // already resolved
 		return v, nil
 	case *Ref:
-		return c.resolveRef(env, v)
+		return c.resolveRef(env, v, hint)
 	case Tag:
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
@@ -69,21 +73,21 @@ func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case Dyn:
-		return c.resolveDyn(env, v)
+		return c.resolveDyn(env, v, hint)
 	case *Expr:
-		return v.Resolve(c, env, v)
+		return v.Resolve(c, env, v, hint)
 	}
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
 }
 
-func (c *Ctx) resolveDyn(env Env, d Dyn) (El, error) {
+func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
 	if c.Dyn != nil {
-		return c.Dyn.ResolveDyn(c, env, d)
+		return c.Dyn.ResolveDyn(c, env, d, hint)
 	}
-	return defaultDyn(c, env, d)
+	return defaultDyn(c, env, d, hint)
 }
 
-func (c *Ctx) resolveRef(env Env, ref *Ref) (El, error) {
+func (c *Ctx) resolveRef(env Env, ref *Ref, hint Type) (El, error) {
 	sym := ref.Key()
 	r, name, path, err := findResolver(env, sym)
 	if r == nil || err == ErrUnres {
@@ -97,7 +101,7 @@ func (c *Ctx) resolveRef(env Env, ref *Ref) (El, error) {
 	if sym != name {
 		tmp = &Ref{Name: name}
 	}
-	res, err := r.Resolve(c, env, tmp)
+	res, err := r.Resolve(c, env, tmp, typ.Void)
 	if err != nil {
 		if err == ErrUnres {
 			c.Unres = append(c.Unres, ref)
@@ -128,7 +132,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type, last Type) (_ Type, err error) {
 		}
 		key = "~" + key
 	}
-	res, err := c.resolveRef(env, &Ref{Name: key})
+	res, err := c.resolveRef(env, &Ref{Name: key}, typ.Void)
 	if err != nil {
 		return t, err
 	}

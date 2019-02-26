@@ -14,12 +14,12 @@ func TestStdFail(t *testing.T) {
 		t.Fatalf("parse err: %v", err)
 	}
 	c := &Ctx{Exec: true}
-	_, err = c.Resolve(StdEnv, x)
+	_, err = c.Resolve(StdEnv, x, typ.Void)
 	if err == nil {
 		t.Fatalf("want err got nothing")
 	}
 	c.Exec = false
-	_, err = c.Resolve(StdEnv, x)
+	_, err = c.Resolve(StdEnv, x, typ.Void)
 	if err != ErrUnres {
 		t.Fatalf("want err unres got %v", err)
 	}
@@ -161,7 +161,7 @@ func TestStdResolve(t *testing.T) {
 			continue
 		}
 		c := &Ctx{Exec: true}
-		r, err := c.Resolve(NewScope(StdEnv), x)
+		r, err := c.Resolve(NewScope(StdEnv), x, typ.Void)
 		if err != nil {
 			t.Errorf("%s resolve err: %v\n%v", test.raw, err, c.Unres)
 			continue
@@ -224,7 +224,7 @@ func TestStdResolvePart(t *testing.T) {
 			continue
 		}
 		c := &Ctx{Exec: true, Part: true}
-		r, err := c.Resolve(NewScope(StdEnv), x)
+		r, err := c.Resolve(NewScope(StdEnv), x, typ.Void)
 		if err != nil && err != ErrUnres {
 			t.Errorf("%s resolve err expect ErrUnres, got: %v\n%v", test.raw, err, c.Unres)
 			continue

@@ -16,7 +16,7 @@ type ReflectBody struct {
 	err   bool
 }
 
-func (f *ReflectBody) ResolveCall(c *exp.Ctx, env exp.Env, fc *exp.Call) (exp.El, error) {
+func (f *ReflectBody) ResolveCall(c *exp.Ctx, env exp.Env, fc *exp.Call, h typ.Type) (exp.El, error) {
 	args := make([]reflect.Value, len(f.ptyps))
 	for i, pt := range f.ptyps {
 		v := reflect.New(pt)
@@ -27,7 +27,7 @@ func (f *ReflectBody) ResolveCall(c *exp.Ctx, env exp.Env, fc *exp.Call) (exp.El
 			continue
 		}
 		// resolve tag arg
-		l, err := c.Resolve(env, n.Args[0])
+		l, err := c.Resolve(env, n.Args[0], typ.Void)
 		if err != nil {
 			return fc.Expr, err
 		}

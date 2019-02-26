@@ -49,7 +49,7 @@ func (f *Func) MarshalJSON() ([]byte, error) {
 	return []byte(v), nil
 }
 
-func (f *Func) Resolve(c *Ctx, env Env, e El) (El, error) {
+func (f *Func) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	switch x := e.(type) {
 	case *Ref:
 		return f, nil
@@ -61,14 +61,14 @@ func (f *Func) Resolve(c *Ctx, env Env, e El) (El, error) {
 		if err != nil {
 			return nil, err
 		}
-		return f.Body.ResolveCall(c, env, fc)
+		return f.Body.ResolveCall(c, env, fc, hint)
 	}
 	return nil, cor.Errorf("unexpected element %T", e)
 }
 
 // Body must be implemented by all function resolvers.
 type Body interface {
-	ResolveCall(*Ctx, Env, *Call) (El, error)
+	ResolveCall(*Ctx, Env, *Call, Type) (El, error)
 }
 
 // Call encapsulates the expression details passed to a function body for resolution.

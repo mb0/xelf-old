@@ -19,7 +19,7 @@ func init() {
 // If c is an execution context it fails expression string as error, otherwise it uses ErrUnres.
 //
 // This is primarily useful for testing.
-func rslvFail(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvFail(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	e.Type = typ.Any
 	if c.Exec {
 		return nil, cor.Errorf("%s", e)
@@ -31,13 +31,13 @@ func rslvFail(c *Ctx, env Env, e *Expr) (El, error) {
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
 // (form +args? arr|any - bool)
-func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	err := ArgsForm(e.Args)
 	if err != nil {
 		return nil, err
 	}
 	for i, arg := range e.Args {
-		el, err := c.Resolve(env, arg)
+		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
@@ -70,13 +70,13 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'and' expression resolves to true.
 // (form +args? arr|any - bool)
-func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	err := ArgsForm(e.Args)
 	if err != nil {
 		return nil, err
 	}
 	for i, arg := range e.Args {
-		el, err := c.Resolve(env, arg)
+		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
@@ -109,8 +109,8 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'bool' expression resolves to false.
 // (form +args? arr|any - bool)
-func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
-	res, err := rslvAnd(c, env, e)
+func rslvBool(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+	res, err := rslvAnd(c, env, e, hint)
 	if err == ErrUnres {
 		if c.Part {
 			e = simplifyBool(e, res.(*Expr).Args)
@@ -130,8 +130,8 @@ func rslvBool(c *Ctx, env Env, e *Expr) (El, error) {
 // The arguments must be plain literals and are considered true if a zero value.
 // An empty 'not' expression resolves to true.
 // (form +args? arr|any - bool)
-func rslvNot(c *Ctx, env Env, e *Expr) (El, error) {
-	res, err := rslvAnd(c, env, e)
+func rslvNot(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+	res, err := rslvAnd(c, env, e, hint)
 	if err == ErrUnres {
 		if c.Part {
 			e = simplifyBool(e, res.(*Expr).Args)
@@ -176,7 +176,7 @@ func simplifyBool(e *Expr, args []El) *Expr {
 // rslvIf resolves the arguments as condition, action pairs as part of an if-else condition.
 // The odd end is the else action otherwise a zero value of the first action's type is used.
 // (form +cond any +act any +tail? list - @)
-func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvIf(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	err := ArgsMin(e.Args, 2)
 	if err != nil {
 		return nil, err
@@ -184,7 +184,7 @@ func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
 	// TODO check actions to find a common type
 	var i int
 	for i = 0; i+1 < len(e.Args); i += 2 {
-		cond, err := c.Resolve(env, e.Args[i])
+		cond, err := c.Resolve(env, e.Args[i], typ.Any)
 		if err == ErrUnres {
 			if c.Part {
 				// previous condition turned out false
@@ -196,13 +196,13 @@ func rslvIf(c *Ctx, env Env, e *Expr) (El, error) {
 			return nil, err
 		}
 		if !cond.(Lit).IsZero() {
-			return c.Resolve(env, e.Args[i+1])
+			return c.Resolve(env, e.Args[i+1], hint)
 		}
 	}
 	if i < len(e.Args) {
-		return c.Resolve(env, e.Args[i])
+		return c.Resolve(env, e.Args[i], hint)
 	}
-	act, _ := c.WithExec(false).Resolve(env, e.Args[1])
+	act, _ := c.WithExec(false).Resolve(env, e.Args[1], hint)
 	et, err := elType(act)
 	if err != nil || et == typ.Void {
 		return nil, cor.Errorf("when else action is omitted then must provide type information")

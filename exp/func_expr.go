@@ -25,7 +25,7 @@ func (f *ExprBody) WriteBfr(b bfr.Ctx) error {
 	return nil
 }
 
-func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call) (El, error) {
+func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call, hint Type) (El, error) {
 	// build a parameter object from all arguments
 	ps := fc.Sig.FuncParams()
 	if len(ps) != len(fc.Args) {
@@ -41,7 +41,7 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call) (El, error) {
 			return fc.Expr, cor.Errorf("make param obj for %s: %w", fc.Type, err)
 		}
 		for i, a := range fc.Args {
-			l, err := c.Resolve(fenv, a.Args[0])
+			l, err := c.Resolve(fenv, a.Args[0], typ.Void)
 			if err != nil {
 				return fc.Expr, err
 			}
@@ -55,7 +55,7 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call) (El, error) {
 	var res El
 	for _, e := range f.Els {
 		var err error
-		res, err = c.WithPart(false).Resolve(fenv, e)
+		res, err = c.WithPart(false).Resolve(fenv, e, typ.Void)
 		if err != nil {
 			return fc.Expr, err
 		}

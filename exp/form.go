@@ -33,12 +33,12 @@ func (f *Form) MarshalJSON() ([]byte, error) {
 	return []byte(v), nil
 }
 
-func (f *Form) Resolve(c *Ctx, env Env, e El) (El, error) {
+func (f *Form) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	switch e.(type) {
 	case *Ref:
 		return f, nil
 	case *Expr:
-		return f.Rslv.Resolve(c, env, e)
+		return f.Rslv.Resolve(c, env, e, hint)
 	}
 	return nil, cor.Errorf("unexpected element %T", e)
 }

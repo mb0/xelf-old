@@ -83,20 +83,21 @@ var ErrUnres = cor.StrError("unresolved")
 
 // Resolver is the common interface of all element resolvers.
 type Resolver interface {
-	// Resolve resolves el with a context and environment and returns the result or an error.
+	// Resolve resolves el with a context, env, type hint and returns the result or an error.
 	//
 	// The passed in unresolved element is either a expression or symbol ref.
 	//
 	// A successful resolution returns a literal and no error.
+	// If the type hint is not void, it is used to check or infer the element type.
 	// When parts of the element could not be resolved it returns the special error ErrUnres,
 	// and either the original element or if the context allows a partially resolved element.
 	// Any other error ends the whole resolution process.
-	Resolve(c *Ctx, env Env, el El) (El, error)
+	Resolve(c *Ctx, env Env, el El, hint Type) (El, error)
 }
 
 // DynResolver is a special resolver for dynamic expressions.
 type DynResolver interface {
-	ResolveDyn(c *Ctx, env Env, d Dyn) (El, error)
+	ResolveDyn(c *Ctx, env Env, d Dyn, hint Type) (El, error)
 }
 
 //  Callable is the common interface of both function and form resolvers.

@@ -19,7 +19,7 @@ func init() {
 //        (reduce 'hello' +e +i ['alice' 'bob']
 //            (cat _ (if i ',') ' ' e)))
 // (form +decls dict +tail list - @)
-func rslvReduce(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvReduce(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if len(e.Args) < 3 {
 		return nil, cor.Error("expect at least three arguments in 'reduce'")
 	}
@@ -48,7 +48,7 @@ func rslvReduce(c *Ctx, env Env, e *Expr) (El, error) {
 			s := it.newScope(env, el, i, k, red)
 			i++
 			for _, act := range tail {
-				red, err = c.Resolve(s, act)
+				red, err = c.Resolve(s, act, typ.Void)
 				if err != nil {
 					return err
 				}
@@ -60,7 +60,7 @@ func rslvReduce(c *Ctx, env Env, e *Expr) (El, error) {
 			s := it.newScope(env, el, i, "", red)
 			var res El
 			for _, act := range tail {
-				res, err = c.Resolve(s, act)
+				res, err = c.Resolve(s, act, typ.Void)
 				if err != nil {
 					return err
 				}

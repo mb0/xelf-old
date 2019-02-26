@@ -23,7 +23,7 @@ func init() {
 
 // rslvCat concatenates one or more arguments to a str, raw or idxer literal.
 // (form +a (poly str raw list) +b? list - @a)
-func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvCat(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	err := ArgsMin(e.Args, 1)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func rslvCat(c *Ctx, env Env, e *Expr) (El, error) {
 
 // rslvApd appends the rest literal arguments to the first literal appender argument.
 // (form +a (poly list) +b? @a - @a)
-func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvApd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	err := ArgsMin(e.Args, 1)
 	if err != nil {
 		return nil, err
@@ -120,11 +120,11 @@ func rslvApd(c *Ctx, env Env, e *Expr) (El, error) {
 
 // rslvSet sets the first keyer literal with the following declaration arguments.
 // (form +a (poly dict) +decls? dict - @a)
-func rslvSet(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvSet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if len(e.Args) == 0 {
 		return nil, errSetKeyer
 	}
-	fst, err := c.Resolve(env, e.Args[0])
+	fst, err := c.Resolve(env, e.Args[0], typ.Dict)
 	if err != nil {
 		if err != ErrUnres {
 			return nil, err

@@ -6,6 +6,7 @@ import (
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/typ"
 )
 
 // ParseTags parses args as tags and sets them to v using rules or returns an error.
@@ -113,9 +114,9 @@ func DynPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (_ lit.Lit, er
 	}
 	var x exp.El
 	if len(args) == 1 {
-		x, err = c.Resolve(env, args[0])
+		x, err = c.Resolve(env, args[0], typ.Void)
 	} else {
-		x, err = c.Resolve(env, exp.Dyn(args))
+		x, err = c.Resolve(env, exp.Dyn(args), typ.Void)
 	}
 	if err != nil {
 		return nil, err

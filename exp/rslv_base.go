@@ -4,7 +4,7 @@ package exp
 // This is useful for partial resolution phases where the type is known but the literal isn't.
 type TypedUnresolver struct{ Type }
 
-func (r TypedUnresolver) Resolve(c *Ctx, env Env, e El) (El, error) {
+func (r TypedUnresolver) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	switch v := e.(type) {
 	case *Ref:
 		v.Type = r.Type
@@ -18,10 +18,10 @@ func (r TypedUnresolver) Resolve(c *Ctx, env Env, e El) (El, error) {
 // starting with the enclosed literal followed by the expr arguments.
 type LitResolver struct{ Lit }
 
-func (r LitResolver) Resolve(c *Ctx, env Env, e El) (El, error) {
+func (r LitResolver) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	switch x := e.(type) {
 	case *Expr:
-		return c.Resolve(env, append(Dyn{r.Lit}, x.Args...))
+		return c.Resolve(env, append(Dyn{r.Lit}, x.Args...), hint)
 	}
 	return r.Lit, nil
 }

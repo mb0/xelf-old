@@ -21,14 +21,14 @@ func Std(sym string) Resolver {
 	return nil
 }
 
-type ExprResolverFunc func(*Ctx, Env, *Expr) (El, error)
+type ExprResolverFunc func(*Ctx, Env, *Expr, Type) (El, error)
 
-func (rf ExprResolverFunc) Resolve(c *Ctx, env Env, e El) (El, error) {
+func (rf ExprResolverFunc) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	xp, ok := e.(*Expr)
 	if !ok {
 		return &Form{Type{Kind: typ.KindForm}, rf}, nil
 	}
-	return rf(c, env, xp)
+	return rf(c, env, xp, hint)
 }
 
 type formMap map[string]*Form

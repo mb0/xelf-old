@@ -17,13 +17,13 @@ func init() {
 // resolves as the 'as' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
 // (form +args? list +decls? dict - @)
-func rslvDyn(c *Ctx, env Env, e *Expr) (_ El, err error) {
+func rslvDyn(c *Ctx, env Env, e *Expr, hint Type) (_ El, err error) {
 	if len(e.Args) == 0 {
 		return typ.Void, nil
 	}
-	return defaultDyn(c, env, e.Args)
+	return defaultDyn(c, env, e.Args, hint)
 }
-func defaultDyn(c *Ctx, env Env, d Dyn) (_ El, err error) {
+func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	if len(d) == 0 {
 		return typ.Void, nil
 	}
@@ -31,12 +31,12 @@ func defaultDyn(c *Ctx, env Env, d Dyn) (_ El, err error) {
 	fst := d[0]
 	switch v := fst.(type) {
 	case *Ref:
-		fst, err = c.Resolve(env, v)
+		fst, err = c.Resolve(env, v, typ.Void)
 		ref = *v
 	case *Expr:
-		fst, err = c.Resolve(env, v)
+		fst, err = c.Resolve(env, v, typ.Void)
 	case Dyn:
-		fst, err = rslvDyn(c, env, &Expr{Args: v})
+		fst, err = rslvDyn(c, env, &Expr{Args: v}, typ.Void)
 	}
 	if err != nil {
 		return d, err
@@ -45,7 +45,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn) (_ El, err error) {
 	args := d
 	switch v := fst.(type) {
 	case Callable:
-		return v.Resolve(c, env, &Expr{ref, args[1:], v})
+		return v.Resolve(c, env, &Expr{ref, args[1:], v}, hint)
 	case Type:
 		sym = "as"
 		if v == typ.Bool {
@@ -70,7 +70,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn) (_ El, err error) {
 	}
 	if sym != "" {
 		if rslv := Lookup(env, sym); rslv != nil {
-			return rslv.Resolve(c, env, &Expr{Ref{Name: sym}, args, rslv})
+			return rslv.Resolve(c, env, &Expr{Ref{Name: sym}, args, rslv}, hint)
 		}
 	}
 	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", d[0])
@@ -82,11 +82,11 @@ func defaultDyn(c *Ctx, env Env, d Dyn) (_ El, err error) {
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
 // (form +t typ +rest? list - @t)
-func rslvAs(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if len(e.Args) == 0 {
 		return nil, errAsType
 	}
-	targ, err := c.Resolve(env, e.Args[0])
+	targ, err := c.Resolve(env, e.Args[0], typ.Typ)
 	if err != nil {
 		return e, err
 	}

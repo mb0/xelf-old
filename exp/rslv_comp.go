@@ -18,7 +18,7 @@ func init() {
 // rslvEq returns a bool whether the arguments are equivalent literals.
 // The result is negated, if the expression symbol is 'ne'.
 // (form +a +b any +rest? list - bool)
-func rslvEq(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvEq(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	neg := e.Name == "ne"
 	res, err := resolveBinaryComp(c, env, e, false, true, lit.Equiv)
 	if !neg || err != nil {
@@ -29,14 +29,14 @@ func rslvEq(c *Ctx, env Env, e *Expr) (El, error) {
 
 // rslvEqual returns a bool whether the arguments are same types or same literals.
 // (form +a +b any +rest? list - bool)
-func rslvEqual(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvEqual(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, false, true, lit.Equal)
 }
 
 // rslvLt returns a bool whether the arguments are monotonic increasing literals.
 // Or the inverse, if the expression symbol is 'ge'.
 // (form +a +b any +rest? list - bool)
-func rslvLt(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvLt(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, e.Name == "ge", false, func(a, b Lit) bool {
 		res, ok := lit.Less(a, b)
 		return ok && res
@@ -46,7 +46,7 @@ func rslvLt(c *Ctx, env Env, e *Expr) (El, error) {
 // rslvGt returns a bool whether the arguments are monotonic decreasing literals.
 // Or the inverse, if the expression symbol is 'le'.
 // (form +a +b any +rest? list - bool)
-func rslvGt(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvGt(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, e.Name == "le", false, func(a, b Lit) bool {
 		res, ok := lit.Less(b, a)
 		return ok && res
@@ -64,7 +64,7 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, neg, sym bool, cmp cmpf) (El, e
 	var unres []El
 	var last Lit
 	for _, arg := range e.Args {
-		arg, err = c.Resolve(env, arg)
+		arg, err = c.Resolve(env, arg, typ.Void)
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if !c.Part {
