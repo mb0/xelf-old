@@ -23,7 +23,7 @@ func rslvReduce(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if len(e.Args) < 3 {
 		return nil, cor.Error("expect at least three arguments in 'reduce'")
 	}
-	args, err := c.ResolveAll(env, e.Args[:1])
+	args, err := c.ResolveAll(env, e.Args[:1], typ.Any)
 	if err != nil {
 		return e, err
 	}
@@ -119,7 +119,7 @@ func iterDecls(c *Ctx, env Env, decls []Decl) (*iter, Lit, error) {
 			res.key = d.Name[1:]
 		}
 	}
-	args, err := c.ResolveAll(env, args)
+	args, err := c.ResolveAll(env, args, typ.List)
 	if err != nil {
 		return nil, nil, err
 	}

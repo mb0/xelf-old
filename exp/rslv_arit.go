@@ -133,7 +133,7 @@ func rslvRem(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	args, err := c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args, typ.Int)
 	if err != nil {
 		e.Type = typ.Int
 		return e, err

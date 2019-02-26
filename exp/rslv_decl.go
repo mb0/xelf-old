@@ -42,7 +42,7 @@ func rslvWith(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if err != nil {
 		return e, err
 	}
-	tail, err = c.ResolveAll(s, tail)
+	tail, err = c.ResolveAll(s, tail, typ.Void)
 	if err != nil {
 		return e, err
 	}
@@ -85,7 +85,7 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 		if len(d.Name) < 2 {
 			return nil, cor.Error("unnamed declaration")
 		}
-		args, err := c.ResolveAll(env, d.Args)
+		args, err := c.ResolveAll(env, d.Args, typ.Void)
 		if err != nil {
 			return nil, err
 		}

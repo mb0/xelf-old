@@ -95,7 +95,7 @@ func OffsetKeyer(offset int) IdxKeyer {
 
 // ListPrepper resolves args using c and env and returns a list or an error.
 func ListPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (lit.Lit, error) {
-	args, err := c.ResolveAll(env, args)
+	args, err := c.ResolveAll(env, args, typ.Any)
 	if err != nil {
 		return nil, err
 	}

@@ -18,8 +18,7 @@ func TestStdFail(t *testing.T) {
 	if err == nil {
 		t.Fatalf("want err got nothing")
 	}
-	c.Exec = false
-	_, err = c.Resolve(StdEnv, x, typ.Void)
+	_, err = c.WithExec(false).Resolve(StdEnv, x, typ.Void)
 	if err != ErrUnres {
 		t.Fatalf("want err unres got %v", err)
 	}

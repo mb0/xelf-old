@@ -19,14 +19,14 @@ func Execute(env Env, x El) (El, error) {
 }
 
 // ResolveAll tries to resolve each element in xs in place and returns the first error if any.
-func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
+func (c *Ctx) ResolveAll(env Env, els []El, hint Type) ([]El, error) {
 	var res error
 	xs := els
 	if !c.Part {
 		xs = make([]El, len(els))
 	}
 	for i, x := range els {
-		r, err := c.Resolve(env, x, typ.Void)
+		r, err := c.Resolve(env, x, hint)
 		xs[i] = r
 		if err != nil {
 			if !c.Exec && err == ErrUnres {
@@ -67,10 +67,10 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	case *Ref:
 		return c.resolveRef(env, v, hint)
 	case Tag:
-		_, err = c.ResolveAll(env, v.Args)
+		_, err = c.ResolveAll(env, v.Args, typ.Void)
 		return v, err
 	case Decl:
-		_, err = c.ResolveAll(env, v.Args)
+		_, err = c.ResolveAll(env, v.Args, typ.Void)
 		return v, err
 	case Dyn:
 		return c.resolveDyn(env, v, hint)

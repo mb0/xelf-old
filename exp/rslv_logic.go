@@ -41,7 +41,7 @@ func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:])
+				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
@@ -80,7 +80,7 @@ func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		if err == ErrUnres {
 			e.Type = typ.Bool
 			if c.Part {
-				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:])
+				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}

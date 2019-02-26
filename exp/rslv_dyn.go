@@ -103,7 +103,7 @@ func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		return lit.Zero(t), nil
 	}
 	// resolve all arguments
-	args, err = c.ResolveAll(env, args)
+	args, err = c.ResolveAll(env, args, typ.Any)
 	if err != nil {
 		return e, err
 	}

@@ -28,7 +28,7 @@ func rslvCat(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	args, err := c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args, typ.Void)
 	if err != nil {
 		if err != ErrUnres {
 			return nil, err
@@ -97,7 +97,7 @@ func rslvApd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	args, err := c.ResolveAll(env, e.Args)
+	args, err := c.ResolveAll(env, e.Args, typ.Void)
 	if err != nil {
 		return e, err
 	}
@@ -144,7 +144,7 @@ func rslvSet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		return fst, nil
 	}
 	// resolve all arguments
-	args, err := c.ResolveAll(env, e.Args[1:])
+	args, err := c.ResolveAll(env, e.Args[1:], typ.Void)
 	if err != nil {
 		return e, err
 	}
