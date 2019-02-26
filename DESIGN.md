@@ -233,7 +233,7 @@ use other punctuation without special meaning. Library resolvers use a colon for
 To avoid checking the symbol in each environment the default resolution should do most of the heavy
 lifting. It should check if a symbol has a special prefix or is a path, and with that information
 select the appropriate environment from the whole ancestry of the current one. Environments need a
-a way to advertise special behaviour for this to work. Because interface calles where tested to be
+a way to advertise special behaviour for this to work. Because interface calls where tested to be
 cheaper than type checks we add a method the environment, instead of using marker interfaces. We
 could expand the use of types for all expression elements to avoid type checking where the typed
 value is not required anyway.
@@ -258,9 +258,9 @@ the first argument is a type the expression is treated as the 'as' type conversi
 other literals a appropriate combination operator is used if available. Users can redefine and
 reuse the dyn resolver to add custom delegations.
 
-Dynamic expressions direct a considerabl part of the resolution process, and provide a configurable
+Dynamic expressions direct a considerable part of the resolution process, and provide a configurable
 way to extend the language with new syntax. Because the dyn resolver plays this central role
-it would be appropriate to avoid the lookup from the environemnt on every call. Changing the dyn
+it would be appropriate to avoid the lookup from the environment on every call. Changing the dyn
 resolver should be possible, but is unusual enough as to justify new resolution context. The
 context can have a custom dyn resolver set and otherwise falls back on a built-in default.
 
@@ -298,16 +298,43 @@ that implements the literal and resolver interface and delegates expression reso
 function body implementation. The different are kinds built-in functions with custom or reflection
 base resolvers and normal function bodies with a list of expression elements.
 
+Functions are allowed to access the environment chain they were declared in. This is only useful
+for normal functions and means their implementations need to remember the declaration environment.
+A special function scope provides the parameter declarations that were resolved in the calling
+environment.
+
+Normal functions need to be inlined in environments without function literals, but can avoid
+work along the way.
+
 A new resolver 'fn' is used to construct function literal. It has the same parameter and result
 declaration as the function type syntax but ends in a tail of body elements. Simple function
 expression should be able to omit and infer the function signature.
 
-Function can be inlined in environments without function literals and can avoid work along the way.
+If we have a full function type as hint, inferring the signature could be as simple as checking if
+all parameter references work with the declared type and whether the result type if comparable. This
+either implies that we must have names for every parameter or use a new syntax that allows
+parameter references by index.
 
-Functions are allowed to access the environment chain they were declared in. This is only useful
-for normal function and means their implementations need to remember the declaration environment.
-A special function scope provides the parameter declarations that were resolved in the calling
-environment.
+To infer the signature without any hint we must deduce all parameter references and their order as
+well as the result type. We can assume that all free references for which no resolver is found in
+the declaration scope are parameters, but then we still need to figure out the order and would be
+effectively limited to functions that take at most one parameter or happen to refer to parameters
+in the desired order.
+
+Using a special prefix that marks a references to parameters and allows to refer by index, would
+make things easier. We have the program parameter prefix that already supports most of the
+requirements. However, because normal functions are closures, using them as-is would be confusing
+when parameter environments are nested. Using a new prefix does not solve the problem. What we need
+is to refine the parameter syntax so we can explicitly refer to a specific parameter environment.
+
+We already have the concept of relative paths to select a specific environment and can reuse it for
+parameter and maybe even the result path resolution. The parameter prefix should lead the symbol to
+clearly identify it as parameter path. It can then be followed by dots, each dot selects the next
+parameter environment. Parameters are in general only looked up from one parameter environment and
+none of its parents. A parameter without dots should therefor refer to the immediate environment,
+one dot to its parent and so on.  The program parameters are special in that reference to them will
+most likely end up in deeply nested environments. A double parameter prefix '$$' could more clearly
+identify program parameters in those cases.
 
 Functions should be used to model all expressions that use their own isolated and parameterized
 environment like loop actions or the with expressions.
@@ -315,19 +342,19 @@ environment like loop actions or the with expressions.
 Form Type and Literal
 ---------------------
 
-This is a work in progress.
+Form literals are used for expression resolvers that cannot be expressed as function. Form literals
+are a more general expression resolver and can direct most aspects of the resolution process. Using
+literals for all expression resolvers allows us to use reference resolution to lookup the resolver.
 
-With function literals it could makes sense to treat all expression resolvers as literals. This
-way the reference resolution can be used to find the resolver. However, most built-in resolvers
-in this project and in user code do not conform to a simple type signature and need to resolve
-their arguments for type information anyway. Modeling these signatures with the type system in the
-same way as function types would have no clear benefit. It is therefor better to introduce another
-type quasi-literal for resolvers that do not fit a function definition.
+Most of the built-in resolvers do not conform to a simple type signature and need to resolve their
+arguments for type information anyway. Modeling these signatures with the type system in the same
+way as function types would have no clear benefit. It was therefor decided to introduce another
+quasi-literal for those cases resolvers.
 
 Form types can have a signature and the default resolution does use result types if specified.
 Form parameters could be formalized and used to validate the form arguments at some point, but are
 only used as documentation hint for now. The plan is to interpret base types in form signatures in
-a differnt way than in funcition signatures. Base types in form signatures signify poly a type that
+a different way than in function signatures. Base types in form signatures signify poly types that
 includes the base type itself and all special types based on it.
 
 Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
@@ -339,22 +366,19 @@ Type Inference
 This is a work in progress.
 
 After some study over the hindley-milner type system, I come to the conclusion, that it does not
-lend itself to be faithfully applied to xelf.
+lend itself to be faithfully applied to xelf. We cannot seperate type checking from the resolution
+process, because xelf allows resolvers to direct most aspects of the process. Form resolvers often
+need to resolve their arguments to provide the result type information, expressing their signatures
+in type variables and constraints would be more work without significant value. We also have
+auto conversion rules between base type and comparable special types.
 
-Xelf allows resolvers to direct most aspects of the resolution process. Form resolvers often need
-to be resolved to provide the result type information. We need a flexible way to check and infer
-types with the same resolution process.
+Instead we need a way to check and infer types within the same resolution context and process. It
+should be flexible enough to cover functions or references and help form expression infer their
+types. Luckily we already have type reference that we can use as type variables, explict infer
+type that can act as a poly type behind the sceenes, a context to stash intermediate results and an
+environment to look it all up. Using function signatures and implementing type resoltion in all form
+resolvers potentially provides use with all the types we need.
 
-If we embrace function types for all resolvers we already have a enough type information for all
-language elements. We still might need a type hint because of the automatic base type conversion
-rules. We can store type options in unnamed inferred reference type to work with intermediate
-poly types in the resolution phase or express overloaded resolvers like the arithmetic resolvers.
-
-Overloaded Type Expressions
----------------------------
-
-I cannot decide whether type expression for the schema, object and function types should have
-a syntax addition that will transform any tail elements to a 'as' expression to that type.
-
-Type references and the fn resolver alleviate the need in many cases and the new syntax would
-make it harder to spot whether an expression is a type or literal.
+We might want to pass a type hint to resolvers, so resolvers can take it into consideration when
+infering types and encapsulate their type resoltion. The other option would be to handle type
+checking and inference at the call site, but this would limit what resolvers could infer.
