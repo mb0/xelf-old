@@ -87,7 +87,7 @@ var ErrUnres = cor.StrError("unresolved")
 type Resolver interface {
 	// Resolve resolves el with a context and environment and returns the result or an error.
 	//
-	// The passed in unresolved element is either a expression, a type ref or symbol ref.
+	// The passed in unresolved element is either a expression or symbol ref.
 	//
 	// A successful resolution returns a literal and no error.
 	// When parts of the element could not be resolved it returns the special error ErrUnres,

@@ -51,8 +51,6 @@ func (f *Func) MarshalJSON() ([]byte, error) {
 
 func (f *Func) Resolve(c *Ctx, env Env, e El) (El, error) {
 	switch x := e.(type) {
-	case typ.Type:
-		return f.Sig, nil
 	case *Ref:
 		return f, nil
 	case *Expr:
