@@ -46,7 +46,7 @@ type Scope struct {
 
 // NewScope returns a child scope with the given parent environment.
 func NewScope(parent Env) *Scope {
-	return &Scope{parent, make(map[string]Resolver)}
+	return &Scope{parent: parent}
 }
 
 // Parent returns the parent environment.
@@ -59,7 +59,9 @@ func (*Scope) Supports(byte) bool { return false }
 
 // Def defines a symbol resolver binding for s and d or returns an error.
 func (c *Scope) Def(s string, d Resolver) error {
-	if _, ok := c.decl[s]; ok {
+	if c.decl == nil {
+		c.decl = make(map[string]Resolver, 8)
+	} else if _, ok := c.decl[s]; ok {
 		return ErrRedefine
 	}
 	c.decl[s] = d
