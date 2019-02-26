@@ -43,7 +43,6 @@ func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 // The resolver implementations usually use this method either directly or indirectly to resolve
 // arguments, which are then again added to the unresolved elements when appropriate.
 func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
-	var xx *Expr
 	switch v := x.(type) {
 	case nil:
 		return typ.Void, nil
@@ -69,36 +68,40 @@ func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
 	case Decl:
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
-	case *Expr:
-		xx = v
 	case Dyn:
-		xx = &Expr{Ref{Name: "dyn"}, v, Lookup(env, "dyn")}
-	default:
-		return x, cor.Errorf("unexpected expression %T %v", x, x)
+		return c.resolveDyn(env, v)
+	case *Expr:
+		return v.Resolve(c, env, v)
 	}
-	if xx == nil {
-		c.Unres = append(c.Unres, x)
-		return x, ErrUnres
+	return x, cor.Errorf("unexpected expression %T %v", x, x)
+}
+
+func (c *Ctx) resolveDyn(env Env, d Dyn) (El, error) {
+	if c.Dyn != nil {
+		return c.Dyn.ResolveDyn(c, env, d)
 	}
-	// resolvers add to unres list themselves
-	return xx.Resolve(c, env, xx)
+	return defaultDyn(c, env, d)
 }
 
 func (c *Ctx) resolveRef(env Env, ref *Ref) (El, error) {
 	sym := ref.Key()
 	r, name, path, err := findResolver(env, sym)
-	if err != nil {
-		return ref, err
-	}
-	if r == nil {
+	if r == nil || err == ErrUnres {
+		c.Unres = append(c.Unres, ref)
 		return ref, ErrUnres
 	}
-	if sym == name {
-		return r.Resolve(c, env, ref)
+	if err != nil {
+		return nil, err
 	}
-	tmp := &Ref{Name: name}
+	tmp := ref
+	if sym != name {
+		tmp = &Ref{Name: name}
+	}
 	res, err := r.Resolve(c, env, tmp)
 	if err != nil {
+		if err == ErrUnres {
+			c.Unres = append(c.Unres, ref)
+		}
 		return ref, err
 	}
 	if path == "" {

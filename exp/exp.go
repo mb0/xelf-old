@@ -91,7 +91,12 @@ type Resolver interface {
 	// When parts of the element could not be resolved it returns the special error ErrUnres,
 	// and either the original element or if the context allows a partially resolved element.
 	// Any other error ends the whole resolution process.
-	Resolve(c *Ctx, enc Env, el El) (El, error)
+	Resolve(c *Ctx, env Env, el El) (El, error)
+}
+
+// DynResolver is a special resolver for dynamic expressions.
+type DynResolver interface {
+	ResolveDyn(c *Ctx, env Env, d Dyn) (El, error)
 }
 
 //  Callable is the common interface of both function and form resolvers.
@@ -116,6 +121,10 @@ type Ctx struct {
 
 	// Unres is a list of all unresolved expressions and type and symbol references.
 	Unres []El
+
+	// Dyn is a configurable resolver for dynamic expressions. A default resolver is
+	// used if this field is nil.
+	Dyn DynResolver
 }
 
 // WithPart returns a copy of c with part set to val.

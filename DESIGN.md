@@ -245,22 +245,26 @@ Xelf expression elements can be literals including types, references or sub expr
 
 Sub expression can either be tag and declaration expressions or dynamic and normal expressions.
 
-Normal expressions start with a symbol that can be used to lookup a resolver from the environment.
-
 Tag and declaration expressions start with a tag or declaration symbol respectively and are handled
 by the parent expression's resolver. They are formed automatically by the parser from tag and
 declaration symbols in expression arguments.
 
-Dynamic expressions start with a literal or sub expression. Dynamic expressions starting with a
-literal or sub expression are transformed to a normal expression with the predefined name 'dyn'.
+Dynamic expressions are all expression where the resolver is not yet known and may start with a
+literal or sub expression. Dynamic expressions starting with a literal are transformed are resolved
+with a configurable dyn resolver.
 
-The default 'dyn' resolver again delegates to other resolvers based on the arguments. If the first
-argument is a type the expression is treated as the 'as' type conversion and constructor resolver.
-For other literals a appropriate combination operator is used if available. Users can redefine and
-reuse the 'dyn' resolver to add custom delegations.
+The default dyn resolver resolves the first arg and delegates to another resolvers based on it. If
+the first argument is a type the expression is treated as the 'as' type conversion resolver. For
+other literals a appropriate combination operator is used if available. Users can redefine and
+reuse the dyn resolver to add custom delegations.
 
-Dynamic expressions fill an otherwise corner-case of the syntax with a configurable way to provide
-syntax sugar for common type casting or literal operations.
+Dynamic expressions direct a considerabl part of the resolution process, and provide a configurable
+way to extend the language with new syntax. Because the dyn resolver plays this central role
+it would be appropriate to avoid the lookup from the environemnt on every call. Changing the dyn
+resolver should be possible, but is unusual enough as to justify new resolution context. The
+context can have a custom dyn resolver set and otherwise falls back on a built-in default.
+
+Normal expressions are all expressions where the resolver is known.
 
 A resolver is free to choose how its arguments are typed and resolved and can even change the
 environment for subexpressions. There should only be one resolver interface for all aspects of
@@ -268,7 +272,7 @@ the resolution process. For that reason a resolution context is passed in that i
 an expression can execute or can return a partially resolved expression. The context also
 encapsulates the default resolution machinery that resolvers can choose to resolve arguments.
 
-The resolvers provided by xelf are grouped into the core, std and library resolvers. The core
+The form resolvers provided by xelf are grouped into the core, std and library resolvers. The core
 built-ins include basic operators, conditional and the dyn and as resolvers. The std built-ins
 have basic resolvers that include declarations. The library built-ins are usually provide extra
 functionality centered around a type of literals.

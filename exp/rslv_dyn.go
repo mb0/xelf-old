@@ -15,8 +15,14 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (_ El, err error) {
 	if len(e.Args) == 0 {
 		return typ.Void, nil
 	}
+	return defaultDyn(c, env, e.Args)
+}
+func defaultDyn(c *Ctx, env Env, d Dyn) (_ El, err error) {
+	if len(d) == 0 {
+		return typ.Void, nil
+	}
 	var ref Ref
-	fst := e.Args[0]
+	fst := d[0]
 	switch v := fst.(type) {
 	case *Ref:
 		fst, err = c.Resolve(env, v)
@@ -27,10 +33,10 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (_ El, err error) {
 		fst, err = rslvDyn(c, env, &Expr{Args: v})
 	}
 	if err != nil {
-		return e, err
+		return d, err
 	}
 	var sym string
-	args := e.Args
+	args := d
 	switch v := fst.(type) {
 	case Callable:
 		return v.Resolve(c, env, &Expr{ref, args[1:], v})
@@ -40,7 +46,7 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (_ El, err error) {
 			sym, args = "bool", args[1:]
 		}
 	case Lit:
-		if len(e.Args) == 1 {
+		if len(d) == 1 {
 			return v, nil
 		}
 		switch v.Typ().Kind & typ.MaskElem {
@@ -61,7 +67,7 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (_ El, err error) {
 			return rslv.Resolve(c, env, &Expr{Ref{Name: sym}, args, rslv})
 		}
 	}
-	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", e.Args[0])
+	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", d[0])
 }
 
 // rslvAs is a type conversion or constructor and must start with a type. It has four forms:
