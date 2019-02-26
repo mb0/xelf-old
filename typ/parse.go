@@ -115,9 +115,10 @@ func parseSeq(tree *lex.Tree, hist []Type) (Type, error) {
 
 // NeedsInfo returns whether type t is missing reference or field information.
 func NeedsInfo(t Type) (ref, fields bool) {
-	switch t.Last().Kind & MaskRef {
-	case KindFlag, KindEnum, KindRec:
-		return t.Info == nil || len(t.Ref) == 0, false
+	switch k := t.Last().Kind & MaskRef; k {
+	case KindFlag, KindEnum, KindRec, KindForm:
+		ref = t.Info == nil || len(t.Ref) == 0
+		return ref, k == KindForm && ref
 	case KindObj, KindFunc:
 		return false, t.Info == nil || len(t.Fields) == 0
 	}

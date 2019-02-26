@@ -187,13 +187,16 @@ lookup. This path syntax can also be used to select shadowed variables from a pa
 Type References
 ---------------
 
-There are four kinds of reference types.
+There are five kinds of reference types.
 
 Self and ancestor reference refer to the current or ancestor object type and are used for recursive
 type definitions.
 
 Schema types are a kind of reference and need to be resolved. The reference name of schema types
 refers to a global type schema and uses the schema prefix '~' for lookups from the environment.
+
+Form types are flagged as reference types, they represent built-in resolvers that might not conform
+to a specific type signature and must be resolved as part of an expression.
 
 Unnamed references are inferred types and need to be inferred from context. They are mostly used
 in the resolution phase and may represent poly types by collecting candidates in the companion
@@ -304,6 +307,25 @@ and work like closures or be completely side effect free and treated as an isola
 isolation approach is much simpler to reason about for sure and allows us to reuse the parameter
 lookup prefix.
 
+Form Type and Literal
+---------------------
+
+This is a work in progress.
+
+With function literals it could makes sense to treat all expression resolvers as literals. This
+way the reference resolution can be used to find the resolver. However, most built-in resolvers
+in this project and in user code do not conform to a simple type signature and need to resolve
+their arguments for type information anyway. Modeling these signatures with the type system in the
+same way as function types would have no clear benefit. It is therefor better to introduce another
+type quasi-literal for resolvers that do not fit a function definition.
+
+Form types can have a signature and the default resolution does use result types if specified.
+Form parameters could be formalized and used to validate the form arguments at some point, but are
+only used as documentation hint for now.
+
+Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
+but usually matches the definition name of that form.
+
 Type Inference
 --------------
 
@@ -311,6 +333,10 @@ This is a work in progress.
 
 After some study over the hindley-milner type system, I come to the conclusion, that it does not
 lend itself to be faithfully applied to xelf.
+
+Xelf allows resolvers to direct most aspects of the resolution process. Form resolvers often need
+to be resolved to provide the result type information. We need a flexible way to check and infer
+types with the same resolution process.
 
 If we embrace function types for all resolvers we already have a enough type information for all
 language elements. We still might need a type hint because of the automatic base type conversion

@@ -61,6 +61,7 @@ const (
 	KindMap = BaseDict | Spec1
 	KindObj = BaseDict | BaseList | Spec1
 
+	KindForm = FlagRef | KindFunc
 	KindFlag = FlagRef | KindInt
 	KindEnum = FlagRef | KindStr
 	KindRec  = FlagRef | KindObj
@@ -88,6 +89,8 @@ func ParseKind(str string) (Kind, error) {
 		return KindTyp, nil
 	case "func":
 		return KindFunc, nil
+	case "form":
+		return KindForm, nil
 	case "list":
 		return BaseList, nil
 	case "dict":
@@ -193,6 +196,8 @@ func simpleStr(k Kind) string {
 		return "typ"
 	case KindFunc:
 		return "func"
+	case KindForm:
+		return "form"
 	}
 	switch k & MaskRef {
 	case KindRef:
@@ -238,6 +243,7 @@ var kindConsts = []cor.Const{
 	{"Any", int64(KindAny)},
 	{"Typ", int64(KindTyp)},
 	{"Func", int64(KindFunc)},
+	{"Form", int64(KindForm)},
 	{"Bool", int64(KindBool)},
 	{"Int", int64(KindInt)},
 	{"Real", int64(KindReal)},
