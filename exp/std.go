@@ -1,5 +1,7 @@
 package exp
 
+import "github.com/mb0/xelf/typ"
+
 var StdEnv = Builtin{Core, Std}
 
 func Core(sym string) Resolver {
@@ -81,7 +83,7 @@ type ExprResolverFunc func(*Ctx, Env, *Expr) (El, error)
 func (rf ExprResolverFunc) Resolve(c *Ctx, env Env, e El) (El, error) {
 	xp, ok := e.(*Expr)
 	if !ok {
-		return e, ErrUnres
+		return &Form{Type{Kind: typ.KindForm}, rf}, nil
 	}
 	return rf(c, env, xp)
 }

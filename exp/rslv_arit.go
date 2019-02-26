@@ -39,7 +39,8 @@ func rslvSub(c *Ctx, env Env, e *Expr) (El, error) {
 	fst, err := c.Resolve(env, e.Args[0])
 	if err == ErrUnres {
 		if c.Part { // resolve the rest and return partial result
-			rest := &Expr{Sym: Sym{Name: "add"}, Args: e.Args[1:]}
+			rest := &Expr{Ref{Name: "add"}, e.Args[1:],
+				ExprResolverFunc(rslvAdd)}
 			sub, err := reduceNums(c, env, rest, 0, false, opAdd)
 			if err == nil {
 				e.Args = append(e.Args[:1], sub)
@@ -74,7 +75,8 @@ func rslvDiv(c *Ctx, env Env, e *Expr) (El, error) {
 	fst, err := c.Resolve(env, e.Args[0])
 	if err == ErrUnres {
 		if c.Part { // resolve the rest and return partial result
-			rest := &Expr{Sym: Sym{Name: "mul"}, Args: e.Args[1:]}
+			rest := &Expr{Ref{Name: "mul"}, e.Args[1:],
+				ExprResolverFunc(rslvMul)}
 			sub, err := reduceNums(c, env, rest, 1, false, opMul)
 			if err == nil {
 				e.Args = append(e.Args[:1], sub)

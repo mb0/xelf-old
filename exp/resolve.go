@@ -43,17 +43,17 @@ func (c *Ctx) ResolveAll(env Env, els []El) ([]El, error) {
 // The resolver implementations usually use this method either directly or indirectly to resolve
 // arguments, which are then again added to the unresolved elements when appropriate.
 func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
-	if x == nil {
-		return typ.Void, nil
-	}
-	var rslv Resolver
+	var xx *Expr
 	switch v := x.(type) {
+	case nil:
+		return typ.Void, nil
 	case Type: // resolve type references
 		last := v.Last()
 		if last.Kind&typ.FlagRef != 0 {
 			v, err = c.resolveTypRef(env, v, last)
 			if err == ErrUnres {
-				break
+				c.Unres = append(c.Unres, x)
+				return x, err
 			}
 		} else if last.Kind == typ.KindFunc {
 			// TODO resolve func signatures
@@ -63,14 +63,6 @@ func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
 		return v, nil
 	case *Ref:
 		return c.resolveRef(env, v)
-	case Dyn:
-		if len(v) == 0 {
-			return typ.Void, nil
-		}
-		rslv = Lookup(env, "dyn")
-		if rslv != nil {
-			x = &Expr{Sym: Sym{Name: "dyn"}, Args: v}
-		}
 	case Tag:
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
@@ -78,19 +70,18 @@ func (c *Ctx) Resolve(env Env, x El) (res El, err error) {
 		_, err = c.ResolveAll(env, v.Args)
 		return v, err
 	case *Expr:
-		rslv = Lookup(env, v.Key())
+		xx = v
+	case Dyn:
+		xx = &Expr{Ref{Name: "dyn"}, v, Lookup(env, "dyn")}
 	default:
 		return x, cor.Errorf("unexpected expression %T %v", x, x)
 	}
-	if err != nil && err != ErrUnres {
-		return nil, err
-	}
-	if rslv == nil {
+	if xx == nil {
 		c.Unres = append(c.Unres, x)
 		return x, ErrUnres
 	}
 	// resolvers add to unres list themselves
-	return rslv.Resolve(c, env, x)
+	return xx.Resolve(c, env, xx)
 }
 
 func (c *Ctx) resolveRef(env Env, ref *Ref) (El, error) {
@@ -105,7 +96,7 @@ func (c *Ctx) resolveRef(env Env, ref *Ref) (El, error) {
 	if sym == name {
 		return r.Resolve(c, env, ref)
 	}
-	tmp := &Ref{Sym: Sym{Name: name}}
+	tmp := &Ref{Name: name}
 	res, err := r.Resolve(c, env, tmp)
 	if err != nil {
 		return ref, err
@@ -134,7 +125,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type, last Type) (_ Type, err error) {
 		}
 		key = "~" + key
 	}
-	res, err := c.resolveRef(env, &Ref{Sym: Sym{Name: key}})
+	res, err := c.resolveRef(env, &Ref{Name: key})
 	if err != nil {
 		return t, err
 	}

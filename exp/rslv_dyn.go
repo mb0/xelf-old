@@ -11,18 +11,34 @@ var errAsType = cor.StrError("the 'as' expression must start with a type")
 // rslvDyn resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'as' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
-func rslvDyn(c *Ctx, env Env, e *Expr) (El, error) {
+func rslvDyn(c *Ctx, env Env, e *Expr) (_ El, err error) {
 	if len(e.Args) == 0 {
-		return lit.Nil, nil
+		return typ.Void, nil
 	}
-	fst, err := c.Resolve(env, e.Args[0])
+	var ref Ref
+	fst := e.Args[0]
+	switch v := fst.(type) {
+	case *Ref:
+		fst, err = c.Resolve(env, v)
+		ref = *v
+	case *Expr:
+		fst, err = c.Resolve(env, v)
+	case Dyn:
+		fst, err = rslvDyn(c, env, &Expr{Args: v})
+	}
 	if err != nil {
 		return e, err
 	}
 	var sym string
+	args := e.Args
 	switch v := fst.(type) {
+	case Callable:
+		return v.Resolve(c, env, &Expr{ref, args[1:], v})
 	case Type:
 		sym = "as"
+		if v == typ.Bool {
+			sym, args = "bool", args[1:]
+		}
 	case Lit:
 		if len(e.Args) == 1 {
 			return v, nil
@@ -42,7 +58,7 @@ func rslvDyn(c *Ctx, env Env, e *Expr) (El, error) {
 	}
 	if sym != "" {
 		if rslv := Lookup(env, sym); rslv != nil {
-			return rslv.Resolve(c, env, &Expr{Sym: Sym{Name: sym}, Args: e.Args})
+			return rslv.Resolve(c, env, &Expr{Ref{Name: sym}, args, rslv})
 		}
 	}
 	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", e.Args[0])

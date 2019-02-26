@@ -36,10 +36,12 @@ func rslvOr(c *Ctx, env Env, e *Expr) (El, error) {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{Sym: Sym{
+					e = &Expr{Ref: Ref{
 						Name: "bool",
 						Type: typ.Bool},
-						Args: e.Args}
+						Args:     e.Args,
+						Resolver: ExprResolverFunc(rslvBool),
+					}
 				}
 			}
 			return e, ErrUnres
@@ -72,10 +74,12 @@ func rslvAnd(c *Ctx, env Env, e *Expr) (El, error) {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{Sym: Sym{
+					e = &Expr{Ref: Ref{
 						Name: "bool",
 						Type: typ.Bool},
-						Args: e.Args}
+						Args:     e.Args,
+						Resolver: ExprResolverFunc(rslvBool),
+					}
 				}
 			}
 			return e, ErrUnres

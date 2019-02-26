@@ -19,28 +19,26 @@ func TestParse(t *testing.T) {
 		{`null`, lit.Nil},
 		{`1`, lit.Num(1)},
 		{`bool`, typ.Bool},
-		{`name`, &Ref{Sym: Sym{Name: "name"}}},
+		{`name`, &Ref{Name: "name"}},
 		{`(false)`, lit.False},
 		{`(int 1)`, Dyn{typ.Int, lit.Num(1)}},
-		{`(bool 1)`, &Expr{Sym: Sym{Name: "bool"}, Args: []El{lit.Num(1)}}},
-		{`(bool (() comment) 1)`, &Expr{Sym: Sym{Name: "bool"}, Args: []El{lit.Num(1)}}},
+		{`(bool 1)`, Dyn{typ.Bool, lit.Num(1)}},
+		{`(bool (() comment) 1)`, Dyn{typ.Bool, lit.Num(1)}},
 		{`(obj +x +y int)`, typ.Obj([]typ.Field{
 			{Name: "x", Type: typ.Int},
 			{Name: "y", Type: typ.Int},
 		})},
 		{`('Hello ' $Name '!')`, Dyn{
 			lit.Char("Hello "),
-			&Ref{Sym: Sym{Name: "$Name"}},
+			&Ref{Name: "$Name"},
 			lit.Char("!"),
 		}},
-		{`(a :b +c d)`, &Expr{
-			Sym: Sym{Name: "a"},
-			Args: []El{
-				Tag{Name: ":b"},
-				Decl{Name: "+c", Args: []El{
-					&Ref{Sym: Sym{Name: "d"}},
-				}},
-			},
+		{`(a :b +c d)`, Dyn{
+			&Ref{Name: "a"},
+			Tag{Name: ":b"},
+			Decl{Name: "+c", Args: []El{
+				&Ref{Name: "d"},
+			}},
 		}},
 		{`((1 2) 1 2)`, Dyn{
 			Dyn{lit.Num(1), lit.Num(2)},

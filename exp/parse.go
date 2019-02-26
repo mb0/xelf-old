@@ -30,7 +30,7 @@ func Parse(a *lex.Tree) (El, error) {
 		if err == nil {
 			return t, nil
 		}
-		return &Ref{Sym{Name: a.Val}}, nil
+		return &Ref{Name: a.Val}, nil
 	case '(':
 		if len(a.Seq) == 0 { // empty expression is void
 			return typ.Void, nil
@@ -39,7 +39,6 @@ func Parse(a *lex.Tree) (El, error) {
 		if err != nil {
 			return nil, err
 		}
-		var sym Sym
 		args := make([]El, 0, len(a.Seq))
 		switch f := fst.(type) {
 		case Type:
@@ -50,11 +49,6 @@ func Parse(a *lex.Tree) (El, error) {
 			if nr, nf := typ.NeedsInfo(f); nr || nf {
 				return typ.ParseInfo(f, a, nr, nf)
 			}
-			if f == typ.Bool {
-				// we have a special resolver for bool in the cor built-ins
-				sym = Sym{Name: "bool"}
-				break
-			}
 			// otherwise it is a constructor or conversion, handled in resolution
 			args = append(args, f)
 		case Lit:
@@ -63,19 +57,11 @@ func Parse(a *lex.Tree) (El, error) {
 			}
 			// is a literal combine expression, handled in resolution
 			args = append(args, f)
-		case *Ref:
-			sym = f.Sym
 		default:
 			args = append(args, fst)
 		}
 		args, err = decledArgs(args, a.Seq[1:])
-		if err != nil {
-			return nil, err
-		}
-		if sym.Name == "" {
-			return Dyn(args), nil
-		}
-		return &Expr{Sym: sym, Args: args}, nil
+		return Dyn(args), err
 	}
 	return nil, a.Err(lex.ErrUnexpected)
 }

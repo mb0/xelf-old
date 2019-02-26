@@ -17,20 +17,6 @@ type El interface {
 	String() string
 }
 
-// Sym holds symbol data and is used by expressions and symbol references.
-type Sym struct {
-	Name string
-	Type Type
-	key  string
-}
-
-func (s *Sym) Key() string {
-	if s.key == "" {
-		s.key = strings.ToLower(s.Name)
-	}
-	return s.key
-}
-
 type Named = struct {
 	Name string
 	Args []El
@@ -45,7 +31,11 @@ type (
 	Lit = lit.Lit
 
 	// Ref is a unresolved symbol that refers to an element.
-	Ref struct{ Sym }
+	Ref struct {
+		Name string
+		Type Type
+		key  string
+	}
 
 	// Dyn represents an unresolved dynamic expression where the spec is not yet resolved.
 	Dyn []El
@@ -58,10 +48,18 @@ type (
 
 	// Expr is unresolved expression with a resolved spec.
 	Expr struct {
-		Sym
+		Ref
 		Args []El
+		Resolver
 	}
 )
+
+func (s *Ref) Key() string {
+	if s.key == "" {
+		s.key = strings.ToLower(s.Name)
+	}
+	return s.key
+}
 
 // Env is a scoped symbol environment used to define and lookup resolvers by symbol.
 type Env interface {
@@ -94,6 +92,12 @@ type Resolver interface {
 	// and either the original element or if the context allows a partially resolved element.
 	// Any other error ends the whole resolution process.
 	Resolve(c *Ctx, enc Env, el El) (El, error)
+}
+
+//  Callable is the common interface of both function and form resolvers.
+type Callable interface {
+	Lit
+	Resolver
 }
 
 // Ctx is the resolution context that defines the resolution level and collects information.
