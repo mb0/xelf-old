@@ -380,12 +380,26 @@ quasi-literal for those cases resolvers.
 
 Form types can have a signature and the default resolution does use result types if specified.
 Form parameters could be formalized and used to validate the form arguments at some point, but are
-only used as documentation hint for now. The plan is to interpret base types in form signatures in
-a different way than in function signatures. Base types in form signatures signify poly types that
-includes the base type itself and all special types based on it.
+only used as documentation hint for now. The plan is to interpret base types in form signatures as
+type hints.
 
 Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
 but usually matches the definition name of that form.
+
+Form Parsing
+------------
+
+This is a work in progress.
+
+Expressions have different layouts regarding the number and shape of their arguments. Function
+for example accept leading plain elements and optionally tagged elements for named parameters.
+Forms can have any layout including not only tag expressions but also declaration expressions.
+
+We started with a couple of helper functions, that validate expression arguments against common
+form layouts. Since we now have form signatures with type hints, we could use these signatures
+to direct the argument validation and check their types at the same time. Because parameter names
+have no other use in form parameters we use them together with the parameter type to sufficiently
+identify the desired layout.
 
 Type Inference
 --------------
