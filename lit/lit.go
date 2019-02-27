@@ -102,15 +102,15 @@ type Appender interface {
 // Arr is the interface for arr literals.
 type Arr interface {
 	Appender
-	// Elem returns the arr element type.
-	Elem() typ.Type
+	// Element returns the arr element type.
+	Element() typ.Type
 }
 
 // Map is the interface for map literals.
 type Map interface {
 	Keyer
-	// Elem returns the map element type.
-	Elem() typ.Type
+	// Element returns the map element type.
+	Element() typ.Type
 }
 
 // Obj is the interface for obj literals.

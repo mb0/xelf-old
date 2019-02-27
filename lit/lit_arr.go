@@ -17,28 +17,28 @@ func MakeArrCap(t typ.Type, len, cap int) (Arr, error) {
 	if t.Kind&typ.MaskElem != typ.KindArr {
 		return nil, typ.ErrInvalid
 	}
-	res := abstrArr{t.Next(), make(List, len, cap)}
+	res := ListArr{t.Next(), make(List, len, cap)}
 	for i := range res.List {
-		res.List[i] = Null(res.elem)
+		res.List[i] = Null(res.Elem)
 	}
 	return &res, nil
 }
 
 type (
-	abstrArr struct {
-		elem typ.Type
+	ListArr struct {
+		Elem typ.Type
 		List
 	}
 	proxyArr struct{ proxy }
 )
 
-func (a abstrArr) Typ() typ.Type  { return typ.Arr(a.elem) }
-func (a abstrArr) Elem() typ.Type { return a.elem }
-func (a abstrArr) SetIdx(i int, el Lit) (err error) {
+func (a ListArr) Typ() typ.Type     { return typ.Arr(a.Elem) }
+func (a ListArr) Element() typ.Type { return a.Elem }
+func (a ListArr) SetIdx(i int, el Lit) (err error) {
 	if el == nil {
-		el = Null(a.elem)
+		el = Null(a.Elem)
 	} else {
-		el, err = Convert(el, a.elem, 0)
+		el, err = Convert(el, a.Elem, 0)
 		if err != nil {
 			return err
 		}
@@ -46,9 +46,9 @@ func (a abstrArr) SetIdx(i int, el Lit) (err error) {
 	return a.List.SetIdx(i, el)
 }
 
-func (a abstrArr) Append(ls ...Lit) (Appender, error) {
+func (a ListArr) Append(ls ...Lit) (Appender, error) {
 	for _, e := range ls {
-		e, err := Convert(e, a.elem, 0)
+		e, err := Convert(e, a.Elem, 0)
 		if err != nil {
 			return nil, err
 		}

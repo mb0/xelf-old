@@ -18,32 +18,32 @@ func MakeMapCap(t typ.Type, cap int) (Map, error) {
 		return nil, typ.ErrInvalid
 	}
 	list := make([]Keyed, 0, cap)
-	return &abstrMap{t.Next(), Dict{list}}, nil
+	return &DictMap{t.Next(), Dict{list}}, nil
 }
 
 type (
-	abstrMap struct {
-		elem typ.Type
+	DictMap struct {
+		Elem typ.Type
 		Dict
 	}
 	proxyMap struct{ proxy }
 )
 
-func (a *abstrMap) Typ() typ.Type  { return typ.Map(a.elem) }
-func (a *abstrMap) Elem() typ.Type { return a.elem }
-func (a *abstrMap) Key(k string) (Lit, error) {
+func (a *DictMap) Typ() typ.Type     { return typ.Map(a.Elem) }
+func (a *DictMap) Element() typ.Type { return a.Elem }
+func (a *DictMap) Key(k string) (Lit, error) {
 	l, err := a.Dict.Key(k)
 	if err != nil {
 		return nil, err
 	}
 	if l == Nil {
-		l = Null(a.elem)
+		l = Null(a.Elem)
 	}
 	return l, nil
 }
-func (a *abstrMap) SetKey(key string, el Lit) (err error) {
+func (a *DictMap) SetKey(key string, el Lit) (err error) {
 	if el != nil {
-		el, err = Convert(el, a.elem, 0)
+		el, err = Convert(el, a.Elem, 0)
 		if err != nil {
 			return err
 		}

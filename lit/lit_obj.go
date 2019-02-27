@@ -17,12 +17,12 @@ func MakeObj(t typ.Type) (Obj, error) {
 	for _, f := range t.Fields {
 		list = append(list, Keyed{f.Key(), Null(f.Type)})
 	}
-	return &abstrObj{t, Dict{list}}, nil
+	return &DictObj{t, Dict{list}}, nil
 }
 
 type (
-	abstrObj struct {
-		typ typ.Type
+	DictObj struct {
+		Type typ.Type
 		Dict
 	}
 	proxyObj struct {
@@ -31,8 +31,8 @@ type (
 	}
 )
 
-func (a *abstrObj) Typ() typ.Type { return a.typ }
-func (a *abstrObj) IsZero() bool {
+func (a *DictObj) Typ() typ.Type { return a.Type }
+func (a *DictObj) IsZero() bool {
 	if a.Dict.IsZero() {
 		return true
 	}
@@ -43,22 +43,22 @@ func (a *abstrObj) IsZero() bool {
 	}
 	return true
 }
-func (a *abstrObj) Idx(i int) (Lit, error) {
-	_, err := a.typ.FieldByIdx(i)
+func (a *DictObj) Idx(i int) (Lit, error) {
+	_, err := a.Type.FieldByIdx(i)
 	if err != nil {
 		return nil, err
 	}
 	return a.Dict.List[i].Lit, nil
 }
-func (a *abstrObj) Key(key string) (Lit, error) {
-	_, _, err := a.typ.FieldByKey(key)
+func (a *DictObj) Key(key string) (Lit, error) {
+	_, _, err := a.Type.FieldByKey(key)
 	if err != nil {
 		return nil, err
 	}
 	return a.Dict.Key(key)
 }
-func (a *abstrObj) SetIdx(i int, el Lit) error {
-	f, err := a.typ.FieldByIdx(i)
+func (a *DictObj) SetIdx(i int, el Lit) error {
+	f, err := a.Type.FieldByIdx(i)
 	if err != nil {
 		return err
 	}
@@ -73,8 +73,8 @@ func (a *abstrObj) SetIdx(i int, el Lit) error {
 	a.Dict.List[i].Lit = el
 	return nil
 }
-func (a *abstrObj) SetKey(key string, el Lit) error {
-	f, _, err := a.typ.FieldByKey(key)
+func (a *DictObj) SetKey(key string, el Lit) error {
+	f, _, err := a.Type.FieldByKey(key)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (a *abstrObj) SetKey(key string, el Lit) error {
 	}
 	return a.Dict.SetKey(key, el)
 }
-func (a *abstrObj) IterIdx(it func(int, Lit) error) error {
+func (a *DictObj) IterIdx(it func(int, Lit) error) error {
 	for i, el := range a.Dict.List {
 		if err := it(i, el.Lit); err != nil {
 			if err == BreakIter {
@@ -99,12 +99,12 @@ func (a *abstrObj) IterIdx(it func(int, Lit) error) error {
 	}
 	return nil
 }
-func (a *abstrObj) String() string               { return bfr.String(a) }
-func (a *abstrObj) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
-func (a *abstrObj) WriteBfr(b bfr.Ctx) error {
+func (a *DictObj) String() string               { return bfr.String(a) }
+func (a *DictObj) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
+func (a *DictObj) WriteBfr(b bfr.Ctx) error {
 	b.WriteByte('{')
 	n := 0
-	for i, f := range a.typ.Fields {
+	for i, f := range a.Type.Fields {
 		el, err := a.Idx(i)
 		if err != nil {
 			return err
