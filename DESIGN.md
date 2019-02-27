@@ -51,7 +51,7 @@ The type system chose a number of specific primitive types. The specific types o
 and flag for bit sets, the specific types of char are str, raw for bytes, uuid, enum, time and span
 for durations. The bool type is also considered a numeric type, because some environments might not
 have a dedicated bool type, indexedDB in browsers comes to mind. Both span and time are usually
-represented as in a text format but can also be converted to an integer, representing milliseconds.
+represented in a text format but can also be converted to an integer, representing milliseconds.
 The time type number represents milliseconds since the unix epoch.
 
 The selection is based on what types strings and number literals are commonly used for that
@@ -115,19 +115,46 @@ especially useful when use in templates or everywhere else with large pre-format
 List and dict literals can omit commas, because it does not fit in with the lisp style expression
 syntax as later discussed. And simple dict keys can be symbols and do not need any quotes.
 
-All literals except booleans are parsed as the base types any, num, char, list and dict.
-The literals are usually converted to a specific type inferred from the expression context.
-
 Composite literals can only contain literals. Any opening square or curly braces always start a
 literal. Expression resolvers are used to construct literals from expressions, instead of reusing
 the literal syntax. This makes it visually more obvious whether something is a literal.
 
-Every environment working with xelf literals requires some adapter code. The xelf go package
-provides interfaces for each class of literal behaviors and both generic and proxy adapters.
+Types, functions and forms do implement the main literal interface and can be used as literals in
+some cases. This also simplifies the already heavy resolution API, as a successful resolution will
+always return a valid literal, an alleviates another check after each resolution step.
 
-Types do implement the main literal interface and can be used as literals in some cases. This also
-simplifies the already heavy resolution API, as a successful resolution will always return a valid
-literal, an alleviates another check after each resolution step.
+All literals except booleans are parsed as the base types any, num, char, list and dict.
+The literals are usually converted to a specific type inferred from the expression context.
+
+Every environment working with xelf literals requires some adapter code to convert, compare or
+otherwise work with literal. The xelf go package provides interfaces for each class of literal
+behaviors and both generic and proxy adapters.
+
+Type Conversion
+---------------
+
+We need flexible type conversion rules, mostly because xelf is a typed language using untyped json
+literals. The conversion rules are a bit more involved for that reason.
+
+Allowed conversions are encoded by the compare function in the typ package. It returns a comparison
+bit-set, that indicates not only whether, but in what way a type can be converted to another. The
+possible conversions are grouped into levels: equal, comparable, convertible or checked convertible.
+
+Equal types indicate the same type or that the destination type is inferred.
+
+Comparable types can automatically convert to the destination. All literal types are comparable to
+the any type. Specific types are comparable to their base or opt types, while all primitive base
+types are comparable that their specific type, only if the specific type does not use a strict
+format. That means that char is comparable to str or enum, and the num type is comparable to any
+specific numeric type.
+
+Convertible types cover arr, map and obj types whose element types also convertible.
+
+Checked convertible type might also possibly be convertible, but need to check the literal value to
+decide if they actually are. This is the case for types containing unresolved type reference,
+if the source type is the any, list or dict types that should convert to a more specific type, or is
+an arr, map or obj, whose element types are checked convertible, or is the char type that should
+convert to a specific type with a strict format (raw, uuid, time and span).
 
 Symbols, Names and Keys
 -----------------------
@@ -366,7 +393,7 @@ Type Inference
 This is a work in progress.
 
 After some study over the hindley-milner type system, I come to the conclusion, that it does not
-lend itself to be faithfully applied to xelf. We cannot seperate type checking from the resolution
+lend itself to be faithfully applied to xelf. We cannot separate type checking from the resolution
 process, because xelf allows resolvers to direct most aspects of the process. Form resolvers often
 need to resolve their arguments to provide the result type information, expressing their signatures
 in type variables and constraints would be more work without significant value. We also have
@@ -374,11 +401,11 @@ auto conversion rules between base type and comparable special types.
 
 Instead we need a way to check and infer types within the same resolution context and process. It
 should be flexible enough to cover functions or references and help form expression infer their
-types. Luckily we already have type reference that we can use as type variables, explict infer
-type that can act as a poly type behind the sceenes, a context to stash intermediate results and an
-environment to look it all up. Using function signatures and implementing type resoltion in all form
+types. Luckily we already have type reference that we can use as type variables, explicit infer
+type that can act as a poly type behind the scenes, a context to stash intermediate results and an
+environment to look it all up. Using function signatures and implementing type resolution in all form
 resolvers potentially provides use with all the types we need.
 
 We might want to pass a type hint to resolvers, so resolvers can take it into consideration when
-infering types and encapsulate their type resoltion. The other option would be to handle type
+inferring types and encapsulate their type resolution. The other option would be to handle type
 checking and inference at the call site, but this would limit what resolvers could infer.
