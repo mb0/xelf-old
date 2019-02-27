@@ -150,8 +150,30 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 	// check for relative paths prefixes
 	var lookup bool
 	switch x := sym[0]; x {
-	case '~', '$', '/':
+	case '~':
 		return LookupSupports(env, sym, x), sym, "", nil
+	case '$':
+		tmp := sym[1:]
+		if len(tmp) > 0 && tmp[0] == '$' {
+			// program parameter use the program result prefix to select
+			// the program environment.
+			return GetSupports(env, tmp, '/'), sym, "", nil
+		}
+		env = Supports(env, x)
+		if env == nil {
+			return nil, "", "", cor.Errorf("no env found for prefix %q", x)
+		}
+		for len(tmp) > 0 && tmp[0] == '.' {
+			tmp = tmp[1:]
+			env = Supports(env.Parent(), x)
+			if env == nil {
+				return nil, "", "", cor.Errorf("no env found for prefix %q", x)
+			}
+		}
+		sym = "$" + tmp
+		return env.Get(sym), sym, "", nil
+	case '/':
+		return GetSupports(env, sym, x), sym, "", nil
 	case '.':
 		sym = sym[1:]
 		for len(sym) > 0 && sym[0] == '.' {

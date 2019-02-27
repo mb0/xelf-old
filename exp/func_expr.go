@@ -1,6 +1,8 @@
 package exp
 
 import (
+	"fmt"
+
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
@@ -29,33 +31,52 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call, hint Type) (El, error)
 	// build a parameter object from all arguments
 	ps := fc.Sig.FuncParams()
 	if len(ps) != len(fc.Args) {
+		// TODO allow implicit argument spread for the last param
 		return nil, cor.Error("argument mismatch")
 	}
-	// use the calling env in the function scope to resove parameters
-	// we might want to reference other parameter types.
-	fenv := funcScope{NewScope(env), nil}
+	// use the calling env to resove parameters
+	s := &ParamScope{NewScope(env), nil}
 	if len(ps) > 0 {
-		var err error
-		fenv.Param, err = lit.MakeObj(typ.Obj(ps))
-		if err != nil {
-			return fc.Expr, cor.Errorf("make param obj for %s: %w", fc.Type, err)
-		}
+		// initialize an empty dict obj
+		o := &lit.DictObj{Type: typ.Obj(ps[:0])}
+		o.List = make([]lit.Keyed, 0, len(ps))
+		s.Param = o
 		for i, a := range fc.Args {
-			l, err := c.Resolve(fenv, a.Args[0], typ.Void)
+			p := ps[i]
+			el, err := c.Resolve(s, a.Args[0], p.Type)
 			if err != nil {
 				return fc.Expr, err
 			}
-			fenv.Param.SetIdx(i, l.(Lit))
+			// ensure conversion to param type until hints are used everywhere
+			l, err := lit.Convert(el.(Lit), p.Type, 0)
+			if err != nil {
+				return nil, err
+			}
+			name := a.Name
+			if name == "" {
+				// fall back to signature for empty parameter names
+				name = p.Key()
+				if name == "" {
+					// otherwise use a synthetic name
+					name = fmt.Sprintf("p_%d", i)
+				}
+				// TODO make sure the fallback name has no conflicts
+				// with other parameter declarations.
+			}
+			// update parameters on each iteral so the next parameter can
+			// refer to previous ones.
+			o.List = append(o.List, lit.Keyed{name, l})
+			// make new field accessible to following parameters
+			o.Type.Fields = ps[:i+1]
 		}
-		// create a function scope and set the parameter object
 	}
 	// switch the function scope's parent to the declaration environment
-	fenv.parent = f.Env
+	s.parent = f.Env
 	// and execute all body elements using the new scope
 	var res El
 	for _, e := range f.Els {
 		var err error
-		res, err = c.WithPart(false).Resolve(fenv, e, typ.Void)
+		res, err = c.WithPart(false).Resolve(s, e, typ.Void)
 		if err != nil {
 			return fc.Expr, err
 		}
@@ -65,24 +86,4 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call, hint Type) (El, error)
 		return rt, nil
 	}
 	return lit.Convert(res.(Lit), rt, 0)
-}
-
-type funcScope struct {
-	*Scope
-	Param lit.Obj
-}
-
-func (f funcScope) Supports(x byte) bool {
-	return x == '$'
-}
-
-func (f funcScope) Get(s string) Resolver {
-	if s[0] == '$' {
-		l, err := lit.Select(f.Param, s[1:])
-		if err != nil {
-			return nil
-		}
-		return LitResolver{l}
-	}
-	return f.Scope.Get(s)
 }

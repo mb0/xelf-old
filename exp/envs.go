@@ -1,6 +1,9 @@
 package exp
 
-import "github.com/mb0/xelf/cor"
+import (
+	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lit"
+)
 
 var (
 	// ErrNoDefEnv is returned when the environment cannot define any resolvers
@@ -77,6 +80,45 @@ func (c *Scope) Get(s string) Resolver {
 	return nil
 }
 
+// ParamScope wraps a scope and provides parameter resolution.
+// It is also used as part of the prog scope and for signature definitions.
+type ParamScope struct {
+	*Scope
+	Param *lit.DictObj
+}
+
+func (*ParamScope) Supports(x byte) bool { return x == '$' }
+
+func (p *ParamScope) Get(s string) Resolver {
+	if s[0] == '$' {
+		l, err := lit.Select(p.Param, s[1:])
+		if err != nil {
+			return nil
+		}
+		return LitResolver{l}
+	}
+	return p.Scope.Get(s)
+}
+
+// ProgScope wraps a param scope and provides global result resolution.
+type ProgScope struct {
+	ParamScope
+	Result *lit.Dict
+}
+
+func (*ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
+
+func (p *ProgScope) Get(s string) Resolver {
+	if s[0] == '/' {
+		l, err := lit.Select(p.Param, s[1:])
+		if err != nil {
+			return nil
+		}
+		return LitResolver{l}
+	}
+	return p.ParamScope.Get(s)
+}
+
 // Lookup returns a first resolver with symbol sym found in env or one of its ancestors.
 // If sym starts with a known special prefix only the appropriate environments are called.
 func Lookup(env Env, sym string) Resolver {
@@ -91,6 +133,26 @@ func LookupSupports(env Env, sym string, x byte) Resolver {
 			if r != nil {
 				return r
 			}
+		}
+		env = env.Parent()
+	}
+	return nil
+}
+
+// GetSupports returns a resolver that supports behaviour indicated by x or nil.
+func GetSupports(env Env, sym string, x byte) Resolver {
+	env = Supports(env, x)
+	if env != nil {
+		return env.Get(sym)
+	}
+	return nil
+}
+
+// Supports returns a resolver that supports behaviour indicated by x or nil.
+func Supports(env Env, x byte) Env {
+	for env != nil {
+		if env.Supports(x) {
+			return env
 		}
 		env = env.Parent()
 	}
