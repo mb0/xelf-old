@@ -401,11 +401,20 @@ auto conversion rules between base type and comparable special types.
 
 Instead we need a way to check and infer types within the same resolution context and process. It
 should be flexible enough to cover functions or references and help form expression infer their
-types. Luckily we already have type reference that we can use as type variables, explicit infer
-type that can act as a poly type behind the scenes, a context to stash intermediate results and an
-environment to look it all up. Using function signatures and implementing type resolution in all form
-resolvers potentially provides use with all the types we need.
+types. Luckily we already have type references, that we can use as type variables, the infer type,
+that can act as a poly type behind the scenes, a context to stash intermediate results and an
+environment to look it all up. Using function signatures and implementing type resolution in all
+form resolvers potentially provides use with all the types we need.
 
-We might want to pass a type hint to resolvers, so resolvers can take it into consideration when
-inferring types and encapsulate their type resolution. The other option would be to handle type
-checking and inference at the call site, but this would limit what resolvers could infer.
+We pass a type hint to resolvers, so it can be considered when inferring types and encapsulate their
+type resolution. The other option would be to handle type checking and inference at the call site,
+but this would limit what resolvers could infer.
+
+The type hint is interpreted differently than normal types and should work the same way as types in
+form parameters. This is done to make hints more expressive for the common cases. Type hints can
+be transformed into a corresponding poly type. If type hint should explicitly represent the void,
+any or a base type it can be expressed as poly type with the hint as only option.
+
+Void indicates a lack of type expectations and means the resolver can disregard the hint completely.
+The any type indicates a common literal type excluding the special typ, func and form types. The
+base types represents the type itself as well as all its specific types.
