@@ -8,12 +8,12 @@ import (
 )
 
 // MakeArr returns a new abstract arr literal with the given type and len or an error.
-func MakeArr(t typ.Type, len int) (Arr, error) {
+func MakeArr(t typ.Type, len int) (*ListArr, error) {
 	return MakeArrCap(t, len, len)
 }
 
 // MakeArrCap returns a new abstract arr literal with the given type, len and cap or an error.
-func MakeArrCap(t typ.Type, len, cap int) (Arr, error) {
+func MakeArrCap(t typ.Type, len, cap int) (*ListArr, error) {
 	if t.Kind&typ.MaskElem != typ.KindArr {
 		return nil, typ.ErrInvalid
 	}

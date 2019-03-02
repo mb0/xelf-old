@@ -9,7 +9,7 @@ import (
 )
 
 // MakeObj return a new abstract obj literal with the given type or an error.
-func MakeObj(t typ.Type) (Obj, error) {
+func MakeObj(t typ.Type) (*DictObj, error) {
 	if t.Kind&typ.MaskElem != typ.KindObj || t.Info == nil || len(t.Fields) == 0 {
 		return nil, typ.ErrInvalid
 	}
@@ -18,6 +18,15 @@ func MakeObj(t typ.Type) (Obj, error) {
 		list = append(list, Keyed{f.Key(), Null(f.Type)})
 	}
 	return &DictObj{t, Dict{list}}, nil
+}
+
+// ObjFromKeyed creates a new abstract obj literal from the given list of keyed literals.
+func ObjFromKeyed(list []Keyed) *DictObj {
+	fs := make([]typ.Field, 0, len(list))
+	for _, d := range list {
+		fs = append(fs, typ.Field{Name: d.Key, Type: d.Lit.Typ()})
+	}
+	return &DictObj{typ.Obj(fs), Dict{list}}
 }
 
 type (

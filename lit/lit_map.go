@@ -8,12 +8,12 @@ import (
 )
 
 // MakeMap returns a new abstract map literal with the given type or an error.
-func MakeMap(t typ.Type) (Map, error) {
+func MakeMap(t typ.Type) (*DictMap, error) {
 	return MakeMapCap(t, 0)
 }
 
 // MakeMapCap returns a new abstract map literal with the given type and cap or an error.
-func MakeMapCap(t typ.Type, cap int) (Map, error) {
+func MakeMapCap(t typ.Type, cap int) (*DictMap, error) {
 	if t.Kind&typ.MaskElem != typ.KindMap {
 		return nil, typ.ErrInvalid
 	}
