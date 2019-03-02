@@ -25,7 +25,7 @@ The most basic environment to think of here is a some-what idiomatic sqlite3 tar
 
 JSON emerged quite early and organically as the most commonly implemented and used object format.
 It is very basic, well-known, and programmers are already used to map their data to a JSON
-representation one way or another. Recently more and database solution got JSON support.
+representation one way or another. Recently more and more database solution got JSON support.
 
 Accepting plain JSON as valid literal syntax makes it very simple to interoperate with existing
 code, databases, and user assumptions.
@@ -54,23 +54,25 @@ have a dedicated bool type, indexedDB in browsers comes to mind. Both span and t
 represented in a text format but can also be converted to an integer, representing milliseconds.
 The time type number represents milliseconds since the unix epoch.
 
-The selection is based on what types strings and number literals are commonly used for that
+The selection is based on what types strings and number literals are commonly used for, that
 differentiate enough in comparison or manipulation behavior. It is heavily informed by types
-supported full featured databases like postgresql. We do not bother with different number sizes
+supported by full featured databases like postgresql. We do not bother with different number sizes
 or text length because it only complicates what xelf tries to provide and is only a concern to a
 validation or storage layer. For most uses a couple of wasted bytes is not an issue.
 
-The specific container types are a typed arr|T or unordered map|T with string keys, as well
-as the somewhat special obj and rec types, with field access by both index and key.
+There are two distinct behavior of container types called idxer or keyer. An idxer provides access
+to its elements by index, and a keyer by a string key. The idxer base type list can have elements of
+any type, while the arr type takes an explicit element type. The keyer types are the base type dict,
+the map type with explicit element type, as well as obj and rec with field info.  Because object
+fields are inherently ordered, both the obj and rec types do implement idxer as well.  Dict is
+implemented to preserve field order for this reason, but does not provide the idxer interface.
 
-Apart from the any type all primitive and object types can be optional. Optional type variants
-have a question mark suffix and translate to pointer, option or nullable types in the target
-environments. There are also optional object fields that mark the field itself and not its value
-optional.
+Apart from the any type all primitive and object types can be optional. Optional type variants have
+a question mark suffix and translate to pointer, option or nullable types in the target
+environments. Note that there are also optional object fields that mark the field itself and not its
+value optional.
 
-The 'null' literal turns out to be very useful if treated as a universal zero value.
-
-To rely on type information without specifying it explicitly in every case for possibly large
+To rely on type information without specifying it explicitly in every case, for possibly large
 composite literals, xelf must allow to explicitly refer to and infer from existing types. This is
 covered by type embedding and type references. Recursive obj and rec declaration also use special
 type references to itself or an ancestor. Type references are implicitly used in the type inference
@@ -78,10 +80,10 @@ and resolution phase.
 
 To make working with types easier in a language context there are also the void and typ type.
 
-The flag, enum and rec types are named schema types that globally reference a type definition with
-additional information. The flag type is a integer type used as bit set with associated constants.
-The enum type is a string type with associated constants. A record is an object with a known
-schema.
+The flag, enum and rec types are called schema types and are global references a type definition
+with additional information. The flag type is a integer type used as bit set with associated
+constants. The enum type is a string type with associated constants. A record is an object with a
+known schema.
 
 The final naming of the types took a long time and serious consideration. Real does not imply
 a floating point precision as much as float does and fits the short naming schema. Dict implies
@@ -130,6 +132,14 @@ Every environment working with xelf literals requires some adapter code to conve
 otherwise work with literal. The xelf go package provides interfaces for each class of literal
 behaviors and both generic and proxy adapters.
 
+Null literal
+------------
+
+The 'null' literal turns out to be very useful if treated as a universal zero value. That means
+that it can be used in every type context as an appropriate zero value. This helps to translate
+the concept to language that do not have a null pointers and use none and some for optional types
+and do not provide.
+
 Type Conversion
 ---------------
 
@@ -140,21 +150,21 @@ Allowed conversions are encoded by the compare function in the typ package. It r
 bit-set, that indicates not only whether, but in what way a type can be converted to another. The
 possible conversions are grouped into levels: equal, comparable, convertible or checked convertible.
 
-Equal types indicate the same type or that the destination type is inferred.
+Equal types indicate the same types or that the destination type is inferred.
 
 Comparable types can automatically convert to the destination. All literal types are comparable to
-the any type. Specific types are comparable to their base or opt types, while all primitive base
-types are comparable that their specific type, only if the specific type does not use a strict
-format. That means that char is comparable to str or enum, and the num type is comparable to any
-specific numeric type.
+the any type. Specific types are comparable to their base or opt types, while the primitive base
+types are comparable to their specific type, unless the specific type requires a strict format. That
+means that char is comparable to str or enum, and the num type is comparable to any specific numeric
+type.
 
 Convertible types cover arr, map and obj types whose element types also convertible.
 
-Checked convertible type might also possibly be convertible, but need to check the literal value to
-decide if they actually are. This is the case for types containing unresolved type reference,
-if the source type is the any, list or dict types that should convert to a more specific type, or is
-an arr, map or obj, whose element types are checked convertible, or is the char type that should
-convert to a specific type with a strict format (raw, uuid, time and span).
+Checked convertible type might be convertible, but need to check the literal value to decide if they
+actually are. This is the case for types containing unresolved type reference, if the source type is
+the any, list or dict type and should convert to a more specific type, or is an arr, map or obj
+type, whose element types are checked convertible, or is the char type that should convert to a
+specific type with a strict format (raw, uuid, time and span).
 
 Symbols, Names and Keys
 -----------------------
@@ -168,8 +178,8 @@ By using only the ascii character set we can avoid any encoding issues or substi
 environments without unicode identifier support.
 
 Xelf will need to work in environment that are case-sensitive and case-insensitive. To address
-that cased names are usually used that will automatically be lowercased to its key form. All
-lookups in the resolution environment, map elements or object fields must use the key form. This
+that, cased names are usually used for declarations and are then automatically lowercased. All
+lookups in the resolution environment, map elements or object fields must use lowercase keys. This
 way we do not have to use configurable casing rules to generate idiomatic code for the go target.
 
 Compound names that would use either CamelCase, snake_case or kebab-case depending on the
@@ -184,18 +194,20 @@ Expression Syntax
 -----------------
 
 Xelf must be very simple to parse. Infix notation is always harder to parse than s-expressions. So
-we naturally choose lisp style parenthesis enclosed expressions. The parenthesis always signify an
-expressions.
+we naturally choose lisp style parenthesis enclosed expressions. The parenthesis are also used for
+defining complex types. But apart from that always indicate that a resolver is called with the
+expression element.
 
 I would love to incorporate more parts of the lisp family of languages, but in many cases that does
 not work well when translating to the simpler targeted environments. Starting with logical
 expressions not resulting in booleans and ending at macros. Lisps are simply too powerful.
 
 Xelf has special handling for tag and declaration symbols within expressions. This is to avoid
-excessive nesting of expressions and achieve a comfortable level of expressiveness in a variety of
-contexts. Tag symbols that start with a colon and can be used for named arguments, node properties
-or similar things. Declaration symbols starting with a plus sign are used to signify variable,
-parameter or field names in declarations or when setting object fields or map elements by key.
+excessive nesting of expressions and to achieve a comfortable level of expressiveness in a variety
+of contexts. Tag symbols that start with a colon and can be used for named arguments, node
+properties or similar things. Declaration symbols starting with a plus sign are used to signify
+variables, parameters or field names in declarations or when setting object fields or map elements
+by key.
 
 There is a couple of predefined forms that resolvers can use to validate expression arguments.
 
@@ -225,9 +237,9 @@ refers to a global type schema and uses the schema prefix '~' for lookups from t
 Form types are flagged as reference types, they represent built-in resolvers that might not conform
 to a specific type signature and must be resolved as part of an expression.
 
-Unnamed references are inferred types and need to be inferred from context. They are mostly used
-in the resolution phase and may represent poly types by collecting candidates in the companion
-info object field list normally used by object types.
+Unnamed references are inferred types and need to be inferred from context. They are mostly used in
+the resolution phase and may represent poly types by collecting candidates in the companion field
+list normally used by object types.
 
 Normal type references refer to a literal in scope and represent the type of that literal.
 For type literals the referred to type is the types identity and not the typ type.
@@ -276,9 +288,9 @@ Tag and declaration expressions start with a tag or declaration symbol respectiv
 by the parent expression's resolver. They are formed automatically by the parser from tag and
 declaration symbols in expression arguments.
 
-Dynamic expressions are all expression where the resolver is not yet known and may start with a
-literal or sub expression. Dynamic expressions starting with a literal are transformed are resolved
-with a configurable dyn resolver.
+Dynamic expressions are expressions, where the resolver is yet unknown and may start with a literal
+or sub expression. Dynamic expressions starting with a literal are transformed are resolved with a
+configurable dyn resolver.
 
 The default dyn resolver resolves the first arg and delegates to another resolvers based on it. If
 the first argument is a type the expression is treated as the 'as' type conversion resolver. For
