@@ -6,21 +6,24 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+var (
+	formAnd  *Form
+	formBool *Form
+	formNot  *Form
+)
+
 func init() {
-	core.add("fail", typ.Infer, nil, rslvFail)
+	core.add("fail", typ.Any, nil, rslvFail)
 	core.add("or", typ.Bool, nil, rslvOr)
-	core.add("and", typ.Bool, nil, rslvAnd)
-	core.add("bool", typ.Bool, nil, rslvBool)
-	core.add("not", typ.Bool, nil, rslvNot)
+	formAnd = core.add("and", typ.Bool, nil, rslvAnd)
+	formBool = core.add("bool", typ.Bool, nil, rslvBool)
+	formNot = core.add("not", typ.Bool, nil, rslvNot)
 	core.add("if", typ.Infer, nil, rslvIf)
 }
 
-// rslvFail returns an error and set the expressions type to any.
-// If c is an execution context it fails expression string as error, otherwise it uses ErrUnres.
-//
-// This is primarily useful for testing.
+// rslvFail returns an error, if c is an execution context it fails expression string as error,
+// otherwise it uses ErrUnres. This is primarily useful for testing.
 func rslvFail(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	e.Type = typ.Any
 	if c.Exec {
 		return nil, cor.Errorf("%s", e)
 	}
@@ -39,19 +42,13 @@ func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	for i, arg := range e.Args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
-			e.Type = typ.Bool
 			if c.Part {
 				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{Ref: Ref{
-						Name: "bool",
-						Type: typ.Bool},
-						Args:     e.Args,
-						Resolver: ExprResolverFunc(rslvBool),
-					}
+					e = &Expr{formBool, e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -78,19 +75,13 @@ func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	for i, arg := range e.Args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
-			e.Type = typ.Bool
 			if c.Part {
 				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{Ref: Ref{
-						Name: "bool",
-						Type: typ.Bool},
-						Args:     e.Args,
-						Resolver: ExprResolverFunc(rslvBool),
-					}
+					e = &Expr{formBool, e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -156,21 +147,22 @@ func simplifyBool(e *Expr, args []El) *Expr {
 	if !ok {
 		return e
 	}
-	switch fst.Name {
-	case "bool", "not":
+	var f *Form
+	switch fst.Rslv {
+	case formBool:
+		if e.Rslv == formBool {
+			return fst
+		}
+		f = formNot
+	case formNot:
+		if e.Rslv == formBool {
+			return fst
+		}
+		f = formBool
 	default:
 		return e
 	}
-	if e.Name == "bool" {
-		return fst
-	}
-	res := *fst
-	if fst.Name == "bool" {
-		res.Name = "not"
-	} else {
-		res.Name = "bool"
-	}
-	return &res
+	return &Expr{f, fst.Args}
 }
 
 // rslvIf resolves the arguments as condition, action pairs as part of an if-else condition.

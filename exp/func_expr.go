@@ -29,7 +29,7 @@ func (f *ExprBody) WriteBfr(b bfr.Ctx) error {
 
 func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call, hint Type) (El, error) {
 	// build a parameter object from all arguments
-	ps := fc.Sig.FuncParams()
+	ps := fc.Sig.Params()
 	if len(ps) != len(fc.Args) {
 		// TODO allow implicit argument spread for the last param
 		return nil, cor.Error("argument mismatch")
@@ -81,7 +81,7 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call, hint Type) (El, error)
 			return fc.Expr, err
 		}
 	}
-	rt := fc.Sig.FuncResult()
+	rt := fc.Sig.Res()
 	if rt == typ.Void {
 		return rt, nil
 	}

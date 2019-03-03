@@ -22,6 +22,11 @@ var (
 	Dict = Type{Kind: BaseDict}
 
 	Infer = Type{Kind: KindRef}
+
+	Sym  = Type{Kind: ExpSym}
+	Dyn  = Type{Kind: ExpDyn}
+	Tag  = Type{Kind: ExpTag}
+	Decl = Type{Kind: ExpDecl}
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | FlagOpt, t.Info} }
@@ -33,13 +38,6 @@ func Ref(name string) Type  { return Type{KindRef, &Info{Ref: name}} }
 func Flag(name string) Type { return Type{KindFlag, &Info{Ref: name}} }
 func Enum(name string) Type { return Type{KindEnum, &Info{Ref: name}} }
 func Rec(n string) Type     { return Type{KindRec, &Info{Ref: n}} }
-
-func Func(params []Field, result Type) Type {
-	fs := make([]Field, 0, len(params)+1)
-	fs = append(fs, params...)
-	fs = append(fs, Field{Type: result})
-	return Type{KindFunc, &Info{Fields: fs}}
-}
 
 // IsOpt returns whether t is an optional type and not any.
 func (t Type) IsOpt() bool {
@@ -88,25 +86,4 @@ func (t Type) Ordered() bool {
 		return true
 	}
 	return false
-}
-
-// IsFunc returns whether t is a valid function type.
-func (t Type) IsFunc() bool {
-	return t.Kind == KindFunc && t.Info != nil && len(t.Fields) != 0
-}
-
-// FuncParams returns the parameter fields of function type t or nil.
-func (t Type) FuncParams() []Field {
-	if !t.IsFunc() {
-		return nil
-	}
-	return t.Fields[:len(t.Fields)-1]
-}
-
-// FuncResult returns the result type of function type t or void.
-func (t Type) FuncResult() Type {
-	if !t.IsFunc() {
-		return Void
-	}
-	return t.Fields[len(t.Fields)-1].Type
 }

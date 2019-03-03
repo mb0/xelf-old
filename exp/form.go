@@ -7,22 +7,55 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Form represents a from resolver and implements both literal and resolver interface.
-type Form struct {
-	Sig  Type
-	Rslv Resolver
+type Sig Type
+
+func AnonSig(args []typ.Field) Sig { return FuncSig("", args) }
+func FuncSig(name string, args []typ.Field) Sig {
+	return Sig{typ.ExpFunc, &typ.Info{Ref: name, Fields: args}}
+}
+func FormSig(name string, args []typ.Field) Sig {
+	return Sig{typ.ExpFunc, &typ.Info{Ref: name, Fields: args}}
 }
 
-func (f *Form) Typ() typ.Type  { return f.Sig }
-func (f *Form) IsZero() bool   { return false }
-func (f *Form) String() string { return bfr.String(f) }
-func (f *Form) WriteBfr(b bfr.Ctx) error {
-	b.WriteByte('(')
-	err := f.Sig.WriteBfr(b)
-	if err != nil {
-		return err
+func (s Sig) Typ() typ.Type { return typ.Type(s) }
+func (s Sig) IsZero() bool  { return s.Info == nil || len(s.Fields) == 0 }
+
+func (s Sig) Key() string {
+	if s.Info != nil {
+		return s.Ref
 	}
-	return b.WriteByte(')')
+	return ""
+}
+
+// Params returns the parameter fields or nil.
+func (s Sig) Params() []typ.Field {
+	if s.IsZero() {
+		return nil
+	}
+	return s.Fields[:len(s.Fields)-1]
+}
+
+// Res returns the result type or void.
+func (s Sig) Res() Type {
+	if s.IsZero() {
+		return typ.Void
+	}
+	return s.Fields[len(s.Fields)-1].Type
+}
+
+func (s Sig) String() string { return bfr.String(s) }
+func (s Sig) WriteBfr(b bfr.Ctx) error {
+	key := s.Key()
+	if key != "" {
+		return b.Fmt(key)
+	}
+	return typ.Type(s).WriteBfr(b)
+}
+
+// Form represents a from resolver and implements both literal and resolver interface.
+type Form struct {
+	Sig
+	Rslv Resolver
 }
 
 func (f *Form) MarshalJSON() ([]byte, error) {

@@ -56,7 +56,7 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if err != nil {
 		return nil, err
 	}
-	var sig Type
+	var sig Sig
 	if len(decls) == 0 {
 		// TODO infer signature
 		return nil, cor.Errorf("inferred fn expressions not implemented")
@@ -74,7 +74,7 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 			}
 			fs = append(fs, typ.Field{Name: d.Name[1:], Type: dt})
 		}
-		sig = Type{Kind: typ.KindFunc, Info: &typ.Info{Fields: fs}}
+		sig = Sig{Kind: typ.ExpFunc, Info: &typ.Info{Fields: fs}}
 	}
 	return &Func{sig, &ExprBody{tail, env}}, nil
 }

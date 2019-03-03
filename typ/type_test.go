@@ -27,10 +27,16 @@ func TestString(t *testing.T) {
 			{Name: "Name", Type: Str},
 		}), `(obj + @Other +Name str)`},
 		{Rec("Foo"), `(rec 'Foo')`},
-		{Func([]Field{
+		{Type{Kind: ExpFunc, Info: &Info{Fields: []Field{
 			{Name: "text", Type: Str},
 			{Name: "sub", Type: Str},
-		}, Int), `(func +text +sub str + int)`},
+			{Type: Int},
+		}}}, `(func +text +sub str + int)`},
+		{Type{Kind: ExpForm, Info: &Info{Ref: "_", Fields: []Field{
+			{Name: "a"},
+			{Name: "b"},
+			{Type: Void},
+		}}}, `(form '_' +a +b + void)`},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()

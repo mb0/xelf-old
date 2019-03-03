@@ -6,7 +6,6 @@ import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
-	"github.com/mb0/xelf/typ"
 )
 
 // Func is the common type for all function literals and implements both literal and resolver.
@@ -15,11 +14,10 @@ import (
 // it is called for printing the body expressions.
 // Resolution handles reference and delegates expression resolution to the body.
 type Func struct {
-	Sig  Type
+	Sig
 	Body Body
 }
 
-func (f *Func) Typ() typ.Type  { return f.Sig }
 func (f *Func) IsZero() bool   { return f.Body == nil }
 func (f *Func) String() string { return bfr.String(f) }
 func (f *Func) WriteBfr(b bfr.Ctx) error {
@@ -74,7 +72,7 @@ type Body interface {
 // Call encapsulates the expression details passed to a function body for resolution.
 type Call struct {
 	*Expr
-	Sig  Type
+	Sig  Sig
 	Args []Named
 }
 
@@ -84,7 +82,7 @@ func NewCall(f *Func, x *Expr) (*Call, error) {
 	if err != nil {
 		return nil, err
 	}
-	params := f.Sig.FuncParams()
+	params := f.Sig.Params()
 	if len(tags) > len(params) {
 		return nil, cor.Errorf("too many arguments")
 	}

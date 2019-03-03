@@ -15,6 +15,8 @@ type El interface {
 	WriteBfr(bfr.Ctx) error
 	// String returns the xelf representation as string.
 	String() string
+	// Typ returns the type
+	Typ() Type
 }
 
 type Named = struct {
@@ -37,29 +39,33 @@ type (
 		key  string
 	}
 
-	// Dyn represents an unresolved dynamic expression where the spec is not yet resolved.
+	// Dyn is a unresolved expression where a resolver has to be determined.
 	Dyn []El
 
-	// Tag is a tag element; its meaning is determined by the parent expression spec.
+	// Tag is a tag element; its meaning is determined by the parent's resolver.
 	Tag Named
 
-	// Decl is a declaration element; its meaning is determined by the parent expression spec.
+	// Decl is a declaration element; its meaning is determined by the parent's resolver.
 	Decl Named
 
-	// Expr is unresolved expression with a resolved spec.
+	// Expr is unresolved expression with  resolver is known.
 	Expr struct {
-		Ref
+		Rslv ExprResolver
 		Args []El
-		Resolver
 	}
 )
 
-func (s *Ref) Key() string {
-	if s.key == "" {
-		s.key = strings.ToLower(s.Name)
+func (r *Ref) Key() string {
+	if r.key == "" {
+		r.key = strings.ToLower(r.Name)
 	}
-	return s.key
+	return r.key
 }
+func (*Ref) Typ() Type    { return typ.Sym }
+func (Dyn) Typ() Type     { return typ.Dyn }
+func (Tag) Typ() Type     { return typ.Tag }
+func (Decl) Typ() Type    { return typ.Decl }
+func (x *Expr) Typ() Type { return x.Rslv.Typ() }
 
 // Env is a scoped symbol environment used to define and lookup resolvers by symbol.
 type Env interface {
@@ -100,10 +106,13 @@ type DynResolver interface {
 	ResolveDyn(c *Ctx, env Env, d Dyn, hint Type) (El, error)
 }
 
-//  Callable is the common interface of both function and form resolvers.
-type Callable interface {
+// ExprResolver is the common interface for both function and form resolvers.
+type ExprResolver interface {
 	Lit
 	Resolver
+	Key() string
+	Params() []typ.Field
+	Res() Type
 }
 
 // Ctx is the resolution context that defines the resolution level and collects information.
@@ -146,11 +155,18 @@ func (x Tag) String() string   { return bfr.String(x) }
 func (x Decl) String() string  { return bfr.String(x) }
 func (x *Expr) String() string { return bfr.String(x) }
 
-func (x *Ref) WriteBfr(b bfr.Ctx) error  { return b.Fmt(x.Name) }
-func (x Dyn) WriteBfr(b bfr.Ctx) error   { return writeExpr(b, "", x) }
-func (x Tag) WriteBfr(b bfr.Ctx) error   { return writeExpr(b, x.Name, x.Args) }
-func (x Decl) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, x.Name, x.Args) }
-func (x *Expr) WriteBfr(b bfr.Ctx) error { return writeExpr(b, x.Name, x.Args) }
+func (x *Ref) WriteBfr(b bfr.Ctx) error { return b.Fmt(x.Name) }
+func (x Dyn) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, "", x) }
+func (x Tag) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, x.Name, x.Args) }
+func (x Decl) WriteBfr(b bfr.Ctx) error { return writeExpr(b, x.Name, x.Args) }
+func (x *Expr) WriteBfr(b bfr.Ctx) error {
+	t := x.Rslv.Typ()
+	name := t.Key()
+	if name == "" {
+		name = t.String()
+	}
+	return writeExpr(b, name, x.Args)
+}
 
 func writeExpr(b bfr.Ctx, name string, args []El) error {
 	b.WriteByte('(')

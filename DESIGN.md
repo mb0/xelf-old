@@ -78,12 +78,15 @@ covered by type embedding and type references. Recursive obj and rec declaration
 type references to itself or an ancestor. Type references are implicitly used in the type inference
 and resolution phase.
 
-To make working with types easier in a language context there are also the void and typ type.
-
 The flag, enum and rec types are called schema types and are global references a type definition
 with additional information. The flag type is a integer type used as bit set with associated
 constants. The enum type is a string type with associated constants. A record is an object with a
 known schema.
+
+The void, typ and exp types are special types and are useful in a language context. The exp types
+provide a type signature for form, func types. They are otherwise used as a unversal indicator to
+differentiate between all language elements. This allows us to replace some type switches and
+assertions to use a simple interface call instead.
 
 The final naming of the types took a long time and serious consideration. Real does not imply
 a floating point precision as much as float does and fits the short naming schema. Dict implies
@@ -223,6 +226,18 @@ However the type names contain common short names that may occur in user code an
 reason symbols referring to scoped variables or resolver can use a path syntax to force scope
 lookup. This path syntax can also be used to select shadowed variables from a parent scope.
 
+While the above paragraphs provide valid points, I am uneasy about the number for keywords that the
+type names introduce. However, the type names are frequently used and should remain short and
+simple, however local declarations should not need special syntax either and should be able to
+declare variables that use a name already used by types.
+
+Types are mostly used in context where there are explicitly expected. Maybe we can introduce a rule
+stating that in those cases simple names are always treated as type, while every other case resolves
+the name in its environment, allowing shadowing. To still refer to types we would could reuse one of
+the special prefix '@' or '~', that are already associated with type resolution. The schema prefix
+'~' is a good choice because the predefined types can be considered an implicit part of the type
+schema. This means that we cannot use type names as schema names, which might be a good idea anyway.
+
 Type References
 ---------------
 
@@ -277,33 +292,37 @@ cheaper than type checks we add a method the environment, instead of using marke
 could expand the use of types for all expression elements to avoid type checking where the typed
 value is not required anyway.
 
-Expression Resolution
----------------------
+Expressions
+-----------
 
-Xelf expression elements can be literals including types, references or sub expressions.
-
-Sub expression can either be tag and declaration expressions or dynamic and normal expressions.
+Xelf language elements can be literals including types, symbols or expressions. Expression can
+either be tag and declaration expressions or dynamic and normal expressions. All elements share a
+common interface, that includes a sting and write bfr method as well as a type method. The returned
+type identifies the kind of the language element.
 
 Tag and declaration expressions start with a tag or declaration symbol respectively and are handled
 by the parent expression's resolver. They are formed automatically by the parser from tag and
 declaration symbols in expression arguments.
 
 Dynamic expressions are expressions, where the resolver is yet unknown and may start with a literal
-or sub expression. Dynamic expressions starting with a literal are transformed are resolved with a
-configurable dyn resolver.
-
-The default dyn resolver resolves the first arg and delegates to another resolvers based on it. If
-the first argument is a type the expression is treated as the 'as' type conversion resolver. For
-other literals a appropriate combination operator is used if available. Users can redefine and
-reuse the dyn resolver to add custom delegations.
-
-Dynamic expressions direct a considerable part of the resolution process, and provide a configurable
-way to extend the language with new syntax. Because the dyn resolver plays this central role
-it would be appropriate to avoid the lookup from the environment on every call. Changing the dyn
-resolver should be possible, but is unusual enough as to justify new resolution context. The
-context can have a custom dyn resolver set and otherwise falls back on a built-in default.
+or sub expression. Dynamic expressions starting with a literal are resolved with the configurable
+dyn resolver.
 
 Normal expressions are all expressions where the resolver is known.
+
+Expression Resolution
+---------------------
+
+Dynamic expressions direct a considerable part of the resolution process, and provide a configurable
+way to extend the language with new syntax. Because the dyn resolver plays this central role it does
+not use a lookup from the environment on every call and instead uses a reference in the resolution
+context or uses the default dyn resolver. Changing the dyn resolver is still possible by copying the
+context.
+
+The default dyn resolver resolves the first arg and delegates to a resolver based on it. If the
+first argument is func or form it is called directly. If it is a type the expression is treated as
+the 'as' type conversion resolver. For other literals a appropriate combination operator is used if
+available. Users can redefine and reuse the dyn resolver to add custom delegations.
 
 A resolver is free to choose how its arguments are typed and resolved and can even change the
 environment for subexpressions. There should only be one resolver interface for all aspects of

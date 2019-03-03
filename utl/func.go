@@ -103,5 +103,6 @@ func ReflectFunc(val interface{}, names ...string) (*exp.Func, error) {
 		}
 		res = xt
 	}
-	return &exp.Func{typ.Func(fs, res), &f}, nil
+	fs = append(fs, typ.Field{Type: res})
+	return &exp.Func{exp.AnonSig(fs), &f}, nil
 }

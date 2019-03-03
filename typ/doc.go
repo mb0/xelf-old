@@ -2,12 +2,12 @@
 Package typ provides a restricted but combinable type system.
 
 There are five groups of types that share some behaviour: numeric, character, list, dictionary and
-special types. Special types are void, any and ref, typ and func.
+special types. Special types are void, any, the special typ type represing a type literals and type
+references, as well as the exp types dyn, form, func, tag and decl.
 
-The other four groups each have a base type are num, char, list and dict.
-
-The base types are use when a specific type is not known or required. Base types can not be used in
-obj field, list or map declarations, but can be use in variable or parameter declarations.
+The other four groups each have a base type, which are num, char, list and dict. Base types are
+usually only used as long as no specific type cound be resolved. Their explicit use is discouraged.
+Specific types should be used whenever possible.
 
 There is a number of specific types for each base type:
     bool, int, real, time and span are numeric types
@@ -20,8 +20,8 @@ The character, numeric and the special types any and void are represented by the
     bool, any, time
 
 The time and span type represents a time or a time duration/interval/delta that can either be
-represented as numeric value in milliseconds since epoch or ms delta or in a character format
-as specified in the cor package.
+represented as numeric value in milliseconds since epoch and ms delta or in a character format
+as specified in the cor package. Their default representation is the character format.
 
 The arr and map types have a type slot and can be nested at most seven times. These types are
 represented by their name appended by a pipe and the slot type:
@@ -29,7 +29,7 @@ represented by their name appended by a pipe and the slot type:
     arr|int, map|bool, arr|arr|arr|int, map|arr|map|arr|map|arr|str
 
 
-The obj type has a sequence of field, that can be accessed by name or index, therefor an obj is
+The obj type has a sequence of fields, that can be accessed by name or index, therefor an obj is
 both a list and dictionary type. The obj type must have field declarations and be enclosed in
 parenthesis. A field declaration consists of the declaration name starting with plus sign and the
 field type definition. Optional fields have names ending with a question mark, otherwise a field is
@@ -37,15 +37,16 @@ required.
 
     (obj +x +y +z? int), (arr|obj +name str +val any +extra? any)
 
-Optional types are nullable type-variants. The any, list, dict, arr and map types are always
-optional and the void type never is. All other types can be marked as optional by a question mark
-suffix.
+Optional types are nullable type-variants. The any, list, dict, arr, map and exp types are always
+optional and the void and typ and exp types never are. All the other primitive, object and reference
+types can be marked as optional by a question mark suffix.
 
     (obj +top10 (arr|obj? +name str +score int?) +err str?)
 
-The function type represents a function signature represented by the info fields. The last field
-signifies the result type and is usually unnamed. All the previous fields can represent the
-function parameters and can be named.
+The exp types form and func aso use the field declaration syntax used as parameter and result type
+signature. The last field signifies the result type and is usually unnamed. All other fields
+represent the parameters. Function parameters must have a type and can be named. The form type
+must be name and it can use untype parameters.
 
 Type references start with an at sign '@name' and represent the type of what 'name' resolves to.
 References need to be resolved in a declaration context for this reason.

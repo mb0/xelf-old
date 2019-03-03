@@ -14,24 +14,28 @@ func TestReflectFunc(t *testing.T) {
 	tests := []struct {
 		fun   interface{}
 		names []string
-		typ   typ.Type
+		typ   exp.Sig
 		err   bool
 	}{
-		{strings.ToLower, nil, typ.Func([]typ.Field{
-			{Type: typ.Str},
-		}, typ.Str), false},
-		{strings.Split, nil, typ.Func([]typ.Field{
+		{strings.ToLower, nil, exp.AnonSig([]typ.Field{
 			{Type: typ.Str},
 			{Type: typ.Str},
-		}, typ.Arr(typ.Str)), false},
-		{time.Parse, nil, typ.Func([]typ.Field{
+		}), false},
+		{strings.Split, nil, exp.AnonSig([]typ.Field{
 			{Type: typ.Str},
 			{Type: typ.Str},
-		}, typ.Time), true},
-		{time.Time.Format, []string{"t", "format"}, typ.Func([]typ.Field{
+			{Type: typ.Arr(typ.Str)},
+		}), false},
+		{time.Parse, nil, exp.AnonSig([]typ.Field{
+			{Type: typ.Str},
+			{Type: typ.Str},
+			{Type: typ.Time},
+		}), true},
+		{time.Time.Format, []string{"t", "format"}, exp.AnonSig([]typ.Field{
 			{Name: "t", Type: typ.Time},
 			{Name: "format", Type: typ.Str},
-		}, typ.Str), false},
+			{Type: typ.Str},
+		}), false},
 	}
 	for _, test := range tests {
 		r, err := ReflectFunc(test.fun, test.names...)
@@ -39,7 +43,7 @@ func TestReflectFunc(t *testing.T) {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
 		}
-		if !test.typ.Equal(r.Sig) {
+		if !test.typ.Equal(r.Sig.Info) {
 			t.Errorf("for %T want param %s got %s", test.fun, test.typ, r.Sig)
 		}
 		b := r.Body.(*ReflectBody)

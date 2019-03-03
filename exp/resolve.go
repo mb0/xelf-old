@@ -58,7 +58,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 				c.Unres = append(c.Unres, x)
 				return x, err
 			}
-		} else if last.Kind == typ.KindFunc {
+		} else if last.Kind == typ.ExpFunc {
 			// TODO resolve func signatures
 		}
 		return v, err
@@ -75,7 +75,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	case Dyn:
 		return c.resolveDyn(env, v, hint)
 	case *Expr:
-		return v.Resolve(c, env, v, hint)
+		return v.Rslv.Resolve(c, env, v, hint)
 	}
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
 }
@@ -214,8 +214,8 @@ func elType(el El) (Type, error) {
 			return et.Type, nil
 		}
 	case *Expr:
-		if et.Type != typ.Void {
-			return et.Type, nil
+		if t := et.Rslv.Res(); t != typ.Void {
+			return t, nil
 		}
 	}
 	return typ.Void, ErrUnres

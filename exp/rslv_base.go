@@ -8,8 +8,6 @@ func (r TypedUnresolver) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	switch v := e.(type) {
 	case *Ref:
 		v.Type = r.Type
-	case *Expr:
-		v.Type = r.Type
 	}
 	return e, ErrUnres
 }

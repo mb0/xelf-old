@@ -44,7 +44,7 @@ const (
 	KindRef  = FlagRef
 	KindAny  = FlagOpt
 	KindTyp  = Spec1
-	KindFunc = Spec2
+	KindExp  = Spec2
 
 	KindBool = BaseNum | Spec1
 	KindInt  = BaseNum | Spec2
@@ -61,10 +61,17 @@ const (
 	KindMap = BaseDict | Spec1
 	KindObj = BaseDict | BaseList | Spec1
 
-	KindForm = FlagRef | KindFunc
 	KindFlag = FlagRef | KindInt
 	KindEnum = FlagRef | KindStr
 	KindRec  = FlagRef | KindObj
+)
+const (
+	ExpDyn  = KindExp | BaseList<<SlotSize
+	ExpForm = KindExp | BaseDict<<SlotSize
+	ExpFunc = KindExp | KindObj<<SlotSize
+	ExpSym  = KindExp | KindAny<<SlotSize
+	ExpTag  = KindExp | KindStr<<SlotSize
+	ExpDecl = KindExp | KindRaw<<SlotSize
 )
 
 func ParseKind(str string) (Kind, error) {
@@ -87,14 +94,22 @@ func ParseKind(str string) (Kind, error) {
 		return KindAny, nil
 	case "typ":
 		return KindTyp, nil
-	case "func":
-		return KindFunc, nil
-	case "form":
-		return KindForm, nil
 	case "list":
 		return BaseList, nil
 	case "dict":
 		return BaseDict, nil
+	case "sym":
+		return ExpSym, nil
+	case "dyn":
+		return ExpDyn, nil
+	case "form":
+		return ExpForm, nil
+	case "func":
+		return ExpFunc, nil
+	case "tag":
+		return ExpTag, nil
+	case "decl":
+		return ExpDecl, nil
 	}
 	var kk Kind
 	if str[len(str)-1] == '?' {
@@ -194,10 +209,21 @@ func simpleStr(k Kind) string {
 		return "any"
 	case KindTyp:
 		return "typ"
-	case KindFunc:
-		return "func"
-	case KindForm:
-		return "form"
+	case KindExp:
+		switch k {
+		case ExpSym:
+			return "sym"
+		case ExpDyn:
+			return "dyn"
+		case ExpForm:
+			return "form"
+		case ExpFunc:
+			return "func"
+		case ExpTag:
+			return "tag"
+		case ExpDecl:
+			return "decl"
+		}
 	}
 	switch k & MaskRef {
 	case KindRef:
@@ -242,8 +268,7 @@ var kindConsts = []cor.Const{
 	{"Ref", int64(KindRef)},
 	{"Any", int64(KindAny)},
 	{"Typ", int64(KindTyp)},
-	{"Func", int64(KindFunc)},
-	{"Form", int64(KindForm)},
+	{"Exp", int64(KindExp)},
 	{"Bool", int64(KindBool)},
 	{"Int", int64(KindInt)},
 	{"Real", int64(KindReal)},

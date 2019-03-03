@@ -8,9 +8,11 @@ import (
 
 var errAsType = cor.StrError("the 'as' expression must start with a type")
 
+var formAs *Form
+
 func init() {
-	core.add("dyn", typ.Bool, nil, rslvDyn)
-	core.add("as", typ.Bool, nil, rslvAs)
+	core.add("dyn", typ.Infer, nil, rslvDyn)
+	formAs = core.add("as", typ.Bool, nil, rslvAs)
 }
 
 // rslvDyn resolves a dynamic expressions. If the first element resolves to a type it is
@@ -27,25 +29,27 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	if len(d) == 0 {
 		return typ.Void, nil
 	}
-	var ref Ref
 	fst := d[0]
 	switch v := fst.(type) {
 	case *Ref:
 		fst, err = c.Resolve(env, v, typ.Void)
-		ref = *v
 	case *Expr:
 		fst, err = c.Resolve(env, v, typ.Void)
 	case Dyn:
-		fst, err = rslvDyn(c, env, &Expr{Args: v}, typ.Void)
+		if len(v) == 0 {
+			return typ.Void, nil
+		}
+		fst, err = defaultDyn(c, env, v, typ.Void)
 	}
 	if err != nil {
 		return d, err
 	}
+	var rslv Resolver
 	var sym string
 	args := d
 	switch v := fst.(type) {
-	case Callable:
-		return v.Resolve(c, env, &Expr{ref, args[1:], v}, hint)
+	case ExprResolver:
+		rslv, args = v, args[1:]
 	case Type:
 		sym = "as"
 		if v == typ.Bool {
@@ -69,9 +73,10 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if sym != "" {
-		if rslv := Lookup(env, sym); rslv != nil {
-			return rslv.Resolve(c, env, &Expr{Ref{Name: sym}, args, rslv}, hint)
-		}
+		rslv = Lookup(env, sym)
+	}
+	if xr, ok := rslv.(ExprResolver); ok {
+		return rslv.Resolve(c, env, &Expr{xr, args}, hint)
 	}
 	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", d[0])
 }
