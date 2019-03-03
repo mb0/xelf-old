@@ -19,7 +19,7 @@ func TestParse(t *testing.T) {
 		{`null`, lit.Nil},
 		{`1`, lit.Num(1)},
 		{`bool`, typ.Bool},
-		{`name`, &Ref{Name: "name"}},
+		{`name`, &Sym{Name: "name"}},
 		{`(false)`, lit.False},
 		{`(int 1)`, Dyn{typ.Int, lit.Num(1)}},
 		{`(bool 1)`, Dyn{typ.Bool, lit.Num(1)}},
@@ -30,14 +30,14 @@ func TestParse(t *testing.T) {
 		})},
 		{`('Hello ' $Name '!')`, Dyn{
 			lit.Char("Hello "),
-			&Ref{Name: "$Name"},
+			&Sym{Name: "$Name"},
 			lit.Char("!"),
 		}},
 		{`(a :b +c d)`, Dyn{
-			&Ref{Name: "a"},
+			&Sym{Name: "a"},
 			Tag{Name: ":b"},
 			Decl{Name: "+c", Args: []El{
-				&Ref{Name: "d"},
+				&Sym{Name: "d"},
 			}},
 		}},
 		{`((1 2) 1 2)`, Dyn{

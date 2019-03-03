@@ -30,12 +30,11 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 		return typ.Void, nil
 	}
 	fst := d[0]
-	switch v := fst.(type) {
-	case *Ref:
-		fst, err = c.Resolve(env, v, typ.Void)
-	case *Expr:
-		fst, err = c.Resolve(env, v, typ.Void)
-	case Dyn:
+	switch t := fst.Typ(); t.Kind {
+	case typ.ExpSym, typ.ExpForm, typ.ExpFunc:
+		fst, err = c.Resolve(env, fst, typ.Void)
+	case typ.ExpDyn:
+		v := fst.(Dyn)
 		if len(v) == 0 {
 			return typ.Void, nil
 		}
@@ -44,22 +43,25 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	if err != nil {
 		return d, err
 	}
-	var rslv Resolver
+	var xr ExprResolver
 	var sym string
 	args := d
-	switch v := fst.(type) {
-	case ExprResolver:
-		rslv, args = v, args[1:]
-	case Type:
+	switch t := fst.Typ(); t.Kind & typ.MaskElem {
+	case typ.KindTyp:
 		sym = "as"
-		if v == typ.Bool {
+		if fst == typ.Bool {
 			sym, args = "bool", args[1:]
 		}
-	case Lit:
-		if len(d) == 1 {
-			return v, nil
+	case typ.KindExp:
+		r, ok := fst.(ExprResolver)
+		if ok {
+			xr, args = r, args[1:]
 		}
-		switch v.Typ().Kind & typ.MaskElem {
+	default:
+		if len(d) == 1 {
+			return fst, nil
+		}
+		switch t.Kind & typ.MaskElem {
 		case typ.KindBool:
 			sym = "and"
 		case typ.BaseNum, typ.KindInt, typ.KindReal, typ.KindSpan:
@@ -73,10 +75,13 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if sym != "" {
-		rslv = Lookup(env, sym)
+		r, ok := Lookup(env, sym).(ExprResolver)
+		if ok {
+			xr = r
+		}
 	}
-	if xr, ok := rslv.(ExprResolver); ok {
-		return rslv.Resolve(c, env, &Expr{xr, args}, hint)
+	if xr != nil {
+		return xr.Resolve(c, env, &Expr{xr, args}, hint)
 	}
 	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", d[0])
 }

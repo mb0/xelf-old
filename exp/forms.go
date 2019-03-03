@@ -1,6 +1,9 @@
 package exp
 
-import "github.com/mb0/xelf/cor"
+import (
+	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/typ"
+)
 
 var (
 	ErrArgCount  = cor.StrError("unexpected argument count")
@@ -21,10 +24,10 @@ var (
 // ArgsForm accepts only plain elements.
 func ArgsForm(es []El) error {
 	for _, e := range es {
-		switch e.(type) {
-		case Tag:
+		switch e.Typ() {
+		case typ.Tag:
 			return ErrRogueTag
-		case Decl:
+		case typ.Decl:
 			return ErrRogueDecl
 		}
 	}
@@ -47,24 +50,17 @@ func ArgsExact(es []El, n int) error {
 	return ArgsForm(es)
 }
 
-// ArgsMinMax accepts at least min and at most max plain elements.
-func ArgsMinMax(es []El, min, max int) error {
-	if len(es) < min || len(es) > max {
-		return ErrArgCount
-	}
-	return ArgsForm(es)
-}
-
 // TagsForm accepts leading plain elements and then tag expressions after that.
 // This is similar to how most languages use named function arguments.
 func TagsForm(es []El) ([]Tag, error) {
 	var tag bool
 	tags := make([]Tag, 0, len(es))
 	for i, e := range es {
-		switch v := e.(type) {
-		case Decl:
+		switch e.Typ() {
+		case typ.Decl:
 			return nil, ErrRogueDecl
-		case Tag:
+		case typ.Tag:
+			v := e.(Tag)
 			if v.Name == "::" && len(v.Args) > 0 {
 				return nil, ErrRogueTail
 			}
@@ -85,13 +81,14 @@ func TagsForm(es []El) ([]Tag, error) {
 func NodeForm(es []El) (tags []Tag, list []El, _ error) {
 	var tail bool
 	for i, e := range es {
-		switch v := e.(type) {
-		case Decl:
+		switch e.Typ() {
+		case typ.Decl:
 			return nil, nil, ErrRogueDecl
-		case Tag:
+		case typ.Tag:
 			if tail {
 				return nil, nil, ErrTailTag
 			}
+			v := e.(Tag)
 			if v.Name == "::" {
 				if i != len(es)-1 {
 					return nil, nil, ErrRogueTail
@@ -117,8 +114,9 @@ func UniDeclForm(es []El) ([]Decl, error) {
 	var naked int
 	decls := make([]Decl, 0, len(es))
 	for _, e := range es {
-		switch v := e.(type) {
-		case Decl:
+		switch e.Typ() {
+		case typ.Decl:
+			v := e.(Decl)
 			switch len(v.Args) {
 			case 0:
 				naked++
@@ -132,7 +130,7 @@ func UniDeclForm(es []El) ([]Decl, error) {
 			default:
 				return nil, ErrRogueTail
 			}
-		case Tag:
+		case typ.Tag:
 			return nil, ErrRogueTag
 		default:
 			return nil, ErrRogueEl
@@ -152,11 +150,12 @@ func UniDeclRest(es []El) (decls []Decl, list []El, _ error) {
 	decls = make([]Decl, 0, len(es))
 	var tail bool
 	for i, e := range es {
-		switch v := e.(type) {
-		case Decl:
+		switch e.Typ() {
+		case typ.Decl:
 			if tail {
 				return nil, nil, ErrTailDecl
 			}
+			v := e.(Decl)
 			switch len(v.Args) {
 			case 0:
 				naked++
@@ -179,7 +178,7 @@ func UniDeclRest(es []El) (decls []Decl, list []El, _ error) {
 				}
 				decls = append(decls, v)
 			}
-		case Tag:
+		case typ.Tag:
 			return nil, nil, ErrRogueTag
 		default:
 			tail = true
@@ -200,14 +199,15 @@ func ArgsDeclForm(es []El) ([]El, []Decl, error) {
 	decls := make([]Decl, 0, len(es))
 	var decl bool
 	for i, e := range es {
-		switch v := e.(type) {
-		case Decl:
+		switch e.Typ() {
+		case typ.Decl:
 			if !decl {
 				es = es[:i]
 				decl = true
 			}
+			v := e.(Decl)
 			decls = append(decls, v)
-		case Tag:
+		case typ.Tag:
 			return nil, nil, ErrRogueTag
 		default:
 			if decl {
@@ -224,14 +224,15 @@ func TagsDeclForm(es []El) ([]Tag, []Decl, error) {
 	decls := make([]Decl, 0, len(es))
 	var tag, decl bool
 	for i, e := range es {
-		switch v := e.(type) {
-		case Decl:
+		switch e.Typ() {
+		case typ.Decl:
 			decl = true
-			decls = append(decls, v)
-		case Tag:
+			decls = append(decls, e.(Decl))
+		case typ.Tag:
 			if decl {
 				return nil, nil, ErrTailTag
 			}
+			v := e.(Tag)
 			if v.Name == "::" && len(v.Args) > 0 {
 				return nil, nil, ErrRogueTail
 			}
@@ -256,14 +257,15 @@ func FullForm(es []El) ([]Tag, []Decl, []El, error) {
 		if end {
 			return nil, nil, nil, ErrRogueTail
 		}
-		switch v := e.(type) {
-		case Decl:
+		switch e.Typ() {
+		case typ.Decl:
 			decl = true
-			decls = append(decls, v)
-		case Tag:
+			decls = append(decls, e.(Decl))
+		case typ.Tag:
 			if decl {
 				return tags, decls, es[i:], nil
 			}
+			v := e.(Tag)
 			if v.Name == "::" {
 				if i != len(es)-1 {
 					return nil, nil, nil, ErrRogueTail

@@ -6,6 +6,7 @@ import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
+	"github.com/mb0/xelf/typ"
 )
 
 // Func is the common type for all function literals and implements both literal and resolver.
@@ -48,10 +49,10 @@ func (f *Func) MarshalJSON() ([]byte, error) {
 }
 
 func (f *Func) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
-	switch x := e.(type) {
-	case *Ref:
+	if e.Typ() == typ.Sym {
 		return f, nil
-	case *Expr:
+	}
+	if x, ok := e.(*Expr); ok {
 		if f.Body == nil {
 			return e, ErrUnres
 		}

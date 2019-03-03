@@ -30,7 +30,7 @@ func Parse(a *lex.Tree) (El, error) {
 		if err == nil {
 			return t, nil
 		}
-		return &Ref{Name: a.Val}, nil
+		return &Sym{Name: a.Val}, nil
 	case '(':
 		if len(a.Seq) == 0 { // empty expression is void
 			return typ.Void, nil

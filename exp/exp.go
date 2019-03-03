@@ -32,8 +32,8 @@ type (
 	// Lit is a literal as defined in package lit.
 	Lit = lit.Lit
 
-	// Ref is a unresolved symbol that refers to an element.
-	Ref struct {
+	// Sym is a unresolved symbol that refers to an element.
+	Sym struct {
 		Name string
 		Type Type
 		key  string
@@ -55,13 +55,13 @@ type (
 	}
 )
 
-func (r *Ref) Key() string {
+func (r *Sym) Key() string {
 	if r.key == "" {
 		r.key = strings.ToLower(r.Name)
 	}
 	return r.key
 }
-func (*Ref) Typ() Type    { return typ.Sym }
+func (*Sym) Typ() Type    { return typ.Sym }
 func (Dyn) Typ() Type     { return typ.Dyn }
 func (Tag) Typ() Type     { return typ.Tag }
 func (Decl) Typ() Type    { return typ.Decl }
@@ -149,13 +149,13 @@ func (c Ctx) WithExec(val bool) *Ctx {
 	return &c
 }
 
-func (x *Ref) String() string  { return bfr.String(x) }
+func (x *Sym) String() string  { return bfr.String(x) }
 func (x Dyn) String() string   { return bfr.String(x) }
 func (x Tag) String() string   { return bfr.String(x) }
 func (x Decl) String() string  { return bfr.String(x) }
 func (x *Expr) String() string { return bfr.String(x) }
 
-func (x *Ref) WriteBfr(b bfr.Ctx) error { return b.Fmt(x.Name) }
+func (x *Sym) WriteBfr(b bfr.Ctx) error { return b.Fmt(x.Name) }
 func (x Dyn) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, "", x) }
 func (x Tag) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, x.Name, x.Args) }
 func (x Decl) WriteBfr(b bfr.Ctx) error { return writeExpr(b, x.Name, x.Args) }

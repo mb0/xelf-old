@@ -47,10 +47,12 @@ func (c *Ctx) ResolveAll(env Env, els []El, hint Type) ([]El, error) {
 // The resolver implementations usually use this method either directly or indirectly to resolve
 // arguments, which are then again added to the unresolved elements when appropriate.
 func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
-	switch v := x.(type) {
-	case nil:
+	if x == nil {
 		return typ.Void, nil
-	case Type: // resolve type references
+	}
+	switch t := x.Typ(); t.Kind {
+	case typ.KindTyp: // resolve type references
+		v := x.(Type)
 		last := v.Last()
 		if last.Kind&typ.FlagRef != 0 {
 			v, err = c.resolveTypRef(env, v, last)
@@ -62,20 +64,21 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 			// TODO resolve func signatures
 		}
 		return v, err
-	case Lit: // already resolved
-		return v, nil
-	case *Ref:
-		return c.resolveRef(env, v, hint)
-	case Tag:
-		_, err = c.ResolveAll(env, v.Args, typ.Void)
-		return v, err
-	case Decl:
-		_, err = c.ResolveAll(env, v.Args, typ.Void)
-		return v, err
-	case Dyn:
-		return c.resolveDyn(env, v, hint)
-	case *Expr:
+	case typ.ExpSym:
+		return c.resolveRef(env, x.(*Sym), hint)
+	case typ.ExpTag:
+		_, err = c.ResolveAll(env, x.(Tag).Args, typ.Void)
+		return x, err
+	case typ.ExpDecl:
+		_, err = c.ResolveAll(env, x.(Decl).Args, typ.Void)
+		return x, err
+	case typ.ExpDyn:
+		return c.resolveDyn(env, x.(Dyn), hint)
+	case typ.ExpForm, typ.ExpFunc:
+		v := x.(*Expr)
 		return v.Rslv.Resolve(c, env, v, hint)
+	default: // already resolved
+		return x, nil
 	}
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
 }
@@ -87,7 +90,7 @@ func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
 	return defaultDyn(c, env, d, hint)
 }
 
-func (c *Ctx) resolveRef(env Env, ref *Ref, hint Type) (El, error) {
+func (c *Ctx) resolveRef(env Env, ref *Sym, hint Type) (El, error) {
 	sym := ref.Key()
 	r, name, path, err := findResolver(env, sym)
 	if r == nil || err == ErrUnres {
@@ -99,7 +102,7 @@ func (c *Ctx) resolveRef(env Env, ref *Ref, hint Type) (El, error) {
 	}
 	tmp := ref
 	if sym != name {
-		tmp = &Ref{Name: name}
+		tmp = &Sym{Name: name}
 	}
 	res, err := r.Resolve(c, env, tmp, typ.Void)
 	if err != nil {
@@ -132,7 +135,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type, last Type) (_ Type, err error) {
 		}
 		key = "~" + key
 	}
-	res, err := c.resolveRef(env, &Ref{Name: key}, typ.Void)
+	res, err := c.resolveRef(env, &Sym{Name: key}, typ.Void)
 	if err != nil {
 		return t, err
 	}
@@ -204,19 +207,21 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 }
 
 func elType(el El) (Type, error) {
-	switch et := el.(type) {
-	case Type:
-		return et, nil
-	case Lit:
-		return et.Typ(), nil
-	case *Ref:
-		if et.Type != typ.Void {
-			return et.Type, nil
-		}
-	case *Expr:
-		if t := et.Rslv.Res(); t != typ.Void {
+	switch t := el.Typ(); t.Kind {
+	case typ.KindTyp:
+		return el.(Type), nil
+	case typ.ExpSym:
+		s := el.(*Sym)
+		if t := s.Type; t != typ.Void {
 			return t, nil
 		}
+	case typ.ExpForm, typ.ExpFunc:
+		x := el.(*Expr)
+		if t := x.Rslv.Res(); t != typ.Void {
+			return t, nil
+		}
+	default:
+		return t, nil
 	}
 	return typ.Void, ErrUnres
 }

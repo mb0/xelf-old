@@ -6,7 +6,7 @@ type TypedUnresolver struct{ Type }
 
 func (r TypedUnresolver) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	switch v := e.(type) {
-	case *Ref:
+	case *Sym:
 		v.Type = r.Type
 	}
 	return e, ErrUnres
@@ -19,7 +19,7 @@ type LitResolver struct{ Lit }
 func (r LitResolver) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	switch x := e.(type) {
 	case *Expr:
-		return c.Resolve(env, append(Dyn{r.Lit}, x.Args...), hint)
+		return c.resolveDyn(env, append(Dyn{r.Lit}, x.Args...), hint)
 	}
 	return r.Lit, nil
 }
