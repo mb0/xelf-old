@@ -57,6 +57,9 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	args := d
 	switch t := fst.Typ(); t.Kind & typ.MaskElem {
 	case typ.KindTyp:
+		if fst == typ.Void {
+			return fst, nil
+		}
 		sym = "as"
 		if fst == typ.Bool {
 			sym, args = "bool", args[1:]
@@ -67,7 +70,6 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 			xr, args = r, args[1:]
 		}
 	default:
-
 		if len(d) == 1 && t.Kind&typ.MaskBase != 0 {
 			return fst, nil
 		}

@@ -3,6 +3,7 @@ package exp
 import (
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/typ"
 )
 
 var (
@@ -24,14 +25,29 @@ type Builtin []LookupFunc
 // Parent always returns nil for the built-in lookups
 func (Builtin) Parent() Env { return nil }
 
-// Supports returns always false for the built-in lookups
-func (Builtin) Supports(byte) bool { return false }
+// Supports returns true for built-in schema type lookups
+func (Builtin) Supports(x byte) bool { return x == '~' }
 
 // Def always returns ErrNoDefEnv for the built-in lookups
 func (Builtin) Def(string, Resolver) error { return ErrNoDefEnv }
 
 // Get returns a resolver for the given sym
 func (b Builtin) Get(sym string) Resolver {
+	// check schema prefix
+	schema := sym[0] == '~'
+	if schema {
+		sym = sym[1:]
+	}
+	if schema || sym != "bool" {
+		t, err := typ.ParseSym(sym)
+		if err == nil {
+			return LitResolver{t}
+		}
+		if schema {
+			return nil
+		}
+	}
+	// lookup type
 	for _, f := range b {
 		r := f(sym)
 		if r != nil {

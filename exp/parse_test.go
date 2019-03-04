@@ -20,7 +20,7 @@ func TestParse(t *testing.T) {
 		{`1`, lit.Num(1)},
 		{`bool`, typ.Bool},
 		{`name`, &Sym{Name: "name"}},
-		{`(false)`, lit.False},
+		{`(false)`, Dyn{lit.False}},
 		{`(int 1)`, Dyn{typ.Int, lit.Num(1)}},
 		{`(bool 1)`, Dyn{typ.Bool, lit.Num(1)}},
 		{`(bool (() comment) 1)`, Dyn{typ.Bool, lit.Num(1)}},
