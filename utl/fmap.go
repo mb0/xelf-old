@@ -22,7 +22,7 @@ func MustReflectFmap(m Fmap) exp.LookupFunc {
 func ReflectFmap(m Fmap) (exp.LookupFunc, error) {
 	res := make(map[string]exp.Resolver, len(m))
 	for key, val := range m {
-		f, err := ReflectFunc(val)
+		f, err := ReflectFunc(key, val)
 		if err != nil {
 			return nil, err
 		}

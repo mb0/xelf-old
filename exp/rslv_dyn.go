@@ -18,7 +18,8 @@ func init() {
 	}, rslvDyn)
 	formAs = core.add("as", []typ.Param{
 		{Name: "t", Type: typ.Typ},
-		{Name: "rest"},
+		{Name: "args", Type: typ.List},
+		{Name: "unis", Type: typ.Dict},
 		{Type: typ.Infer},
 	}, rslvAs)
 }
@@ -100,46 +101,43 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 //    With one literal compatible to that type it returns the converted literal.
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
-// (form +t typ +rest? list - @t)
+// (form +t typ +args list +unis dict - @t)
 func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	if len(e.Args) == 0 {
-		return nil, errAsType
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+	if err != nil {
+		return nil, err
 	}
-	targ, err := c.Resolve(env, e.Args[0], typ.Typ)
+	// resolve all arguments
+	err = lo.Resolve(c, env)
 	if err != nil {
 		return e, err
 	}
-	t, ok := targ.(Type)
+	t, ok := lo.Arg(0).(Type)
 	if !ok {
 		return nil, errAsType
 	}
 	if t == typ.Void { // just in case we have a dynamic comment
-		return nil, nil
+		return typ.Void, nil
 	}
-	args := e.Args[1:]
+	args := lo.Args(1)
+	decls, err := lo.Unis(2)
+	if err != nil {
+		return nil, err
+	}
 	// first rule: return zero literal
-	if len(args) == 0 {
+	if len(args) == 0 && len(decls) == 0 {
 		return lit.Zero(t), nil
 	}
-	// resolve all arguments
-	args, err = c.ResolveAll(env, args, typ.Any)
-	if err != nil {
-		return e, err
-	}
-	fst, ok := args[0].(Lit)
 	// second rule: convert compatible literals
-	if ok && len(args) == 1 {
+	if len(args) == 1 && len(decls) == 0 {
+		fst := args[0].(Lit)
 		res, err := lit.Convert(fst, t, 0)
 		if err == nil {
 			return res, nil
 		}
 	}
 	// third rule: set declarations
-	if !ok && t.Kind&typ.BaseDict != 0 {
-		decls, err := UniDeclForm(args)
-		if err != nil {
-			return nil, err
-		}
+	if t.Kind&typ.BaseDict != 0 {
 		res := deopt(lit.Zero(t)).(lit.Keyer)
 		for _, d := range decls {
 			el, ok := d.Args[0].(Lit)

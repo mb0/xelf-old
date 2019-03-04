@@ -16,20 +16,24 @@ type ReflectBody struct {
 	err   bool
 }
 
-func (f *ReflectBody) ResolveFunc(c *exp.Ctx, env exp.Env, fc *exp.Call, h typ.Type) (exp.El, error) {
+func (f *ReflectBody) ResolveFunc(c *exp.Ctx, env exp.Env, x *exp.Expr, h typ.Type) (exp.El, error) {
+	call, err := exp.FuncArgs(x)
+	if err != nil {
+		return nil, err
+	}
 	args := make([]reflect.Value, len(f.ptyps))
 	for i, pt := range f.ptyps {
 		v := reflect.New(pt)
 		args[i] = v.Elem()
-		n := fc.Args[i]
-		if len(n.Args) == 0 {
+		n := call[i]
+		if len(n) == 0 {
 			// reflect already provides a zero value
 			continue
 		}
-		// resolve tag arg
-		l, err := c.Resolve(env, n.Args[0], typ.Void)
+		// resolve arg
+		l, err := c.Resolve(env, n[0], typ.Void)
 		if err != nil {
-			return fc.Expr, err
+			return x, err
 		}
 		err = lit.AssignToValue(l.(lit.Lit), v)
 		if err != nil {
@@ -57,7 +61,7 @@ var refErr = reflect.TypeOf((*error)(nil)).Elem()
 
 // ReflectFunc reflects val and returns a function literal or an error.
 // The names are optionally and associated to the arguments by index.
-func ReflectFunc(val interface{}, names ...string) (*exp.Func, error) {
+func ReflectFunc(name string, val interface{}, names ...string) (*exp.Func, error) {
 	f := ReflectBody{val: reflect.ValueOf(val)}
 	if f.val.Kind() != reflect.Func {
 		return nil, cor.Errorf("expect function argument got %T", val)
@@ -104,5 +108,5 @@ func ReflectFunc(val interface{}, names ...string) (*exp.Func, error) {
 		res = xt
 	}
 	fs = append(fs, typ.Param{Type: res})
-	return &exp.Func{exp.AnonSig(fs), &f}, nil
+	return &exp.Func{exp.FuncSig(name, fs), &f}, nil
 }

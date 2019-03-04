@@ -56,51 +56,44 @@ func (f *Func) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 		if f.Body == nil {
 			return e, ErrUnres
 		}
-		fc, err := NewCall(f, x)
-		if err != nil {
-			return nil, err
-		}
-		return f.Body.ResolveFunc(c, env, fc, hint)
+		return f.Body.ResolveFunc(c, env, x, hint)
 	}
 	return nil, cor.Errorf("unexpected element %T", e)
 }
 
 // FuncResolver must be implemented by all function resolvers.
 type FuncResolver interface {
-	ResolveFunc(*Ctx, Env, *Call, Type) (El, error)
+	ResolveFunc(*Ctx, Env, *Expr, Type) (El, error)
 }
 
-// Call encapsulates the expression details passed to a function body for resolution.
-type Call struct {
-	*Expr
-	Sig  Sig
-	Args []Named
-}
+var layoutArgs = []typ.Param{{Name: "args"}}
 
-// NewCall matches arguments of x to the parameters of f and returns a new call or an error.
-func NewCall(f *Func, x *Expr) (*Call, error) {
-	tags, err := TagsForm(x.Args)
+// FuncArgs matches arguments of x to the parameters of f and returns them or an error.
+func FuncArgs(x *Expr) ([][]El, error) {
+	lo, err := LayoutArgs(layoutArgs, x.Args)
 	if err != nil {
 		return nil, err
 	}
-	params := f.Sig.Arg()
+	tags, err := lo.Tags(0)
+	if err != nil {
+		return nil, err
+	}
+	params := x.Rslv.Arg()
 	if len(tags) > len(params) {
 		return nil, cor.Errorf("too many arguments")
 	}
-	args := make([]Named, len(params))
+	args := make([][]El, len(params))
 	for i, tag := range tags {
 		if tag.Name == "" {
-			tag.Name = params[i].Key()
-			args[i] = tag
+			args[i] = tag.Args
 		} else {
 			key := strings.ToLower(tag.Name[1:])
-			_, idx, err := f.Sig.FieldByKey(key)
+			_, idx, err := x.Rslv.Typ().FieldByKey(key)
 			if err != nil {
 				return nil, err
 			}
-			tag.Name = key
-			args[idx] = tag
+			args[idx] = tag.Args
 		}
 	}
-	return &Call{x, f.Sig, args}, nil
+	return args, nil
 }

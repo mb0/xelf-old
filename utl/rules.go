@@ -9,13 +9,19 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+var layoutTags = []typ.Param{{Name: "args"}}
+
 // ParseTags parses args as tags and sets them to v using rules or returns an error.
 func ParseTags(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules TagRules) error {
 	n, err := GetNode(v)
 	if err != nil {
 		return err
 	}
-	tags, err := exp.TagsForm(args)
+	lo, err := exp.LayoutArgs(layoutTags, args)
+	if err != nil {
+		return err
+	}
+	tags, err := lo.Tags(0)
 	if err != nil {
 		return err
 	}
@@ -128,11 +134,11 @@ func DynPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (_ lit.Lit, er
 func PathSetter(n Node, key string, el lit.Lit) error {
 	path, err := lit.ReadPath(key)
 	if err != nil {
-		return cor.Errorf("%v for key %s", err, key)
+		return cor.Errorf("path setter key %s: %w", key, err)
 	}
 	err = lit.SetPath(n, path, el, true)
 	if err != nil {
-		return cor.Errorf("%v for key %s", err, key)
+		return cor.Errorf("path setter key %s: %w", key, err)
 	}
 	return nil
 }

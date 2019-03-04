@@ -4,6 +4,7 @@ import (
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/typ"
 )
 
 // Node is an interface for assignable object literals.
@@ -29,21 +30,28 @@ func GetNode(val interface{}) (Node, error) {
 	return n, nil
 }
 
+var layoutNode = []typ.Param{{Name: "tags"}, {Name: "rest"}}
+var layoutFull = []typ.Param{{Name: "args"}, {Name: "decls"}, {Name: "rest"}}
+
 // ParseNode parses args as node form and sets them to v using rules or returns an error.
 func ParseNode(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules NodeRules) error {
 	n, err := GetNode(v)
 	if err != nil {
 		return err
 	}
-	tags, tail, err := exp.NodeForm(args)
+	lo, err := exp.LayoutArgs(layoutNode, args)
 	if err != nil {
 		return err
 	}
-
+	tags, err := lo.Tags(0)
+	if err != nil {
+		return err
+	}
+	rest := lo.Args(1)
 	if rules.Tags.IdxKeyer == nil {
 		rules.Tags.IdxKeyer = ZeroKeyer
 	}
-	return rules.Resolve(c, env, tags, nil, tail, n)
+	return rules.Resolve(c, env, tags, nil, rest, n)
 }
 
 // ParseDeclNode parses args as full form and sets them to v using rules or returns an error.
@@ -52,15 +60,23 @@ func ParseDeclNode(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules 
 	if err != nil {
 		return err
 	}
-	tags, decls, tail, err := exp.FullForm(args)
+	lo, err := exp.LayoutArgs(layoutFull, args)
 	if err != nil {
 		return err
 	}
-
+	tags, err := lo.Tags(0)
+	if err != nil {
+		return err
+	}
+	decls, err := lo.Decls(1)
+	if err != nil {
+		return err
+	}
+	rest := lo.Args(2)
 	if rules.Tags.IdxKeyer == nil {
 		rules.Tags.IdxKeyer = ZeroKeyer
 	}
-	return rules.Resolve(c, env, tags, decls, tail, n)
+	return rules.Resolve(c, env, tags, decls, rest, n)
 }
 
 // NodeRules is a configurable helper for assigning tags and tail elements to nodes.
@@ -73,7 +89,6 @@ type NodeRules struct {
 // Resolve resolves tags, decls and tail and assigns them to node or returns an error.
 func (nr NodeRules) Resolve(c *exp.Ctx, env exp.Env,
 	tags []exp.Tag, decls []exp.Decl, tail []exp.El, node Node) error {
-
 	err := nr.Tags.Resolve(c, env, tags, node)
 	if err != nil {
 		return err

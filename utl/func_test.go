@@ -13,32 +13,33 @@ import (
 func TestReflectFunc(t *testing.T) {
 	tests := []struct {
 		fun   interface{}
+		name  string
 		names []string
 		typ   exp.Sig
 		err   bool
 	}{
-		{strings.ToLower, nil, exp.AnonSig([]typ.Param{
+		{strings.ToLower, "lower", nil, exp.FuncSig("lower", []typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 		}), false},
-		{strings.Split, nil, exp.AnonSig([]typ.Param{
+		{strings.Split, "", nil, exp.AnonSig([]typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 			{Type: typ.Arr(typ.Str)},
 		}), false},
-		{time.Parse, nil, exp.AnonSig([]typ.Param{
+		{time.Parse, "", nil, exp.AnonSig([]typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 			{Type: typ.Time},
 		}), true},
-		{time.Time.Format, []string{"t", "format"}, exp.AnonSig([]typ.Param{
+		{time.Time.Format, "", []string{"t", "format"}, exp.AnonSig([]typ.Param{
 			{Name: "t", Type: typ.Time},
 			{Name: "format", Type: typ.Str},
 			{Type: typ.Str},
 		}), false},
 	}
 	for _, test := range tests {
-		r, err := ReflectFunc(test.fun, test.names...)
+		r, err := ReflectFunc(test.name, test.fun, test.names...)
 		if err != nil {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
@@ -71,7 +72,7 @@ func TestFuncResolver(t *testing.T) {
 		}, `'0001-01-01'`, nil},
 	}
 	for _, test := range tests {
-		r, err := ReflectFunc(test.fun, test.names...)
+		r, err := ReflectFunc("", test.fun, test.names...)
 		if err != nil {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
