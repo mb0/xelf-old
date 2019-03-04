@@ -50,9 +50,8 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	if x == nil {
 		return typ.Void, nil
 	}
-	switch t := x.Typ(); t.Kind {
-	case typ.KindTyp: // resolve type references
-		v := x.(Type)
+	switch v := x.(type) {
+	case Type: // resolve type references
 		last := v.Last()
 		if last.Kind&typ.FlagRef != 0 {
 			v, err = c.resolveTypRef(env, v, last)
@@ -64,20 +63,19 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 			// TODO resolve func signatures
 		}
 		return v, err
-	case typ.ExpSym:
-		return c.resolveRef(env, x.(*Sym), hint)
-	case typ.ExpTag:
-		_, err = c.ResolveAll(env, x.(Tag).Args, typ.Void)
+	case *Sym:
+		return c.resolveRef(env, v, hint)
+	case Tag:
+		_, err = c.ResolveAll(env, v.Args, typ.Void)
 		return x, err
-	case typ.ExpDecl:
-		_, err = c.ResolveAll(env, x.(Decl).Args, typ.Void)
+	case Decl:
+		_, err = c.ResolveAll(env, v.Args, typ.Void)
 		return x, err
-	case typ.ExpDyn:
-		return c.resolveDyn(env, x.(Dyn), hint)
-	case typ.ExpForm, typ.ExpFunc:
-		v := x.(*Expr)
+	case Dyn:
+		return c.resolveDyn(env, v, hint)
+	case *Expr:
 		return v.Rslv.Resolve(c, env, v, hint)
-	default: // already resolved
+	case Lit:
 		return x, nil
 	}
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
@@ -92,6 +90,19 @@ func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
 
 func (c *Ctx) resolveRef(env Env, ref *Sym, hint Type) (El, error) {
 	sym := ref.Key()
+	tref := sym != "" && sym[0] == '@'
+	if tref {
+		sym = sym[1:]
+		if sym == "" {
+			return typ.Infer, nil
+		}
+		r := typ.Ref(sym)
+		if sym[len(sym)-1] == '?' {
+			r.Ref = sym[:len(sym)-1]
+			return c.resolveTypRef(env, typ.Opt(r), r)
+		}
+		return c.resolveTypRef(env, r, r)
+	}
 	r, name, path, err := findResolver(env, sym)
 	if r == nil || err == ErrUnres {
 		c.Unres = append(c.Unres, ref)
@@ -150,7 +161,7 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 	if sym == "" {
 		return nil, "", "", cor.Error("empty symbol")
 	}
-	// check for relative paths prefixes
+	// check prefixes
 	var lookup bool
 	switch x := sym[0]; x {
 	case '~':

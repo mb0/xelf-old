@@ -149,6 +149,8 @@ func TestStdResolve(t *testing.T) {
 			lit.Str("hello alice, bob"),
 		},
 		{`(with +a int @a)`, typ.Int},
+		{`(with +str int str)`, typ.Int},
+		{`(with +str int ~str)`, typ.Str},
 		{`(with +a (obj +b int) @a.b)`, typ.Int},
 		{`(with +f (fn + int 1) (f))`, lit.Int(1)},
 		{`(with +f (fn +a int + int (add $a 1)) (f 1))`, lit.Int(2)},
@@ -166,7 +168,7 @@ func TestStdResolve(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(r, test.want) {
-			t.Errorf("%s want %#v got %#v", test.raw, test.want, r)
+			t.Errorf("%s want %s got %s", test.raw, test.want, r)
 		}
 	}
 }

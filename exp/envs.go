@@ -38,14 +38,12 @@ func (b Builtin) Get(sym string) Resolver {
 	if schema {
 		sym = sym[1:]
 	}
-	if schema || sym != "bool" {
-		t, err := typ.ParseSym(sym)
-		if err == nil {
-			return LitResolver{t}
-		}
-		if schema {
-			return nil
-		}
+	t, err := typ.ParseSym(sym, nil)
+	if err == nil {
+		return LitResolver{t}
+	}
+	if schema {
+		return nil
 	}
 	// lookup type
 	for _, f := range b {

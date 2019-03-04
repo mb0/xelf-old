@@ -22,16 +22,15 @@ func Parse(a *lex.Tree) (El, error) {
 	case lex.Num, lex.Str, '[', '{':
 		return lit.Parse(a)
 	case lex.Sym:
-		if a.Val == "void" {
+		switch a.Val {
+		case "void":
 			return typ.Void, nil
-		}
-		l, err := lit.ParseSym(a.Val)
-		if err == nil {
-			return l, nil
-		}
-		t, err := typ.ParseSym(a.Val)
-		if err == nil {
-			return t, nil
+		case "null":
+			return lit.Nil, nil
+		case "false":
+			return lit.False, nil
+		case "true":
+			return lit.True, nil
 		}
 		return &Sym{Name: a.Val}, nil
 	case '(':
@@ -42,21 +41,11 @@ func Parse(a *lex.Tree) (El, error) {
 		if err != nil {
 			return nil, err
 		}
-		args := make([]El, 0, len(a.Seq))
-		switch f := fst.(type) {
-		case Type:
-			if f == typ.Void {
-				return f, nil
-			}
-			// check if type definition
-			if nr, nf := typ.NeedsInfo(f); nr || nf {
-				return typ.ParseInfo(f, a, nr, nf)
-			}
-			// otherwise it is a constructor or conversion, handled in resolution
-			args = append(args, f)
-		default:
-			args = append(args, fst)
+		if fst == typ.Void { // empty expression is void
+			return typ.Void, nil
 		}
+		args := make([]El, 0, len(a.Seq))
+		args = append(args, fst)
 		args, err = decledArgs(args, a.Seq[1:])
 		return Dyn(args), err
 	}

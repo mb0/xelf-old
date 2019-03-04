@@ -39,30 +39,21 @@ func Parse(a *lex.Tree) (Lit, error) {
 		}
 		return Char(txt), nil
 	case lex.Sym:
-		l, err := ParseSym(a.Val)
-		if err != nil {
-			return nil, a.Err(err)
+		switch a.Val {
+		case "null":
+			return Nil, nil
+		case "false":
+			return False, nil
+		case "true":
+			return True, nil
 		}
-		return l, nil
+		return nil, a.Err(ErrUnknown)
 	case '[':
 		return parseList(a)
 	case '{':
 		return parseDict(a)
 	}
 	return nil, a.Err(lex.ErrUnexpected)
-}
-
-// ParseSym returns the literal represented by the symbol s or an error.
-func ParseSym(s string) (Lit, error) {
-	switch s {
-	case "null":
-		return Nil, nil
-	case "false":
-		return False, nil
-	case "true":
-		return True, nil
-	}
-	return nil, ErrUnknown
 }
 
 func parseList(tree *lex.Tree) (res List, _ error) {

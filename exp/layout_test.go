@@ -3,8 +3,6 @@ package exp
 import (
 	"reflect"
 	"testing"
-
-	"github.com/mb0/xelf/typ"
 )
 
 func TestLayout(t *testing.T) {
@@ -48,7 +46,7 @@ func TestLayout(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		form, err := typ.ParseString(test.sig)
+		form, err := ParseTypeString(test.sig)
 		if err != nil {
 			t.Errorf("parse sig %s err: %v", test.sig, err)
 			continue

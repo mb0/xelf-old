@@ -1,8 +1,11 @@
-package typ
+package typ_test
 
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/mb0/xelf/exp"
+	. "github.com/mb0/xelf/typ"
 )
 
 func TestString(t *testing.T) {
@@ -43,7 +46,7 @@ func TestString(t *testing.T) {
 		if got := string(raw); got != test.raw {
 			t.Errorf("%s string got %v", test.raw, got)
 		}
-		typ, err := ParseString(raw)
+		typ, err := exp.ParseTypeString(raw)
 		if err != nil {
 			t.Errorf("%s parse error: %v", test.raw, err)
 			continue
@@ -115,7 +118,7 @@ func TestTypeSelfRef(t *testing.T) {
 		if got := string(raw); got != test.raw {
 			t.Errorf("%s string got %v", test.raw, got)
 		}
-		typ, err := ParseString(raw)
+		typ, err := exp.ParseTypeString(raw)
 		if err != nil {
 			t.Errorf("%s parse error: %v", test.raw, err)
 			continue
