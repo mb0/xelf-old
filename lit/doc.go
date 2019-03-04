@@ -2,7 +2,7 @@
 Package lit provides code for working with literals.
 
 The Lit interface defines the common behaviour of all literals. There are additional interfaces for
-each base type: Opter, Numer, Charer, Idxer or Keyer.
+each base type: Opter, Numer, Charer, Idxer, Keyer, Appender and Assignable.
 
 The go implementation provides adapter and proxy types that implement those interfaces.
 

@@ -1,25 +1,21 @@
 package exp
 
-// TypedUnresolver will only set enclosed type to the ref or expr to be resolved.
+import "github.com/mb0/xelf/typ"
+
+// TypedUnresolver will only set enclosed type to a ref to be resolved.
 // This is useful for partial resolution phases where the type is known but the literal isn't.
 type TypedUnresolver struct{ Type }
 
 func (r TypedUnresolver) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
-	switch v := e.(type) {
-	case *Sym:
-		v.Type = r.Type
+	if e.Typ().Kind == typ.ExpSym {
+		e.(*Sym).Type = r.Type
 	}
 	return e, ErrUnres
 }
 
-// LitResilver will resolve to the enclosed literal. When not used as ref it resolves as dynamic
-// starting with the enclosed literal followed by the expr arguments.
+// LitResilver will resolve to the enclosed literal.
 type LitResolver struct{ Lit }
 
 func (r LitResolver) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
-	switch x := e.(type) {
-	case *Expr:
-		return c.resolveDyn(env, append(Dyn{r.Lit}, x.Args...), hint)
-	}
 	return r.Lit, nil
 }

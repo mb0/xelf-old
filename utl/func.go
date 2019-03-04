@@ -16,7 +16,7 @@ type ReflectBody struct {
 	err   bool
 }
 
-func (f *ReflectBody) ResolveCall(c *exp.Ctx, env exp.Env, fc *exp.Call, h typ.Type) (exp.El, error) {
+func (f *ReflectBody) ResolveFunc(c *exp.Ctx, env exp.Env, fc *exp.Call, h typ.Type) (exp.El, error) {
 	args := make([]reflect.Value, len(f.ptyps))
 	for i, pt := range f.ptyps {
 		v := reflect.New(pt)
@@ -67,7 +67,7 @@ func ReflectFunc(val interface{}, names ...string) (*exp.Func, error) {
 		return nil, cor.Error("variadic fuctions are not yet supported")
 	}
 	n := t.NumIn()
-	fs := make([]typ.Field, 0, n+1)
+	fs := make([]typ.Param, 0, n+1)
 	pt := make([]reflect.Type, 0, n)
 	for i := 0; i < n; i++ {
 		rt := t.In(i)
@@ -80,7 +80,7 @@ func ReflectFunc(val interface{}, names ...string) (*exp.Func, error) {
 			name = names[i]
 		}
 		pt = append(pt, rt)
-		fs = append(fs, typ.Field{Name: name, Type: xt})
+		fs = append(fs, typ.Param{Name: name, Type: xt})
 	}
 	f.ptyps = pt
 	n = t.NumOut()
@@ -103,6 +103,6 @@ func ReflectFunc(val interface{}, names ...string) (*exp.Func, error) {
 		}
 		res = xt
 	}
-	fs = append(fs, typ.Field{Type: res})
+	fs = append(fs, typ.Param{Type: res})
 	return &exp.Func{exp.AnonSig(fs), &f}, nil
 }

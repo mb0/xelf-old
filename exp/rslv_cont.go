@@ -9,7 +9,12 @@ import (
 )
 
 func init() {
-	std.add("reduce", typ.Infer, nil, rslvReduce)
+	std.add("reduce", []typ.Param{
+		{Name: "a", Type: typ.Any},
+		{Name: "unis", Type: typ.Void},
+		{Name: "rest", Type: typ.Void},
+		{Type: typ.Infer},
+	}, rslvReduce)
 }
 
 // rslvReduce reduces a container to a single element. The first argument is the initial reducer
@@ -18,41 +23,42 @@ func init() {
 //    (eq (str 'hello alice, bob')
 //        (reduce 'hello' +e +i ['alice' 'bob']
 //            (cat _ (if i ',') ' ' e)))
-// (form +decls dict +tail list - @)
+// (form 'reduce' +a any +decls +rest - @)
 func rslvReduce(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	if len(e.Args) < 3 {
-		return nil, cor.Error("expect at least three arguments in 'reduce'")
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+	if err != nil {
+		return nil, err
 	}
-	args, err := c.ResolveAll(env, e.Args[:1], typ.Any)
+	err = lo.Resolve(c, env)
 	if err != nil {
 		return e, err
 	}
-	decls, tail, err := UniDeclRest(e.Args[1:])
+	red := lo.Arg(0)
+	decls, err := lo.Unis(1)
 	if err != nil {
 		return nil, err
 	}
-	err = ArgsMin(tail, 1)
-	if err != nil {
-		return nil, err
-	}
+	tail := lo.Args(2)
 	it, cont, err := iterDecls(c, env, decls)
 	if err != nil {
 		return e, err
 	}
 	it.red = "_"
-	red := args[0]
+	c = c.WithPart(false)
 	switch a := cont.(type) {
 	case lit.Keyer:
 		i := 0
 		err = a.IterKey(func(k string, el Lit) error {
 			s := it.newScope(env, el, i, k, red)
 			i++
+			var res El
 			for _, act := range tail {
-				red, err = c.Resolve(s, act, typ.Void)
+				res, err = c.Resolve(s, act, typ.Void)
 				if err != nil {
 					return err
 				}
 			}
+			red = res
 			return nil
 		})
 	case lit.Idxer:

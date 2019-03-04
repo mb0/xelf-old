@@ -9,16 +9,16 @@ import (
 
 type Sig Type
 
-func AnonSig(args []typ.Field) Sig { return FuncSig("", args) }
-func FuncSig(name string, args []typ.Field) Sig {
-	return Sig{typ.ExpFunc, &typ.Info{Ref: name, Fields: args}}
+func AnonSig(args []typ.Param) Sig { return FuncSig("", args) }
+func FuncSig(name string, args []typ.Param) Sig {
+	return Sig{typ.ExpFunc, &typ.Info{Ref: name, Params: args}}
 }
-func FormSig(name string, args []typ.Field) Sig {
-	return Sig{typ.ExpFunc, &typ.Info{Ref: name, Fields: args}}
+func FormSig(name string, args []typ.Param) Sig {
+	return Sig{typ.ExpForm, &typ.Info{Ref: name, Params: args}}
 }
 
 func (s Sig) Typ() typ.Type { return typ.Type(s) }
-func (s Sig) IsZero() bool  { return s.Info == nil || len(s.Fields) == 0 }
+func (s Sig) IsZero() bool  { return s.Info == nil || len(s.Params) == 0 }
 
 func (s Sig) Key() string {
 	if s.Info != nil {
@@ -27,12 +27,12 @@ func (s Sig) Key() string {
 	return ""
 }
 
-// Params returns the parameter fields or nil.
-func (s Sig) Params() []typ.Field {
+// Arg returns the argument parameters or nil.
+func (s Sig) Arg() []typ.Param {
 	if s.IsZero() {
 		return nil
 	}
-	return s.Fields[:len(s.Fields)-1]
+	return s.Params[:len(s.Params)-1]
 }
 
 // Res returns the result type or void.
@@ -40,7 +40,7 @@ func (s Sig) Res() Type {
 	if s.IsZero() {
 		return typ.Void
 	}
-	return s.Fields[len(s.Fields)-1].Type
+	return s.Params[len(s.Params)-1].Type
 }
 
 func (s Sig) String() string { return bfr.String(s) }
@@ -55,7 +55,11 @@ func (s Sig) WriteBfr(b bfr.Ctx) error {
 // Form represents a from resolver and implements both literal and resolver interface.
 type Form struct {
 	Sig
-	Rslv Resolver
+	Body FormResolver
+}
+
+type FormResolver interface {
+	ResolveForm(c *Ctx, env Env, e *Expr, hint Type) (El, error)
 }
 
 func (f *Form) MarshalJSON() ([]byte, error) {
@@ -71,7 +75,7 @@ func (f *Form) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 	case typ.ExpSym:
 		return f, nil
 	case typ.ExpForm:
-		return f.Rslv.Resolve(c, env, e, hint)
+		return f.Body.ResolveForm(c, env, e.(*Expr), hint)
 	}
-	return nil, cor.Errorf("unexpected element %T", e)
+	return nil, cor.Errorf("unexpected element %s for %s", e.Typ(), f.Sig.Ref)
 }

@@ -21,22 +21,18 @@ func Std(sym string) Resolver {
 	return nil
 }
 
-type ExprResolverFunc func(*Ctx, Env, *Expr, Type) (El, error)
+type FormResolverFunc func(*Ctx, Env, *Expr, Type) (El, error)
 
-func (rf ExprResolverFunc) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
-	xp, ok := e.(*Expr)
-	if !ok {
-		return &Form{Sig{Kind: typ.ExpForm}, rf}, nil
-	}
-	return rf(c, env, xp, hint)
+func (rf FormResolverFunc) ResolveForm(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+	return rf(c, env, e, hint)
 }
 
 type formMap map[string]*Form
 
-func (m formMap) add(ref string, res Type, params []typ.Field, r ExprResolverFunc) *Form {
+func (m formMap) add(ref string, params []typ.Param, r FormResolverFunc) *Form {
 	f := &Form{Sig{Kind: typ.ExpForm, Info: &typ.Info{
 		Ref:    ref,
-		Fields: append(params, typ.Field{Type: res}),
+		Params: params,
 	}}, r}
 	m[ref] = f
 	return f

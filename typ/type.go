@@ -22,10 +22,10 @@ func (Type) Typ() Type { return Typ }
 
 type Const = cor.Const
 
-// Info represents the reference name and obj fields for the ref and obj types.
+// Info represents the reference name and type parameters or constants.
 type Info struct {
 	Ref    string  `json:"ref,omitempty"`
-	Fields []Field `json:"fields,omitempty"`
+	Params []Param `json:"params,omitempty"`
 	Consts []Const `json:"consts,omitempty"`
 	key    string
 }
@@ -44,37 +44,37 @@ func (a *Info) Key() string {
 var errFieldNotFound = cor.StrError("field not found")
 
 // FieldByIdx returns a pointer to the field at idx or an error.
-func (a *Info) FieldByIdx(idx int) (*Field, error) {
-	if a != nil && idx >= 0 && idx < len(a.Fields) {
-		return &a.Fields[idx], nil
+func (a *Info) FieldByIdx(idx int) (*Param, error) {
+	if a != nil && idx >= 0 && idx < len(a.Params) {
+		return &a.Params[idx], nil
 	}
 	return nil, errFieldNotFound
 }
 
 // FieldByKey returns a pointer to the field and its idex at key or an error.
-func (a *Info) FieldByKey(key string) (*Field, int, error) {
+func (a *Info) FieldByKey(key string) (*Param, int, error) {
 	if a != nil {
-		for i, f := range a.Fields {
+		for i, f := range a.Params {
 			if f.Key() == key {
-				return &a.Fields[i], i, nil
+				return &a.Params[i], i, nil
 			}
 		}
 	}
 	return nil, -1, errFieldNotFound
 }
 
-// Field represents an obj field with a name and type.
-type Field struct {
+// Param represents an type parameter with a name and type.
+type Param struct {
 	Name string `json:"name,omitempty"`
 	Type
 	key string
 }
 
-// Opt returns true if the field is optional, indicated by its name ending in a question mark.
-func (a Field) Opt() bool { n := a.Name; return n != "" && n[len(n)-1] == '?' }
+// Opt returns true if the param is optional, indicated by its name ending in a question mark.
+func (a Param) Opt() bool { n := a.Name; return n != "" && n[len(n)-1] == '?' }
 
-// Key returns the lowercase field key.
-func (a Field) Key() string {
+// Key returns the lowercase param key.
+func (a Param) Key() string {
 	if n := a.Name; n != "" && a.key == "" {
 		if a.Opt() {
 			n = n[:len(n)-1]
@@ -86,7 +86,7 @@ func (a Field) Key() string {
 
 func (a Type) IsZero() bool { return a.Kind == 0 && a.Info.IsZero() }
 func (a *Info) IsZero() bool {
-	return a == nil || a.Ref == "" && len(a.Fields) == 0 && len(a.Consts) == 0
+	return a == nil || a.Ref == "" && len(a.Params) == 0 && len(a.Consts) == 0
 }
 
 type infoPair = struct{ a, b *Info }
@@ -110,7 +110,7 @@ func (a *Info) equal(b *Info, ref bool, hist []infoPair) bool {
 	if ref {
 		return true
 	}
-	if len(a.Fields) != len(b.Fields) ||
+	if len(a.Params) != len(b.Params) ||
 		len(a.Consts) != len(b.Consts) {
 		return false
 	}
@@ -125,16 +125,16 @@ func (a *Info) equal(b *Info, ref bool, hist []infoPair) bool {
 			return true
 		}
 	}
-	for i, af := range a.Fields {
-		if !af.equal(b.Fields[i], append(hist, p)) {
+	for i, af := range a.Params {
+		if !af.equal(b.Params[i], append(hist, p)) {
 			return false
 		}
 	}
 	return true
 }
 
-func (a Field) Equal(b Field) bool { return a.equal(b, nil) }
-func (a Field) equal(b Field, hist []infoPair) bool {
+func (a Param) Equal(b Param) bool { return a.equal(b, nil) }
+func (a Param) equal(b Param, hist []infoPair) bool {
 	return (a.Name == b.Name || a.Key() == b.Key()) && a.Type.equal(b.Type, hist)
 }
 
@@ -251,11 +251,11 @@ func (a *Info) writeXelf(b bfr.Ctx, detail bool, hist []*Info) error {
 	if !detail {
 		return nil
 	}
-	for i := 0; i < len(a.Fields); i++ {
-		f := a.Fields[i]
+	for i := 0; i < len(a.Params); i++ {
+		f := a.Params[i]
 		b.WriteString(" +")
 		b.WriteString(f.Name)
-		for _, o := range a.Fields[i+1:] {
+		for _, o := range a.Params[i+1:] {
 			if !f.Type.Equal(o.Type) {
 				break
 			}
@@ -280,12 +280,12 @@ func (a *Info) writeJSON(b bfr.Ctx, detail bool, hist []*Info) error {
 		b.WriteString(`,"ref":`)
 		b.Quote(a.Ref)
 	}
-	if !detail || len(a.Fields) == 0 {
+	if !detail || len(a.Params) == 0 {
 		return nil
 	}
-	b.WriteString(`,"fields":[`)
-	for i := 0; i < len(a.Fields); i++ {
-		f := a.Fields[i]
+	b.WriteString(`,"params":[`)
+	for i := 0; i < len(a.Params); i++ {
+		f := a.Params[i]
 		if i > 0 {
 			b.WriteByte(',')
 		}

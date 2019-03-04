@@ -15,24 +15,24 @@ func TestString(t *testing.T) {
 		{Ref("a"), `@a`},
 		{Opt(Ref("b")), `@b?`},
 		{Opt(Enum("kind")), `(enum? 'kind')`},
-		{Opt(Obj([]Field{
+		{Opt(Obj([]Param{
 			{Name: "Name", Type: Str},
 		})), `(obj? +Name str)`},
-		{Obj([]Field{
+		{Obj([]Param{
 			{Name: "x", Type: Int},
 			{Name: "y", Type: Int},
 		}), `(obj +x +y int)`},
-		{Obj([]Field{
+		{Obj([]Param{
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
 		}), `(obj + @Other +Name str)`},
 		{Rec("Foo"), `(rec 'Foo')`},
-		{Type{Kind: ExpFunc, Info: &Info{Fields: []Field{
+		{Type{Kind: ExpFunc, Info: &Info{Params: []Param{
 			{Name: "text", Type: Str},
 			{Name: "sub", Type: Str},
 			{Type: Int},
 		}}}, `(func +text +sub str + int)`},
-		{Type{Kind: ExpForm, Info: &Info{Ref: "_", Fields: []Field{
+		{Type{Kind: ExpForm, Info: &Info{Ref: "_", Params: []Param{
 			{Name: "a"},
 			{Name: "b"},
 			{Type: Void},
@@ -64,13 +64,13 @@ func TestJSON(t *testing.T) {
 		{Ref("a"), `{"typ":"ref","ref":"a"}`},
 		{Opt(Ref("b")), `{"typ":"ref?","ref":"b"}`},
 		{Opt(Enum("kind")), `{"typ":"enum?","ref":"kind"}`},
-		{Opt(Obj([]Field{
+		{Opt(Obj([]Param{
 			{Name: "Name", Type: Str},
-		})), `{"typ":"obj?","fields":[{"name":"Name","typ":"str"}]}`},
-		{Obj([]Field{
+		})), `{"typ":"obj?","params":[{"name":"Name","typ":"str"}]}`},
+		{Obj([]Param{
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
-		}), `{"typ":"obj","fields":[{"typ":"ref","ref":"Other"},{"name":"Name","typ":"str"}]}`},
+		}), `{"typ":"obj","params":[{"typ":"ref","ref":"Other"},{"name":"Name","typ":"str"}]}`},
 		{Rec("Foo"), `{"typ":"rec","ref":"Foo"}`},
 	}
 	for _, test := range tests {
@@ -95,12 +95,12 @@ func TestJSON(t *testing.T) {
 }
 
 func TestTypeSelfRef(t *testing.T) {
-	a := Obj([]Field{{Name: "Ref"}})
-	a.Fields[0].Type = Opt(a)
-	b := Obj([]Field{{Name: "C"}})
-	c := Obj([]Field{{Name: "Ref"}})
-	b.Fields[0].Type = c
-	c.Fields[0].Type = Arr(b)
+	a := Obj([]Param{{Name: "Ref"}})
+	a.Params[0].Type = Opt(a)
+	b := Obj([]Param{{Name: "C"}})
+	c := Obj([]Param{{Name: "Ref"}})
+	b.Params[0].Type = c
+	c.Params[0].Type = Arr(b)
 	tests := []struct {
 		typ Type
 		raw string

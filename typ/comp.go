@@ -137,10 +137,10 @@ func compare(src, dst Type) Cmp {
 		return CmpCheckRef
 	}
 	// we can work with flags and enums as is but rec must be resolved
-	if d == KindRec && (dst.Info == nil || len(dst.Fields) == 0) {
+	if d == KindRec && (dst.Info == nil || len(dst.Params) == 0) {
 		return CmpCheckRef
 	}
-	if s == KindRec && (src.Info == nil || len(src.Fields) == 0) {
+	if s == KindRec && (src.Info == nil || len(src.Params) == 0) {
 		return CmpCheckRef
 	}
 	// rule out special types, which have strict equality
@@ -252,17 +252,17 @@ func compareInfo(src, dst *Info) Cmp {
 	if src.Key() != dst.Key() {
 		res = CmpConvObj
 	}
-	if len(src.Fields) == 0 {
-		if len(dst.Fields) == 0 {
+	if len(src.Params) == 0 {
+		if len(dst.Params) == 0 {
 			return res
 		}
 		return CmpNone
 	}
-	if len(dst.Fields) == 0 {
+	if len(dst.Params) == 0 {
 		return CmpNone
 	}
-	for _, df := range dst.Fields {
-		sf := findField(src.Fields, df.Name)
+	for _, df := range dst.Params {
+		sf := findField(src.Params, df.Name)
 		if sf == nil {
 			if !df.Opt() { // field is required
 				return CmpNone
@@ -282,7 +282,7 @@ func compareInfo(src, dst *Info) Cmp {
 	return res
 }
 
-func findField(fs []Field, key string) *Field {
+func findField(fs []Param, key string) *Param {
 	for _, f := range fs {
 		if f.Name == key {
 			return &f

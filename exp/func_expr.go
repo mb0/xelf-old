@@ -27,9 +27,9 @@ func (f *ExprBody) WriteBfr(b bfr.Ctx) error {
 	return nil
 }
 
-func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call, hint Type) (El, error) {
+func (f *ExprBody) ResolveFunc(c *Ctx, env Env, fc *Call, hint Type) (El, error) {
 	// build a parameter object from all arguments
-	ps := fc.Sig.Params()
+	ps := fc.Sig.Arg()
 	if len(ps) != len(fc.Args) {
 		// TODO allow implicit argument spread for the last param
 		return nil, cor.Error("argument mismatch")
@@ -67,7 +67,7 @@ func (f *ExprBody) ResolveCall(c *Ctx, env Env, fc *Call, hint Type) (El, error)
 			// refer to previous ones.
 			o.List = append(o.List, lit.Keyed{name, l})
 			// make new field accessible to following parameters
-			o.Type.Fields = ps[:i+1]
+			o.Type.Params = ps[:i+1]
 		}
 	}
 	// switch the function scope's parent to the declaration environment

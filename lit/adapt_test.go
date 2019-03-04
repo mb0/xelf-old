@@ -39,14 +39,14 @@ func TestAdapt(t *testing.T) {
 		{[]*int64{cor.Int(1), cor.Int(2)},
 			&ListArr{typ.Opt(typ.Int), List{Some{Int(1)}, Some{Int(2)}}},
 		},
-		{myPoint{1, 2}, &DictObj{typ.Obj([]typ.Field{
+		{myPoint{1, 2}, &DictObj{typ.Obj([]typ.Param{
 			{Name: "X", Type: typ.Int},
 			{Name: "Y", Type: typ.Int},
 		}), Dict{[]Keyed{
 			{Key: "x", Lit: Int(1)},
 			{Key: "y", Lit: Int(2)},
 		}}}},
-		{(*myPoint)(nil), Null(typ.Obj([]typ.Field{
+		{(*myPoint)(nil), Null(typ.Obj([]typ.Param{
 			{Name: "X", Type: typ.Int},
 			{Name: "Y", Type: typ.Int},
 		}))},

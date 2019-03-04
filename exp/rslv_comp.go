@@ -6,13 +6,19 @@ import (
 )
 
 func init() {
-	core.add("eq", typ.Bool, nil, rslvEq)
-	core.add("ne", typ.Bool, nil, rslvNe)
-	core.add("equal", typ.Bool, nil, rslvEqual)
-	core.add("lt", typ.Bool, nil, rslvLt)
-	core.add("ge", typ.Bool, nil, rslvGe)
-	core.add("gt", typ.Bool, nil, rslvGt)
-	core.add("le", typ.Bool, nil, rslvLe)
+	var rest2 = []typ.Param{
+		{Name: "a", Type: typ.Any},
+		{Name: "b", Type: typ.Any},
+		{Name: "rest", Type: typ.Arr(typ.Any)},
+		{Type: typ.Bool},
+	}
+	core.add("eq", rest2, rslvEq)
+	core.add("ne", rest2, rslvNe)
+	core.add("equal", rest2, rslvEqual)
+	core.add("lt", rest2, rslvLt)
+	core.add("ge", rest2, rslvGe)
+	core.add("gt", rest2, rslvGt)
+	core.add("le", rest2, rslvLe)
 }
 
 // rslvEq returns a bool whether the arguments are equivalent literals.
@@ -72,7 +78,7 @@ func rslvLe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 type cmpf = func(a, b Lit) bool
 
 func resolveBinaryComp(c *Ctx, env Env, e *Expr, sym bool, cmp cmpf) (El, error) {
-	err := ArgsMin(e.Args, 2)
+	_, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}

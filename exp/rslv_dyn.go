@@ -11,14 +11,22 @@ var errAsType = cor.StrError("the 'as' expression must start with a type")
 var formAs *Form
 
 func init() {
-	core.add("dyn", typ.Infer, nil, rslvDyn)
-	formAs = core.add("as", typ.Bool, nil, rslvAs)
+	core.add("dyn", []typ.Param{
+		{Name: "args"},
+		{Name: "unis"},
+		{Type: typ.Infer},
+	}, rslvDyn)
+	formAs = core.add("as", []typ.Param{
+		{Name: "t", Type: typ.Typ},
+		{Name: "rest"},
+		{Type: typ.Infer},
+	}, rslvAs)
 }
 
 // rslvDyn resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'as' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
-// (form +args? list +decls? dict - @)
+// (form +args +decls - @)
 func rslvDyn(c *Ctx, env Env, e *Expr, hint Type) (_ El, err error) {
 	if len(e.Args) == 0 {
 		return typ.Void, nil
@@ -58,7 +66,8 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 			xr, args = r, args[1:]
 		}
 	default:
-		if len(d) == 1 {
+
+		if len(d) == 1 && t.Kind&typ.MaskBase != 0 {
 			return fst, nil
 		}
 		switch t.Kind & typ.MaskElem {
@@ -146,10 +155,6 @@ func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	// fourth rule: append list
 	if ok && t.Kind&typ.BaseList != 0 {
-		err = ArgsForm(args)
-		if err != nil {
-			return nil, err
-		}
 		res := deopt(lit.Zero(t)).(lit.Idxer)
 		apd, _ := res.(lit.Appender)
 		for i, a := range args {

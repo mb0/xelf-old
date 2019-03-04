@@ -308,7 +308,7 @@ Dynamic expressions are expressions, where the resolver is yet unknown and may s
 or sub expression. Dynamic expressions starting with a literal are resolved with the configurable
 dyn resolver.
 
-Normal expressions are all expressions where the resolver is known.
+Normal expressions are all expressions where an expression resolver was found.
 
 Expression Resolution
 ---------------------
@@ -352,7 +352,7 @@ Resolvers that need to have control over type checking or can partially resolve 
 must be implemented as form resolver.
 
 Because we have different kinds of function implementation we use a common function literal type,
-that implements the literal and resolver interface and delegates expression resolution to a
+that implements the literal and expr resolver interface and delegates expression resolution to a
 function body implementation. The different are kinds built-in functions with custom or reflection
 base resolvers and normal function bodies with a list of expression elements.
 
@@ -407,30 +407,17 @@ literals for all expression resolvers allows us to use reference resolution to l
 Most of the built-in resolvers do not conform to a simple type signature and need to resolve their
 arguments for type information anyway. Modeling these signatures with the type system in the same
 way as function types would have no clear benefit. It was therefor decided to introduce another
-quasi-literal for those cases resolvers.
-
-Form types can have a signature and the default resolution does use result types if specified.
-Form parameters could be formalized and used to validate the form arguments at some point, but are
-only used as documentation hint for now. The plan is to interpret base types in form signatures as
-type hints.
+quasi-literal for those cases.
 
 Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
 but usually matches the definition name of that form.
-
-Form Parsing
-------------
-
-This is a work in progress.
 
 Expressions have different layouts regarding the number and shape of their arguments. Function
 for example accept leading plain elements and optionally tagged elements for named parameters.
 Forms can have any layout including not only tag expressions but also declaration expressions.
 
-We started with a couple of helper functions, that validate expression arguments against common
-form layouts. Since we now have form signatures with type hints, we could use these signatures
-to direct the argument validation and check their types at the same time. Because parameter names
-have no other use in form parameters we use them together with the parameter type to sufficiently
-identify the desired layout.
+Form types have a signature of type hints. Layouts can be used to validate and resolve args
+against the form signature. And the type resolution machinery uses specific result types.
 
 Type Inference
 --------------

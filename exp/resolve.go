@@ -130,7 +130,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type, last Type) (_ Type, err error) {
 	switch k {
 	case typ.KindFlag, typ.KindEnum, typ.KindRec:
 		// return already resolved schema types, otherwise add schema prefix '~'
-		if len(t.Fields) > 0 || len(t.Consts) > 0 {
+		if len(t.Params) > 0 || len(t.Consts) > 0 {
 			return t, nil
 		}
 		key = "~" + key

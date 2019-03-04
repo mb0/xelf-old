@@ -32,7 +32,7 @@ var (
 func Opt(t Type) Type     { return Type{t.Kind | FlagOpt, t.Info} }
 func Arr(t Type) Type     { return Type{t.Kind<<SlotSize | KindArr, t.Info} }
 func Map(t Type) Type     { return Type{t.Kind<<SlotSize | KindMap, t.Info} }
-func Obj(fs []Field) Type { return Type{KindObj, &Info{Fields: fs}} }
+func Obj(fs []Param) Type { return Type{KindObj, &Info{Params: fs}} }
 
 func Ref(name string) Type  { return Type{KindRef, &Info{Ref: name}} }
 func Flag(name string) Type { return Type{KindFlag, &Info{Ref: name}} }

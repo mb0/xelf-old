@@ -24,7 +24,7 @@ func TestParse(t *testing.T) {
 		{`(int 1)`, Dyn{typ.Int, lit.Num(1)}},
 		{`(bool 1)`, Dyn{typ.Bool, lit.Num(1)}},
 		{`(bool (() comment) 1)`, Dyn{typ.Bool, lit.Num(1)}},
-		{`(obj +x +y int)`, typ.Obj([]typ.Field{
+		{`(obj +x +y int)`, typ.Obj([]typ.Param{
 			{Name: "x", Type: typ.Int},
 			{Name: "y", Type: typ.Int},
 		})},

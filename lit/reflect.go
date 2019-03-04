@@ -166,21 +166,21 @@ func reflectFields(t reflect.Type, nfos infoMap) (*typ.Info, [][]int, error) {
 	}
 	nfo = &fields{Info: new(typ.Info)}
 	nfos[t] = nfo
-	fs := make([]typ.Field, 0, 16)
+	fs := make([]typ.Param, 0, 16)
 	idx := make([][]int, 0, 16)
 	err := collectFields(t, nil, func(name, _ string, et reflect.Type, i []int) error {
 		ft, err := reflectType(et, nfos)
 		if err != nil {
 			return err
 		}
-		fs = append(fs, typ.Field{Name: name, Type: ft})
+		fs = append(fs, typ.Param{Name: name, Type: ft})
 		idx = append(idx, i)
 		return nil
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-	nfo.Fields = fs
+	nfo.Params = fs
 	nfo.Idx = idx
 	return nfo.Info, idx, nil
 }
@@ -190,7 +190,7 @@ type fidx struct {
 	idx  []int
 }
 
-func fieldIndices(t reflect.Type, fs []typ.Field) ([][]int, error) {
+func fieldIndices(t reflect.Type, fs []typ.Param) ([][]int, error) {
 	m := make(map[string]fidx, len(fs)+8)
 	err := collectFields(t, nil, func(name, key string, _ reflect.Type, idx []int) error {
 		m[key] = fidx{name, idx}

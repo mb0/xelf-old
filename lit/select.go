@@ -86,7 +86,7 @@ func SelectPath(l Lit, p Path) (_ Lit, err error) {
 				case typ.KindMap:
 					l = v.Next()
 				case typ.KindObj:
-					var f *typ.Field
+					var f *typ.Param
 					f, _, err = v.FieldByKey(s.Key)
 					if f != nil {
 						l = f.Type

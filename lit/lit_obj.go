@@ -10,11 +10,11 @@ import (
 
 // MakeObj return a new abstract obj literal with the given type or an error.
 func MakeObj(t typ.Type) (*DictObj, error) {
-	if t.Kind&typ.MaskElem != typ.KindObj || t.Info == nil || len(t.Fields) == 0 {
+	if t.Kind&typ.MaskElem != typ.KindObj || t.Info == nil || len(t.Params) == 0 {
 		return nil, typ.ErrInvalid
 	}
-	list := make([]Keyed, 0, len(t.Fields))
-	for _, f := range t.Fields {
+	list := make([]Keyed, 0, len(t.Params))
+	for _, f := range t.Params {
 		list = append(list, Keyed{f.Key(), Null(f.Type)})
 	}
 	return &DictObj{t, Dict{list}}, nil
@@ -22,9 +22,9 @@ func MakeObj(t typ.Type) (*DictObj, error) {
 
 // ObjFromKeyed creates a new abstract obj literal from the given list of keyed literals.
 func ObjFromKeyed(list []Keyed) *DictObj {
-	fs := make([]typ.Field, 0, len(list))
+	fs := make([]typ.Param, 0, len(list))
 	for _, d := range list {
-		fs = append(fs, typ.Field{Name: d.Key, Type: d.Lit.Typ()})
+		fs = append(fs, typ.Param{Name: d.Key, Type: d.Lit.Typ()})
 	}
 	return &DictObj{typ.Obj(fs), Dict{list}}
 }
@@ -113,7 +113,7 @@ func (a *DictObj) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
 func (a *DictObj) WriteBfr(b bfr.Ctx) error {
 	b.WriteByte('{')
 	n := 0
-	for i, f := range a.Type.Fields {
+	for i, f := range a.Type.Params {
 		el, err := a.Idx(i)
 		if err != nil {
 			return err
@@ -167,7 +167,7 @@ func (p *proxyObj) Assign(l Lit) error {
 
 func (p *proxyObj) Len() int {
 	if p.typ.Info != nil {
-		return len(p.typ.Fields)
+		return len(p.typ.Params)
 	}
 	return 0
 }
@@ -177,8 +177,8 @@ func (p *proxyObj) IsZero() bool {
 }
 func (p *proxyObj) Keys() []string {
 	if p.typ.Info != nil {
-		res := make([]string, 0, len(p.typ.Fields))
-		for _, f := range p.typ.Fields {
+		res := make([]string, 0, len(p.typ.Params))
+		for _, f := range p.typ.Params {
 			res = append(res, f.Key())
 		}
 		return res
@@ -235,7 +235,7 @@ func (p *proxyObj) SetKey(k string, l Lit) error {
 }
 func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
-		for i, f := range p.typ.Fields {
+		for i, f := range p.typ.Params {
 			var el Lit
 			el, err = ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
 			if err != nil {
@@ -258,7 +258,7 @@ func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
 }
 func (p *proxyObj) IterKey(it func(string, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
-		for i, f := range p.typ.Fields {
+		for i, f := range p.typ.Params {
 			var el Lit
 			el, err = ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
 			if err != nil {
@@ -285,7 +285,7 @@ func (p *proxyObj) WriteBfr(b bfr.Ctx) error {
 	b.WriteByte('{')
 	n := 0
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
-		for i, f := range p.typ.Fields {
+		for i, f := range p.typ.Params {
 			el, err := ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
 			if err != nil {
 				return err

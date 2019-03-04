@@ -16,7 +16,7 @@ import (
 // Resolution handles reference and delegates expression resolution to the body.
 type Func struct {
 	Sig
-	Body Body
+	Body FuncResolver
 }
 
 func (f *Func) IsZero() bool   { return f.Body == nil }
@@ -60,14 +60,14 @@ func (f *Func) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
 		if err != nil {
 			return nil, err
 		}
-		return f.Body.ResolveCall(c, env, fc, hint)
+		return f.Body.ResolveFunc(c, env, fc, hint)
 	}
 	return nil, cor.Errorf("unexpected element %T", e)
 }
 
-// Body must be implemented by all function resolvers.
-type Body interface {
-	ResolveCall(*Ctx, Env, *Call, Type) (El, error)
+// FuncResolver must be implemented by all function resolvers.
+type FuncResolver interface {
+	ResolveFunc(*Ctx, Env, *Call, Type) (El, error)
 }
 
 // Call encapsulates the expression details passed to a function body for resolution.
@@ -83,7 +83,7 @@ func NewCall(f *Func, x *Expr) (*Call, error) {
 	if err != nil {
 		return nil, err
 	}
-	params := f.Sig.Params()
+	params := f.Sig.Arg()
 	if len(tags) > len(params) {
 		return nil, cor.Errorf("too many arguments")
 	}

@@ -6,15 +6,27 @@ import (
 )
 
 func init() {
-	std.add("let", typ.Infer, nil, rslvLet)
-	std.add("with", typ.Infer, nil, rslvWith)
-	std.add("fn", typ.Infer, nil, rslvFn)
+	std.add("let", []typ.Param{
+		{Name: "unis"},
+		{Type: typ.Infer},
+	}, rslvLet)
+	unisRest := []typ.Param{
+		{Name: "unis"},
+		{Name: "rest"},
+		{Type: typ.Infer},
+	}
+	std.add("with", unisRest, rslvWith)
+	std.add("fn", unisRest, rslvFn)
 }
 
 // rslvLet declares one or more resolvers in the existing scope.
-// (form +decls dict - @)
+// (form 'let' +unis - @)
 func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	decls, err := UniDeclForm(e.Args)
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+	if err != nil {
+		return nil, err
+	}
+	decls, err := lo.Unis(0)
 	if err != nil {
 		return nil, err
 	}
@@ -27,42 +39,51 @@ func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 
 // rslvWith declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-// (form +decls dict +tail list - @)
+// (form 'with' +unis +rest - @)
 func rslvWith(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	decls, tail, err := UniDeclRest(e.Args)
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
-	err = ArgsMin(tail, 1)
+	decls, err := lo.Unis(0)
 	if err != nil {
-		return nil, cor.Errorf("%v %v %v", err, decls, tail)
+		return nil, err
+	}
+	rest := lo.Args(1)
+	if len(rest) == 0 {
+		return nil, cor.Errorf("with must have an expression")
 	}
 	s := NewScope(env)
 	_, err = letDecls(c, s, decls)
 	if err != nil {
 		return e, err
 	}
-	tail, err = c.ResolveAll(s, tail, typ.Void)
+	rest, err = c.ResolveAll(s, rest, typ.Void)
 	if err != nil {
 		return e, err
 	}
-	return tail[len(tail)-1], nil
+	return rest[len(rest)-1], nil
 }
 
 // rslvFn declares a function literal from its arguments.
-// (form +decls? dict +tail list - @)
+// (form 'fn' +unis +rest - @)
 func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	decls, tail, err := UniDeclRest(e.Args)
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
+	decls, err := lo.Unis(0)
+	if err != nil {
+		return nil, err
+	}
+	rest := lo.Args(1)
 	var sig Sig
 	if len(decls) == 0 {
 		// TODO infer signature
 		return nil, cor.Errorf("inferred fn expressions not implemented")
 	} else {
 		// construct sig from decls
-		fs := make([]typ.Field, 0, len(decls))
+		fs := make([]typ.Param, 0, len(decls))
 		for _, d := range decls {
 			l, err := c.Resolve(env, d.Args[0], typ.Void)
 			if err != nil {
@@ -72,11 +93,11 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 			if !ok {
 				return nil, cor.Errorf("want type in func parameters got %T", l)
 			}
-			fs = append(fs, typ.Field{Name: d.Name[1:], Type: dt})
+			fs = append(fs, typ.Param{Name: d.Name[1:], Type: dt})
 		}
-		sig = Sig{Kind: typ.ExpFunc, Info: &typ.Info{Fields: fs}}
+		sig = Sig{Kind: typ.ExpFunc, Info: &typ.Info{Params: fs}}
 	}
-	return &Func{sig, &ExprBody{tail, env}}, nil
+	return &Func{sig, &ExprBody{rest, env}}, nil
 }
 
 func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {

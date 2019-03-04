@@ -150,11 +150,11 @@ func adaptObj(v reflect.Value) (Obj, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := MakeObj(typ.Obj(nfo.Fields))
+	res, err := MakeObj(typ.Obj(nfo.Params))
 	if err != nil {
 		return nil, err
 	}
-	for i, f := range nfo.Fields {
+	for i, f := range nfo.Params {
 		el, err := AdaptValue(v.FieldByIndex(idx[i]))
 		if err != nil {
 			return nil, err

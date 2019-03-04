@@ -17,21 +17,21 @@ func TestReflectFunc(t *testing.T) {
 		typ   exp.Sig
 		err   bool
 	}{
-		{strings.ToLower, nil, exp.AnonSig([]typ.Field{
+		{strings.ToLower, nil, exp.AnonSig([]typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 		}), false},
-		{strings.Split, nil, exp.AnonSig([]typ.Field{
+		{strings.Split, nil, exp.AnonSig([]typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 			{Type: typ.Arr(typ.Str)},
 		}), false},
-		{time.Parse, nil, exp.AnonSig([]typ.Field{
+		{time.Parse, nil, exp.AnonSig([]typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 			{Type: typ.Time},
 		}), true},
-		{time.Time.Format, []string{"t", "format"}, exp.AnonSig([]typ.Field{
+		{time.Time.Format, []string{"t", "format"}, exp.AnonSig([]typ.Param{
 			{Name: "t", Type: typ.Time},
 			{Name: "format", Type: typ.Str},
 			{Type: typ.Str},

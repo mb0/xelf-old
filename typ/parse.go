@@ -120,14 +120,14 @@ func NeedsInfo(t Type) (ref, fields bool) {
 		ref = t.Info == nil || len(t.Ref) == 0
 		return ref, false
 	case KindObj:
-		return false, t.Info == nil || len(t.Fields) == 0
+		return false, t.Info == nil || len(t.Params) == 0
 	case KindExp:
 		switch t.Kind {
 		case ExpForm:
 			return t.Info == nil || len(t.Ref) == 0,
-				t.Info == nil || len(t.Fields) == 0
+				t.Info == nil || len(t.Params) == 0
 		case ExpFunc:
-			return false, t.Info == nil || len(t.Fields) == 0
+			return false, t.Info == nil || len(t.Params) == 0
 		}
 	}
 	return false, false
@@ -155,7 +155,7 @@ func parseInfo(t Type, a *lex.Tree, ref, fields bool, hist []Type) (_ Type, err 
 	}
 	if fields {
 		dt, _ := t.Deopt()
-		t.Fields, err = parseFields(args, append(hist, dt))
+		t.Params, err = parseFields(args, append(hist, dt))
 		if err != nil {
 			return Void, a.Seq[0].Err(err)
 		}
@@ -172,7 +172,7 @@ func parseRef(t *lex.Tree) (string, error) {
 
 func isFieldDecl(s string) bool { return s != "" && s[0] == '+' }
 
-func parseFields(seq []*lex.Tree, hist []Type) ([]Field, error) {
+func parseFields(seq []*lex.Tree, hist []Type) ([]Param, error) {
 	if len(seq) == 0 {
 		return nil, ErrArgCount
 	}
@@ -184,11 +184,11 @@ func parseFields(seq []*lex.Tree, hist []Type) ([]Field, error) {
 		return nil, ErrFieldName
 	}
 	naked := 0
-	fs := make([]Field, 0, len(keyed))
+	fs := make([]Param, 0, len(keyed))
 	for _, n := range keyed {
 		name := n.Key[1:]
 		if len(n.Seq) == 0 {
-			fs = append(fs, Field{Name: name})
+			fs = append(fs, Param{Name: name})
 			naked++
 			continue
 		}
@@ -198,7 +198,7 @@ func parseFields(seq []*lex.Tree, hist []Type) ([]Field, error) {
 				if err != nil {
 					return nil, err
 				}
-				fs = append(fs, Field{Type: ft})
+				fs = append(fs, Param{Type: ft})
 			}
 			continue
 		}
@@ -213,7 +213,7 @@ func parseFields(seq []*lex.Tree, hist []Type) ([]Field, error) {
 			fs[len(fs)-naked].Type = ft
 			naked--
 		}
-		fs = append(fs, Field{Name: name, Type: ft})
+		fs = append(fs, Param{Name: name, Type: ft})
 	}
 	if naked > 0 {
 		return nil, ErrNakedField

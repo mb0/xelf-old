@@ -111,7 +111,7 @@ type ExprResolver interface {
 	Lit
 	Resolver
 	Key() string
-	Params() []typ.Field
+	Arg() []typ.Param
 	Res() Type
 }
 

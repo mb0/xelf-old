@@ -115,7 +115,7 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		if et.Kind() == reflect.Ptr {
 			et = et.Elem()
 		}
-		idx, err := fieldIndices(et, p.typ.Fields)
+		idx, err := fieldIndices(et, p.typ.Params)
 		if err != nil {
 			return nil, err
 		}

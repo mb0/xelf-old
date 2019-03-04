@@ -13,16 +13,20 @@ var (
 )
 
 func init() {
-	core.add("fail", typ.Any, nil, rslvFail)
-	core.add("or", typ.Bool, nil, rslvOr)
-	formAnd = core.add("and", typ.Bool, nil, rslvAnd)
-	formBool = core.add("bool", typ.Bool, nil, rslvBool)
-	formNot = core.add("not", typ.Bool, nil, rslvNot)
-	core.add("if", typ.Infer, nil, rslvIf)
+	core.add("fail", []typ.Param{{Name: "plain"}, {Type: typ.Any}}, rslvFail)
+	plainBool := []typ.Param{{Name: "plain", Type: typ.List}, {Type: typ.Bool}}
+	core.add("or", plainBool, rslvOr)
+	formAnd = core.add("and", plainBool, rslvAnd)
+	formBool = core.add("bool", plainBool, rslvBool)
+	formNot = core.add("not", plainBool, rslvNot)
+	core.add("if", []typ.Param{
+		{Name: "cond", Type: typ.Any}, {Name: "act"}, {Name: "rest"}, {Type: typ.Infer},
+	}, rslvIf)
 }
 
 // rslvFail returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
+// (form 'fail' +plain - any)
 func rslvFail(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if c.Exec {
 		return nil, cor.Errorf("%s", e)
@@ -33,17 +37,18 @@ func rslvFail(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvOr resolves the arguments as short-circuiting logical or to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
-// (form +args? arr|any - bool)
+// (form 'or' +plain list - bool)
 func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	err := ArgsForm(e.Args)
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
-	for i, arg := range e.Args {
+	args := lo.Args(0)
+	for i, arg := range args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
 			if c.Part {
-				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:], typ.Any)
+				e.Args, err = c.WithExec(false).ResolveAll(env, args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
@@ -66,17 +71,18 @@ func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvAnd resolves the arguments as short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'and' expression resolves to true.
-// (form +args? arr|any - bool)
+// (form 'and' +plain - bool)
 func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	err := ArgsForm(e.Args)
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
-	for i, arg := range e.Args {
+	args := lo.Args(0)
+	for i, arg := range args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
 			if c.Part {
-				e.Args, err = c.WithExec(false).ResolveAll(env, e.Args[i:], typ.Any)
+				e.Args, err = c.WithExec(false).ResolveAll(env, args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
@@ -99,7 +105,7 @@ func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvBool resolves the arguments similar to short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'bool' expression resolves to false.
-// (form +args? arr|any - bool)
+// (form 'bool' +plain - bool)
 func rslvBool(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	res, err := rslvAnd(c, env, e, hint)
 	if err == ErrUnres {
@@ -120,7 +126,7 @@ func rslvBool(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvNot will resolve the arguments similar to short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if a zero value.
 // An empty 'not' expression resolves to true.
-// (form +args? arr|any - bool)
+// (form 'not' +plain - bool)
 func rslvNot(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	res, err := rslvAnd(c, env, e, hint)
 	if err == ErrUnres {
@@ -169,7 +175,7 @@ func simplifyBool(e *Expr, args []El) *Expr {
 // The odd end is the else action otherwise a zero value of the first action's type is used.
 // (form +cond any +act any +tail? list - @)
 func rslvIf(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	err := ArgsMin(e.Args, 2)
+	_, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
