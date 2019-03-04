@@ -91,7 +91,7 @@ var ZeroKeyer = OffsetKeyer(0)
 // OffsetKeyer returns an index keyer that looks up a field at the index plus the offset.
 func OffsetKeyer(offset int) IdxKeyer {
 	return func(n Node, i int) string {
-		f, err := n.Typ().FieldByIdx(i + offset)
+		f, err := n.Typ().ParamByIdx(i + offset)
 		if err != nil {
 			return ""
 		}

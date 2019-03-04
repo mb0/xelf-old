@@ -88,7 +88,7 @@ func FuncArgs(x *Expr) ([][]El, error) {
 			args[i] = tag.Args
 		} else {
 			key := strings.ToLower(tag.Name[1:])
-			_, idx, err := x.Rslv.Typ().FieldByKey(key)
+			_, idx, err := x.Rslv.Typ().ParamByKey(key)
 			if err != nil {
 				return nil, err
 			}

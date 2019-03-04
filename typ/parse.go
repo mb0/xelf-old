@@ -2,6 +2,7 @@ package typ
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
@@ -11,9 +12,9 @@ var (
 	ErrInvalid    = cor.StrError("invalid type")
 	ErrArgCount   = cor.StrError("wrong type argument count")
 	ErrRefName    = cor.StrError("expect ref name")
-	ErrFieldName  = cor.StrError("expect field name")
-	ErrFieldType  = cor.StrError("expect field type")
-	ErrNakedField = cor.StrError("naked field declaration")
+	ErrParamName  = cor.StrError("expect param name")
+	ErrParamType  = cor.StrError("expect param type")
+	ErrNakedParam = cor.StrError("naked param declaration")
 )
 
 // ParseString scans and parses string s and returns a type or an error.
@@ -52,11 +53,22 @@ func parseSym(s string, hist []Type) (res Type, _ error) {
 	if len(s) == 0 {
 		return Void, ErrInvalid
 	}
-	if s[0] == '@' {
-		opt := s[len(s)-1] == '?'
+	opt := s[len(s)-1] == '?'
+	switch s[0] {
+	case '~':
+		ref := s[1:]
+		i := strings.IndexByte(ref, '.')
+		if i == 0 { // explicit type
+			return parseSym(ref, hist)
+		} // else schema reference
+		if opt {
+			return Opt(Ref(ref[:len(ref)-1])), nil
+		}
+		return Ref(ref), nil
+	case '@':
 		ref := s[1:]
 		if opt {
-			ref = s[1 : len(s)-1]
+			ref = ref[:len(ref)-1]
 		}
 		res = Ref(ref)
 		if len(ref) > 0 {
@@ -113,8 +125,8 @@ func parseSeq(tree *lex.Tree, hist []Type) (Type, error) {
 	return res, nil
 }
 
-// NeedsInfo returns whether type t is missing reference or field information.
-func NeedsInfo(t Type) (ref, fields bool) {
+// NeedsInfo returns whether type t is missing reference or params information.
+func NeedsInfo(t Type) (ref, params bool) {
 	switch k := t.Last().Kind & MaskRef; k {
 	case KindFlag, KindEnum, KindRec:
 		ref = t.Info == nil || len(t.Ref) == 0
@@ -133,12 +145,12 @@ func NeedsInfo(t Type) (ref, fields bool) {
 	return false, false
 }
 
-// ParseInfo parses arguments of a for ref and field information and returns it or an error.
-func ParseInfo(t Type, a *lex.Tree, ref, fields bool) (Type, error) {
-	return parseInfo(t, a, ref, fields, nil)
+// ParseInfo parses arguments of a for ref and params information and returns it or an error.
+func ParseInfo(t Type, a *lex.Tree, ref, params bool) (Type, error) {
+	return parseInfo(t, a, ref, params, nil)
 }
-func parseInfo(t Type, a *lex.Tree, ref, fields bool, hist []Type) (_ Type, err error) {
-	if a == nil || !(ref || fields) {
+func parseInfo(t Type, a *lex.Tree, ref, params bool, hist []Type) (_ Type, err error) {
+	if a == nil || !(ref || params) {
 		return Void, nil
 	}
 	if len(a.Seq) < 2 {
@@ -153,9 +165,9 @@ func parseInfo(t Type, a *lex.Tree, ref, fields bool, hist []Type) (_ Type, err 
 		}
 		args = args[1:]
 	}
-	if fields {
+	if params {
 		dt, _ := t.Deopt()
-		t.Params, err = parseFields(args, append(hist, dt))
+		t.Params, err = parseParams(args, append(hist, dt))
 		if err != nil {
 			return Void, a.Seq[0].Err(err)
 		}
@@ -170,25 +182,25 @@ func parseRef(t *lex.Tree) (string, error) {
 	return lex.Unquote(t.Val)
 }
 
-func isFieldDecl(s string) bool { return s != "" && s[0] == '+' }
+func isParamDecl(s string) bool { return s != "" && s[0] == '+' }
 
-func parseFields(seq []*lex.Tree, hist []Type) ([]Param, error) {
+func parseParams(seq []*lex.Tree, hist []Type) ([]Param, error) {
 	if len(seq) == 0 {
 		return nil, ErrArgCount
 	}
-	head, tail, keyed := lex.SplitKeyed(seq, true, isFieldDecl)
+	head, tail, keyed := lex.SplitKeyed(seq, true, isParamDecl)
 	if len(head) > 0 {
-		return nil, ErrFieldName
+		return nil, ErrParamName
 	}
 	if len(tail) > 0 {
-		return nil, ErrFieldName
+		return nil, ErrParamName
 	}
 	naked := 0
-	fs := make([]Param, 0, len(keyed))
+	ps := make([]Param, 0, len(keyed))
 	for _, n := range keyed {
 		name := n.Key[1:]
 		if len(n.Seq) == 0 {
-			fs = append(fs, Param{Name: name})
+			ps = append(ps, Param{Name: name})
 			naked++
 			continue
 		}
@@ -198,25 +210,25 @@ func parseFields(seq []*lex.Tree, hist []Type) ([]Param, error) {
 				if err != nil {
 					return nil, err
 				}
-				fs = append(fs, Param{Type: ft})
+				ps = append(ps, Param{Type: ft})
 			}
 			continue
 		}
 		if len(n.Seq) > 1 {
-			return nil, ErrFieldType
+			return nil, ErrParamType
 		}
 		ft, err := parse(n.Seq[0], hist)
 		if err != nil {
 			return nil, err
 		}
 		for naked > 0 {
-			fs[len(fs)-naked].Type = ft
+			ps[len(ps)-naked].Type = ft
 			naked--
 		}
-		fs = append(fs, Param{Name: name, Type: ft})
+		ps = append(ps, Param{Name: name, Type: ft})
 	}
 	if naked > 0 {
-		return nil, ErrNakedField
+		return nil, ErrNakedParam
 	}
-	return fs, nil
+	return ps, nil
 }

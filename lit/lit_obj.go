@@ -53,21 +53,21 @@ func (a *DictObj) IsZero() bool {
 	return true
 }
 func (a *DictObj) Idx(i int) (Lit, error) {
-	_, err := a.Type.FieldByIdx(i)
+	_, err := a.Type.ParamByIdx(i)
 	if err != nil {
 		return nil, err
 	}
 	return a.Dict.List[i].Lit, nil
 }
 func (a *DictObj) Key(key string) (Lit, error) {
-	_, _, err := a.Type.FieldByKey(key)
+	_, _, err := a.Type.ParamByKey(key)
 	if err != nil {
 		return nil, err
 	}
 	return a.Dict.Key(key)
 }
 func (a *DictObj) SetIdx(i int, el Lit) error {
-	f, err := a.Type.FieldByIdx(i)
+	f, err := a.Type.ParamByIdx(i)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (a *DictObj) SetIdx(i int, el Lit) error {
 	return nil
 }
 func (a *DictObj) SetKey(key string, el Lit) error {
-	f, _, err := a.Type.FieldByKey(key)
+	f, _, err := a.Type.ParamByKey(key)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (p *proxyObj) Assign(l Lit) error {
 		return ErrNotStruct
 	}
 	return b.IterKey(func(k string, e Lit) error {
-		_, i, err := p.typ.FieldByKey(k)
+		_, i, err := p.typ.ParamByKey(k)
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (p *proxyObj) Keys() []string {
 	return nil
 }
 func (p *proxyObj) Idx(i int) (Lit, error) {
-	f, err := p.typ.FieldByIdx(i)
+	f, err := p.typ.ParamByIdx(i)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func (p *proxyObj) Idx(i int) (Lit, error) {
 	return Null(f.Type), nil
 }
 func (p *proxyObj) Key(k string) (Lit, error) {
-	f, i, err := p.typ.FieldByKey(k)
+	f, i, err := p.typ.ParamByKey(k)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (p *proxyObj) Key(k string) (Lit, error) {
 	return Null(f.Type), nil
 }
 func (p *proxyObj) SetIdx(i int, l Lit) error {
-	_, err := p.typ.FieldByIdx(i)
+	_, err := p.typ.ParamByIdx(i)
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (p *proxyObj) SetIdx(i int, l Lit) error {
 	return ErrNotStruct
 }
 func (p *proxyObj) SetKey(k string, l Lit) error {
-	_, i, err := p.typ.FieldByKey(k)
+	_, i, err := p.typ.ParamByKey(k)
 	if err != nil {
 		return err
 	}

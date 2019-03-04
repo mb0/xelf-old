@@ -29,11 +29,10 @@ represented by their name appended by a pipe and the slot type:
     arr|int, map|bool, arr|arr|arr|int, map|arr|map|arr|map|arr|str
 
 
-The obj type has a sequence of fields, that can be accessed by name or index, therefor an obj is
-both a list and dictionary type. The obj type must have field declarations and be enclosed in
-parenthesis. A field declaration consists of the declaration name starting with plus sign and the
-field type definition. Optional fields have names ending with a question mark, otherwise a field is
-required.
+The obj type has a fields , that can be accessed by name or index, therefor an obj is both a list
+and dictionary type. The obj type must have field parameters and be enclosed in parenthesis. A
+parameter declaration consists of the declaration name starting with plus sign and type definition.
+Optional fields have names ending with a question mark, otherwise a field is required.
 
     (obj +x +y +z? int), (arr|obj +name str +val any +extra? any)
 
@@ -43,10 +42,10 @@ types can be marked as optional by a question mark suffix.
 
     (obj +top10 (arr|obj? +name str +score int?) +err str?)
 
-The exp types form and func aso use the field declaration syntax used as parameter and result type
-signature. The last field signifies the result type and is usually unnamed. All other fields
-represent the parameters. Function parameters must have a type and can be named. The form type
-must be name and it can use untype parameters.
+The exp types form and func aso use the type params syntax used as argument and result type
+signature. The last param signifies the result type and is usually unnamed. All other params
+represent the form arguments. Function parameters must have a type and may be named. Form parameters
+must be name and can omit the type.
 
 Type references start with an at sign '@name' and represent the type of what 'name' resolves to.
 References need to be resolved in a declaration context for this reason.
