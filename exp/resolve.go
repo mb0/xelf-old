@@ -197,10 +197,6 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 				return nil, "", "", cor.Errorf("no env found for prefix %q", x)
 			}
 		}
-		if len(sym) > 0 && sym[0] == '?' {
-			lookup = true
-			sym = sym[1:]
-		}
 	default:
 		lookup = true
 	}

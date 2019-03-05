@@ -126,7 +126,7 @@ the literal syntax. This makes it visually more obvious whether something is a l
 
 Types, functions and forms do implement the main literal interface and can be used as literals in
 some cases. This also simplifies the already heavy resolution API, as a successful resolution will
-always return a valid literal, an alleviates another check after each resolution step.
+always return a valid literal, and alleviates another check after each resolution step.
 
 All literals except booleans are parsed as the base types any, num, char, list and dict.
 The literals are usually converted to a specific type inferred from the expression context.
@@ -212,36 +212,22 @@ properties or similar things. Declaration symbols starting with a plus sign are 
 variables, parameters or field names in declarations or when setting object fields or map elements
 by key.
 
-There is a couple of predefined forms that resolvers can use to validate expression arguments.
-
 Predefined Symbols
 ------------------
 
-Both the literal symbols null, false, true as well as the type names are considered keywords and
-always refer to the predefined meaning regardless of the context. While all resolvers are just
-built-ins in the root environment and can be replaced in sub environments.
+Only the literal symbols nill, false and true as well as the void type use hard keywords. All other
+types are just built-in definitions that can be overwritten in sub environment.
 
-Treating literal symbols and type names as keyword substantially simplifies symbol resolution.
-However the type names contain common short names that may occur in user code and models, for that
-reason symbols referring to scoped variables or resolver can use a path syntax to force scope
-lookup. This path syntax can also be used to select shadowed variables from a parent scope.
-
-While the above paragraphs provide valid points, I am uneasy about the number for keywords that the
-type names introduce. However, the type names are frequently used and should remain short and
-simple, however local declarations should not need special syntax either and should be able to
-declare variables that use a name already used by types.
+The schema prefix can be used to refer to built-in types, even if shadowed by a another definition.
 
 Types are mostly used in context where there are explicitly expected. Maybe we can introduce a rule
 stating that in those cases simple names are always treated as type, while every other case resolves
-the name in its environment, allowing shadowing. To still refer to types we would could reuse one of
-the special prefix '@' or '~', that are already associated with type resolution. The schema prefix
-'~' is a good choice because the predefined types can be considered an implicit part of the type
-schema. This means that we cannot use type names as schema names, which might be a good idea anyway.
+the name in its environment.
 
 Type References
 ---------------
 
-There are five kinds of reference types.
+There are four kinds of reference types.
 
 Self and ancestor reference refer to the current or ancestor object type and are used for recursive
 type definitions.
@@ -249,15 +235,12 @@ type definitions.
 Schema types are a kind of reference and need to be resolved. The reference name of schema types
 refers to a global type schema and uses the schema prefix '~' for lookups from the environment.
 
-Form types are flagged as reference types, they represent built-in resolvers that might not conform
-to a specific type signature and must be resolved as part of an expression.
-
 Unnamed references are inferred types and need to be inferred from context. They are mostly used in
 the resolution phase and may represent poly types by collecting candidates in the companion field
 list normally used by object types.
 
 Normal type references refer to a literal in scope and represent the type of that literal.
-For type literals the referred to type is the types identity and not the typ type.
+Type references referring to type literals do use the underlying type and not the special typ type.
 
 Symbol Resolution
 -----------------
@@ -274,8 +257,6 @@ The slash '/' prefix is used for result lookups and is also treated as a literal
 
 Starting dots '.' are used for relative lookups. A single dot indicates that the following symbol
 can only be found in the current environment, each additional dot moves one parent up the ancestry.
-The special prefix '.?' can be used to force the default scope lookup for predefined name like list
-which is also a type name.
 
 If a symbol does not start with a special lookup modifier prefix and instead starts with a name
 start character, it is parsed as a path in case it contains interior dots. And each path segment
@@ -339,8 +320,8 @@ Function Type and Literal
 -------------------------
 
 Xelf tried to build around the concept of resolvers that do not differentiate between variables,
-functions or built-in expressions. However this meant that even simple resolvers that could be
-expressed in xelf expressions needed to be implemented in every environment used. The concept
+functions or built-in expressions. However this meant that even simple resolvers, that could be
+expressed in xelf expressions, needed to be implemented in every environment used. The concept
 of function is also common enough to justify special handling to reduce code duplication.
 
 Functions as literals also imply a function type that represents the type's signature. A declared
@@ -361,8 +342,8 @@ for normal functions and means their implementations need to remember the declar
 A special function scope provides the parameter declarations that were resolved in the calling
 environment.
 
-Normal functions need to be inlined in environments without function literals, but can avoid
-work along the way.
+Normal functions need to be inlined in environments without function literals. For this reason they
+are allowed to execute without exec context. Other functions only call the body if exec is true.
 
 A new resolver 'fn' is used to construct function literal. It has the same parameter and result
 declaration as the function type syntax but ends in a tail of body elements. Simple function
@@ -412,12 +393,12 @@ quasi-literal for those cases.
 Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
 but usually matches the definition name of that form.
 
-Expressions have different layouts regarding the number and shape of their arguments. Function
-for example accept leading plain elements and optionally tagged elements for named parameters.
-Forms can have any layout including not only tag expressions but also declaration expressions.
+Expressions have different layouts regarding the number and shape of their arguments. Function for
+example accept leading plain elements and optionally tagged elements for named parameters. Forms
+can have any layout including not only tag expressions but also declaration expressions.
 
-Form types have a signature of type hints. Layouts can be used to validate and resolve args
-against the form signature. And the type resolution machinery uses specific result types.
+Form types have a signature of type hints. Layouts can be used to validate and resolve args against
+the form signature. And the type resolution machinery uses specific result types.
 
 Type Inference
 --------------
