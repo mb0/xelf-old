@@ -36,7 +36,18 @@ func Parse(a *lex.Tree) (El, error) {
 		if len(a.Seq) == 0 { // empty expression is void
 			return typ.Void, nil
 		}
-		fst, err := Parse(a.Seq[0])
+		st := a.Seq[0]
+		if st.Tok == lex.Sym && st.Val != "" {
+			switch st.Val[0] {
+			case '-', '+':
+				args, err := decledArgs(nil, a.Seq[1:])
+				return Decl{st.Val, args}, err
+			case ':':
+				args, err := plainArgs(nil, a.Seq[1:])
+				return Tag{st.Val, args}, err
+			}
+		}
+		fst, err := Parse(st)
 		if err != nil {
 			return nil, err
 		}
@@ -52,15 +63,27 @@ func Parse(a *lex.Tree) (El, error) {
 }
 
 func decledArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
+	if res == nil {
+		res = make([]El, 0, len(seq))
+	}
 	var decl bool
 	var last bool
+	var lasti int
 	for i, t := range seq {
 		if key, ok := lex.CheckSym(t, 1, lex.IsDecl); ok {
-			if !decl {
+			if !decl && i > 0 {
 				res, err = taggedArgs(res, seq[:i])
 				if err != nil {
 					return nil, err
 				}
+			} else if last {
+				tags, err := taggedArgs(nil, seq[lasti:i])
+				if err != nil {
+					return nil, err
+				}
+				lt := res[len(res)-1].(Decl)
+				lt.Args = append(lt.Args, tags...)
+				res[len(res)-1] = lt
 			}
 			decl = true
 			if lex.IsExp(t) {
@@ -73,16 +96,7 @@ func decledArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 			} else {
 				res = append(res, Decl{key, nil})
 				last = true
-			}
-		} else if last {
-			e, err := Parse(t)
-			if err != nil {
-				return nil, err
-			}
-			if e != typ.Void {
-				lt := res[len(res)-1].(Decl)
-				lt.Args = append(lt.Args, e)
-				res[len(res)-1] = lt
+				lasti = i + 1
 			}
 		}
 	}
@@ -91,11 +105,22 @@ func decledArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 		if err != nil {
 			return nil, err
 		}
+	} else if last && lasti < len(seq) {
+		tags, err := taggedArgs(nil, seq[lasti:])
+		if err != nil {
+			return nil, err
+		}
+		lt := res[len(res)-1].(Decl)
+		lt.Args = append(lt.Args, tags...)
+		res[len(res)-1] = lt
 	}
 	return res, err
 }
 
 func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
+	if res == nil {
+		res = make([]El, 0, len(seq))
+	}
 	var tag bool
 	var last bool
 	for i, t := range seq {

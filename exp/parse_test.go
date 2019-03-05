@@ -51,6 +51,15 @@ func TestParse(t *testing.T) {
 				lit.Num(4),
 			}},
 		}},
+		{`(s (+m +a u :t))`, Dyn{
+			&Sym{Name: "s"},
+			Decl{Name: "+m", Args: []El{
+				Decl{Name: "+a", Args: []El{
+					&Sym{Name: "u"},
+					Tag{Name: ":t"},
+				}},
+			}},
+		}},
 	}
 	for _, test := range tests {
 		got, err := ParseString(test.raw)
@@ -59,7 +68,7 @@ func TestParse(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("%s want:\n%#v\n\tgot:\n%#v", test.raw, test.want, got)
+			t.Errorf("%s want:\n%s\n\tgot:\n%s", test.raw, test.want, got)
 			continue
 		}
 	}
