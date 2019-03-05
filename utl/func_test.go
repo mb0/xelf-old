@@ -77,7 +77,8 @@ func TestFuncResolver(t *testing.T) {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
 		}
-		res, err := r.Resolve(&exp.Ctx{}, exp.StdEnv, &exp.Expr{r, test.args}, typ.Void)
+		c := &exp.Ctx{Exec: true}
+		res, err := r.Resolve(c, exp.StdEnv, &exp.Expr{r, test.args}, typ.Void)
 		if err != nil {
 			if test.err == nil || test.err.Error() != err.Error() {
 				t.Errorf("for %T want err %v got %v", test.fun, test.err, err)

@@ -83,9 +83,11 @@ type Env interface {
 	Supports(x byte) bool
 }
 
-// ErrUnres is a special error value that is returned by a resolver when
-// the result is unresolved but otherwise valid.
+// ErrUnres is returned by a resolver if the result is unresolved, but otherwise valid.
 var ErrUnres = cor.StrError("unresolved")
+
+// ErrExec is returned by a resolver if it cannot proceed because context exec is false.
+var ErrExec = cor.StrError("not executed")
 
 // Resolver is the common interface of all element resolvers.
 type Resolver interface {
@@ -97,6 +99,7 @@ type Resolver interface {
 	// If the type hint is not void, it is used to check or infer the element type.
 	// When parts of the element could not be resolved it returns the special error ErrUnres,
 	// and either the original element or if the context allows a partially resolved element.
+	// If the resolution cannot proceed with execution it returns the special error ErrExec.
 	// Any other error ends the whole resolution process.
 	Resolve(c *Ctx, env Env, el El, hint Type) (El, error)
 }

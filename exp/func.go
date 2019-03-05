@@ -69,7 +69,7 @@ type FuncResolver interface {
 var layoutArgs = []typ.Param{{Name: "args"}}
 
 // FuncArgs matches arguments of x to the parameters of f and returns them or an error.
-func FuncArgs(x *Expr) ([][]El, error) {
+func FuncArgs(x *Expr) (*Layout, error) {
 	lo, err := LayoutArgs(layoutArgs, x.Args)
 	if err != nil {
 		return nil, err
@@ -79,13 +79,15 @@ func FuncArgs(x *Expr) ([][]El, error) {
 		return nil, err
 	}
 	params := x.Rslv.Arg()
-	if len(tags) > len(params) {
-		return nil, cor.Errorf("too many arguments")
-	}
 	args := make([][]El, len(params))
 	for i, tag := range tags {
 		if tag.Name == "" {
-			args[i] = tag.Args
+			if i < len(args) {
+				args[i] = tag.Args
+			} else {
+				i = len(args) - 1
+				args[i] = append(args[i], tag.Args...)
+			}
 		} else {
 			key := strings.ToLower(tag.Name[1:])
 			_, idx, err := x.Rslv.Typ().ParamByKey(key)
@@ -95,5 +97,5 @@ func FuncArgs(x *Expr) ([][]El, error) {
 			args[idx] = tag.Args
 		}
 	}
-	return args, nil
+	return &Layout{x.Rslv.Arg(), args}, nil
 }

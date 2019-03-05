@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/mb0/xelf/bfr"
-	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -30,13 +29,9 @@ func (f *ExprBody) WriteBfr(b bfr.Ctx) error {
 func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) {
 	// build a parameter object from all arguments
 	ps := x.Rslv.Arg()
-	args, err := FuncArgs(x)
+	lo, err := FuncArgs(x)
 	if err != nil {
 		return nil, err
-	}
-	if len(ps) != len(args) {
-		// TODO allow implicit argument spread for the last param
-		return nil, cor.Error("argument mismatch")
 	}
 	// use the calling env to resove parameters
 	s := &ParamScope{NewScope(env), nil}
@@ -45,7 +40,7 @@ func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) 
 		o := &lit.DictObj{Type: typ.Obj(ps[:0])}
 		o.List = make([]lit.Keyed, 0, len(ps))
 		s.Param = o
-		for i, a := range args {
+		for i, a := range lo.args {
 			p := ps[i]
 			el, err := c.Resolve(s, a[0], p.Type)
 			if err != nil {
@@ -59,7 +54,7 @@ func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) 
 			name := p.Key()
 			if name == "" {
 				// otherwise use a synthetic name
-				name = fmt.Sprintf("p_%d", i)
+				name = fmt.Sprintf("arg%d", i)
 			}
 			// update parameters on each iteral so the next parameter can
 			// refer to previous ones.

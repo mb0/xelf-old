@@ -17,25 +17,28 @@ type ReflectBody struct {
 }
 
 func (f *ReflectBody) ResolveFunc(c *exp.Ctx, env exp.Env, x *exp.Expr, h typ.Type) (exp.El, error) {
-	call, err := exp.FuncArgs(x)
+	lo, err := exp.FuncArgs(x)
 	if err != nil {
 		return nil, err
+	}
+	// resolve args
+	err = lo.Resolve(c, env)
+	if err != nil {
+		return x, err
+	}
+	if !c.Exec {
+		return x, exp.ErrExec
 	}
 	args := make([]reflect.Value, len(f.ptyps))
 	for i, pt := range f.ptyps {
 		v := reflect.New(pt)
 		args[i] = v.Elem()
-		n := call[i]
+		n := lo.Args(i)
 		if len(n) == 0 {
 			// reflect already provides a zero value
 			continue
 		}
-		// resolve arg
-		l, err := c.Resolve(env, n[0], typ.Void)
-		if err != nil {
-			return x, err
-		}
-		err = lit.AssignToValue(l.(lit.Lit), v)
+		err = lit.AssignToValue(n[0].(lit.Lit), v)
 		if err != nil {
 			return nil, cor.Errorf("have %s: %w", v, err)
 		}
