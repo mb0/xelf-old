@@ -1,7 +1,6 @@
 package exp
 
 import (
-	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -53,57 +52,107 @@ func Parse(a *lex.Tree) (El, error) {
 }
 
 func decledArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
-	seq, tail := lex.SplitAfter(seq, lex.SymPred(0, func(s string) bool { return s == "-" }))
-	head, rest, decls := lex.SplitKeyed(seq, false, lex.IsDecl)
-	if len(rest) != 0 {
-		return nil, cor.Error("unexpected decl tail")
+	var decl bool
+	var last bool
+	for i, t := range seq {
+		if key, ok := lex.CheckSym(t, 1, lex.IsDecl); ok {
+			if !decl {
+				res, err = taggedArgs(res, seq[:i])
+				if err != nil {
+					return nil, err
+				}
+			}
+			decl = true
+			if lex.IsExp(t) {
+				args, err := decledArgs(nil, t.Seq[1:])
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, Decl{key, args})
+				last = false
+			} else {
+				res = append(res, Decl{key, nil})
+				last = true
+			}
+		} else if last {
+			e, err := Parse(t)
+			if err != nil {
+				return nil, err
+			}
+			if e != typ.Void {
+				lt := res[len(res)-1].(Decl)
+				lt.Args = append(lt.Args, e)
+				res[len(res)-1] = lt
+			}
+		}
 	}
-	res, err = taggedArgs(res, head)
-	for _, decl := range decls {
-		args, err := decledArgs(nil, decl.Seq)
+	if !decl {
+		res, err = taggedArgs(res, seq)
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, Decl{Name: decl.Key, Args: args})
 	}
-	res, err = taggedArgs(res, tail)
 	return res, err
 }
 
 func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
-	seq, rest := lex.SplitAfter(seq, lex.SymPred(0, func(s string) bool { return s == "::" }))
-	head, tail, tags := lex.SplitKeyed(seq, true, lex.IsTag)
-	res, err = plainArgs(res, head)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		args, err := plainArgs(nil, tag.Seq)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, Tag{Name: tag.Key, Args: args})
-	}
-	if len(tail) > 0 || len(rest) > 0 {
-		args := make([]El, 0, len(tail)+len(rest))
-		if len(tail) > 0 {
-			args, err = plainArgs(args, tail)
+	var tag bool
+	var last bool
+	for i, t := range seq {
+		if key, ok := lex.CheckSym(t, 1, lex.IsTag); ok {
+			tag = true
+			if key == "::" {
+				args, err := plainArgs(nil, seq[i+1:])
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, Tag{key, args})
+				return res, nil
+			}
+			if lex.IsExp(t) {
+				args, err := plainArgs(nil, t.Seq[1:])
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, Tag{key, args})
+				last = false
+			} else {
+				res = append(res, Tag{key, nil})
+				last = true
+			}
+		} else if last {
+			args, err := plainArgs(nil, seq[i:i+1])
 			if err != nil {
 				return nil, err
 			}
-		}
-		if len(rest) > 0 {
-			args, err = plainArgs(args, rest)
+			lt := res[len(res)-1].(Tag)
+			lt.Args = args
+			res[len(res)-1] = lt
+			last = false
+		} else if tag {
+			args, err := plainArgs(nil, seq[i:])
 			if err != nil {
 				return nil, err
 			}
+			res = append(res, Tag{"::", args})
+			return res, nil
+		} else {
+			e, err := Parse(t)
+			if err != nil {
+				return nil, err
+			}
+			if e != typ.Void {
+				res = append(res, e)
+			}
 		}
-		res = append(res, Tag{Name: "::", Args: args})
 	}
 	return res, nil
 }
 
 func plainArgs(res []El, seq []*lex.Tree) ([]El, error) {
+	if res == nil {
+		res = make([]El, 0, len(seq))
+	}
 	for _, t := range seq {
 		e, err := Parse(t)
 		if err != nil {

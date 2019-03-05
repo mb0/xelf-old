@@ -67,11 +67,6 @@ func IsSym(t *Tree) bool {
 	return t.Tok == Sym && len(t.Val) > 0
 }
 
-// SymPred returns a tree predicated that checks for symbols nested up to depth.
-func SymPred(depth int, pred func(string) bool) func(*Tree) bool {
-	return func(t *Tree) bool { _, ok := CheckSym(t, depth, pred); return ok }
-}
-
 // CheckSym checks t or the nested first trees up to depth whether it is a symbol that matches pred.
 func CheckSym(t *Tree, depth int, pred func(string) bool) (string, bool) {
 	if IsSym(t) && pred(t.Val) {
