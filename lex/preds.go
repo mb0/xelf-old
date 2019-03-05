@@ -18,7 +18,8 @@ func IsLetter(r rune) bool {
 // IsPunct tests whether r is one of the ascii punctuations allowed in symbols.
 func IsPunct(r rune) bool {
 	switch r {
-	case ':', '!', '#', '$', '%', '&', '*', '+', '-', '.', '/', '@', '=', '?', '|', '~', '_', '^':
+	case '!', '#', '$', '%', '&', '*', '+', '-', '.', '/', ':',
+		'<', '=', '>', '?', '@', '^', '_', '|', '~':
 		return true
 	}
 	return false
