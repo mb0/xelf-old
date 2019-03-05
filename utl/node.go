@@ -1,10 +1,11 @@
 package utl
 
 import (
+	"reflect"
+
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
-	"github.com/mb0/xelf/typ"
 )
 
 // Node is an interface for assignable object literals.
@@ -30,55 +31,6 @@ func GetNode(val interface{}) (Node, error) {
 	return n, nil
 }
 
-var layoutNode = []typ.Param{{Name: "tags"}, {Name: "rest"}}
-var layoutFull = []typ.Param{{Name: "args"}, {Name: "decls"}, {Name: "rest"}}
-
-// ParseNode parses args as node form and sets them to v using rules or returns an error.
-func ParseNode(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules NodeRules) error {
-	n, err := GetNode(v)
-	if err != nil {
-		return err
-	}
-	lo, err := exp.LayoutArgs(layoutNode, args)
-	if err != nil {
-		return err
-	}
-	tags, err := lo.Tags(0)
-	if err != nil {
-		return err
-	}
-	rest := lo.Args(1)
-	if rules.Tags.IdxKeyer == nil {
-		rules.Tags.IdxKeyer = ZeroKeyer
-	}
-	return rules.Resolve(c, env, tags, nil, rest, n)
-}
-
-// ParseDeclNode parses args as full form and sets them to v using rules or returns an error.
-func ParseDeclNode(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules NodeRules) error {
-	n, err := GetNode(v)
-	if err != nil {
-		return err
-	}
-	lo, err := exp.LayoutArgs(layoutFull, args)
-	if err != nil {
-		return err
-	}
-	tags, err := lo.Tags(0)
-	if err != nil {
-		return err
-	}
-	decls, err := lo.Decls(1)
-	if err != nil {
-		return err
-	}
-	rest := lo.Args(2)
-	if rules.Tags.IdxKeyer == nil {
-		rules.Tags.IdxKeyer = ZeroKeyer
-	}
-	return rules.Resolve(c, env, tags, decls, rest, n)
-}
-
 // NodeRules is a configurable helper for assigning tags and tail elements to nodes.
 type NodeRules struct {
 	Tags TagRules
@@ -86,32 +38,118 @@ type NodeRules struct {
 	Tail KeyRule
 }
 
-// Resolve resolves tags, decls and tail and assigns them to node or returns an error.
-func (nr NodeRules) Resolve(c *exp.Ctx, env exp.Env,
-	tags []exp.Tag, decls []exp.Decl, tail []exp.El, node Node) error {
-	err := nr.Tags.Resolve(c, env, tags, node)
+// NodeResolverFunc returns a one time node form resolver that uses v directly.
+func NodeResolverFunc(rules NodeRules, v interface{}) exp.FormResolverFunc {
+	r := NewNodeResolver(rules, v)
+	r.reuse = true
+	return r.ResolveForm
+}
+
+// NodeResolver is a form resolver that returns nodes of a specific type.
+type NodeResolver struct {
+	NodeRules
+	def   reflect.Value
+	reuse bool
+}
+
+// NewNodeResolver returns a node resolver using rules and returning new nodes based on v.
+func NewNodeResolver(rules NodeRules, v interface{}) *NodeResolver {
+	def := reflect.ValueOf(v)
+	t := def.Type()
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
+		panic(cor.Error("node resolver only works with a pointer to a struct type"))
+	}
+	return &NodeResolver{rules, def, false}
+}
+
+func (r *NodeResolver) getNode() (Node, error) {
+	v := r.def
+	if !r.reuse {
+		v = reflect.New(v.Type().Elem())
+		if !r.def.IsNil() {
+			v.Elem().Set(r.def.Elem())
+		}
+	}
+	p, err := lit.ProxyValue(v)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	return p.(Node), nil
+}
+
+func (r *NodeResolver) ResolveForm(c *exp.Ctx, env exp.Env, x *exp.Expr, h exp.Type) (exp.El, error) {
+	fps := x.Rslv.Arg()
+	lo, err := exp.LayoutArgs(fps, x.Args)
+	if err != nil {
+		return nil, err
+	}
+	node, err := r.getNode()
+	if err != nil {
+		return nil, err
+	}
+	var decls []exp.Decl
+	// associate to arguments using using rules
+	for i, fp := range fps {
+		switch fp.Name {
+		case "pain", "tags", "args":
+			tags, err := lo.Tags(i)
+			if err != nil {
+				return nil, err
+			}
+			err = r.Tags.Resolve(c, env, tags, node)
+			if err != nil {
+				return nil, err
+			}
+		case "rest", "tail":
+			if r.Tail.KeySetter != nil {
+				tail := lo.Args(i)
+				l, err := r.Tail.prepper(KeyRule{})(c, env, "::", tail)
+				if err != nil {
+					return nil, err
+				}
+				err = r.Tail.KeySetter(node, "::", l)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				tags, err := lo.Tags(i)
+				if err != nil {
+					return nil, err
+				}
+				err = r.Tags.Resolve(c, env, tags, node)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case "unis":
+			decls, err = lo.Unis(i)
+			if err != nil {
+				return nil, err
+			}
+		case "decls":
+			decls, err = lo.Decls(i)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			t := exp.Tag{Name: fp.Name, Args: lo.Args(i)}
+			r.Tags.ResolveTag(c, env, t, i, node)
+		}
 	}
 	for _, d := range decls {
-		l, err := nr.Decl.prepper(KeyRule{})(c, env, d.Name[1:], d.Args)
+		l, err := r.Decl.prepper(KeyRule{})(c, env, d.Name[1:], d.Args)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if nr.Decl.KeySetter == nil {
-			return cor.Errorf("unexpected decl %s", d)
+		if r.Decl.KeySetter == nil {
+			return nil, cor.Errorf("unexpected decl %s", d)
 		}
-		err = nr.Decl.KeySetter(node, d.Name[1:], l)
+		err = r.Decl.KeySetter(node, d.Name[1:], l)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if nr.Tail.KeySetter != nil {
-		l, err := nr.Tail.prepper(KeyRule{})(c, env, "::", tail)
-		if err != nil {
-			return err
-		}
-		return nr.Tail.KeySetter(node, "::", l)
-	}
-	return ParseTags(c, env, tail, node, nr.Tags)
+	return node, nil
 }
+
+var refNode = reflect.TypeOf((*Node)(nil)).Elem()

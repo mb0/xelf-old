@@ -55,34 +55,39 @@ type TagRules struct {
 }
 
 // WithOffset return a with an offset keyer.
-func (tr TagRules) WithOffset(off int) TagRules {
+func (tr TagRules) WithOffset(off int) *TagRules {
 	tr.IdxKeyer = OffsetKeyer(off)
-	return tr
+	return &tr
 }
 
 // Resolve resolves tags using c and env and assigns them to node or returns an error
-func (tr TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) (err error) {
+func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) (err error) {
 	for i, t := range tags {
-		var key string
-		if t.Name != "" {
-			key = strings.ToLower(t.Name[1:])
-		} else if tr.IdxKeyer != nil {
-			key = tr.IdxKeyer(node, i)
-		}
-		if key == "" {
-			return cor.Errorf("unrecognized tag %s", t)
-		}
-		r := tr.Rules[key]
-		l, err := tr.prepper(r)(c, env, key, t.Args)
-		if err != nil {
-			return err
-		}
-		err = tr.setter(r)(node, key, l)
+		err = tr.ResolveTag(c, env, t, i, node)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// ResolveTag resolves tag using c and env and assigns them to node or returns an error
+func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag exp.Tag, idx int, node Node) (err error) {
+	var key string
+	if tag.Name != "" {
+		key = strings.ToLower(tag.Name[1:])
+	} else if tr.IdxKeyer != nil {
+		key = tr.IdxKeyer(node, idx)
+	}
+	if key == "" {
+		return cor.Errorf("unrecognized tag %s", tag)
+	}
+	r := tr.Rules[key]
+	l, err := tr.prepper(r)(c, env, key, tag.Args)
+	if err != nil {
+		return err
+	}
+	return tr.setter(r)(node, key, l)
 }
 
 // ZeroKeyer is an index keyer without offset.
