@@ -215,12 +215,12 @@ by key.
 Predefined Symbols
 ------------------
 
-Only the literal symbols nill, false and true as well as the void type use hard keywords. All other
+Only the literal symbols null, false and true as well as the void type use hard keywords. All other
 types are just built-in definitions that can be overwritten in sub environment.
 
 The schema prefix can be used to refer to built-in types, even if shadowed by a another definition.
 
-Types are mostly used in context where there are explicitly expected. Maybe we can introduce a rule
+Types are mostly used in context where they are explicitly expected. Maybe we can introduce a rule
 stating that in those cases simple names are always treated as type, while every other case resolves
 the name in its environment.
 
@@ -251,12 +251,13 @@ The common prefixes are:
 The tilde '~' prefix is used for schema lookups and is followed by a model name that is usually
 qualified by a schema name or needs a context that can infer a default schema.
 
-The dollar '$' prefix is used for parameter lookups and is treated as a literal itself.
-
-The slash '/' prefix is used for result lookups and is also treated as a literal.
-
 Starting dots '.' are used for relative lookups. A single dot indicates that the following symbol
 can only be found in the current environment, each additional dot moves one parent up the ancestry.
+
+The dollar '$' and slash '/' prefixes are used for parameter and result paths and can be treated as
+literal by themself. Both use the next environment supporting the prefix and can be followed by
+dots to select a supporting parent. A double prefix '$$' or '//' will select the outermost
+supporting environment.
 
 If a symbol does not start with a special lookup modifier prefix and instead starts with a name
 start character, it is parsed as a path in case it contains interior dots. And each path segment
@@ -265,13 +266,9 @@ This key is used to lookup the resolver. Following path segments are used to sel
 resolved literal. This implies that resolver names cannot contains dots and instead should
 use other punctuation without special meaning. Library resolvers use a colon for that reason.
 
-To avoid checking the symbol in each environment the default resolution should do most of the heavy
-lifting. It should check if a symbol has a special prefix or is a path, and with that information
-select the appropriate environment from the whole ancestry of the current one. Environments need a
-a way to advertise special behaviour for this to work. Because interface calls where tested to be
-cheaper than type checks we add a method the environment, instead of using marker interfaces. We
-could expand the use of types for all expression elements to avoid type checking where the typed
-value is not required anyway.
+To avoid checking the symbol in each environment the default resolution cover most of the path
+aspects and will only the relevant environments. The environments implement a simple method to
+indicate whether they can resolve a special symbol.
 
 Expressions
 -----------
@@ -350,32 +347,14 @@ declaration as the function type syntax but ends in a tail of body elements. Sim
 expression should be able to omit and infer the function signature.
 
 If we have a full function type as hint, inferring the signature could be as simple as checking if
-all parameter references work with the declared type and whether the result type if comparable. This
-either implies that we must have names for every parameter or use a new syntax that allows
-parameter references by index.
+all parameter references work with the declared type and whether the result type if comparable. The
+paramter sytax can use either index or key notation to refer to the parameters.
 
 To infer the signature without any hint we must deduce all parameter references and their order as
-well as the result type. We can assume that all free references for which no resolver is found in
-the declaration scope are parameters, but then we still need to figure out the order and would be
-effectively limited to functions that take at most one parameter or happen to refer to parameters
-in the desired order.
+well as the result type. The prefix allow us to identify all parameter references. We can use index
+parameters to explicitly order some of the parameters append named ones in order.
 
-Using a special prefix that marks a references to parameters and allows to refer by index, would
-make things easier. We have the program parameter prefix that already supports most of the
-requirements. However, because normal functions are closures, using them as-is would be confusing
-when parameter environments are nested. Using a new prefix does not solve the problem. What we need
-is to refine the parameter syntax so we can explicitly refer to a specific parameter environment.
-
-We already have the concept of relative paths to select a specific environment and can reuse it for
-parameter and maybe even the result path resolution. The parameter prefix should lead the symbol to
-clearly identify it as parameter path. It can then be followed by dots, each dot selects the next
-parameter environment. Parameters are in general only looked up from one parameter environment and
-none of its parents. A parameter without dots should therefor refer to the immediate environment,
-one dot to its parent and so on.  The program parameters are special in that reference to them will
-most likely end up in deeply nested environments. A double parameter prefix '$$' could more clearly
-identify program parameters in those cases.
-
-Functions should be used to model all expressions that use their own isolated and parameterized
+Functions should be used by other expressions, that need to execute in an isolated and parameterized
 environment like loop actions or the with expressions.
 
 Form Type and Literal
@@ -391,7 +370,7 @@ way as function types would have no clear benefit. It was therefor decided to in
 quasi-literal for those cases.
 
 Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
-but usually matches the definition name of that form.
+but should match the definition name of that form.
 
 Expressions have different layouts regarding the number and shape of their arguments. Function for
 example accept leading plain elements and optionally tagged elements for named parameters. Forms
@@ -414,10 +393,10 @@ auto conversion rules between base type and comparable special types.
 
 Instead we need a way to check and infer types within the same resolution context and process. It
 should be flexible enough to cover functions or references and help form expression infer their
-types. Luckily we already have type references, that we can use as type variables, the infer type,
-that can act as a poly type behind the scenes, a context to stash intermediate results and an
-environment to look it all up. Using function signatures and implementing type resolution in all
-form resolvers potentially provides use with all the types we need.
+types. Luckily we already have type references, that we can use as type variables and as poly type
+behind the scenes, a context to stash intermediate results and an environment to look it all up.
+Using function signatures and implementing type resolution in all form resolvers potentially
+provides use with all the types we need.
 
 We pass a type hint to resolvers, so it can be considered when inferring types and encapsulate their
 type resolution. The other option would be to handle type checking and inference at the call site,

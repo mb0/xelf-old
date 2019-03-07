@@ -162,7 +162,7 @@ func GetSupports(env Env, sym string, x byte) Resolver {
 	return nil
 }
 
-// Supports returns a resolver that supports behaviour indicated by x or nil.
+// Supports returns an environment that supports behaviour indicated by x or nil.
 func Supports(env Env, x byte) Env {
 	for env != nil {
 		if env.Supports(x) {

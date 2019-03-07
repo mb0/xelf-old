@@ -152,7 +152,7 @@ func (c Ctx) WithExec(val bool) *Ctx {
 	return &c
 }
 
-func (x *Sym) String() string  { return bfr.String(x) }
+func (x *Sym) String() string  { return x.Name }
 func (x Dyn) String() string   { return bfr.String(x) }
 func (x Tag) String() string   { return bfr.String(x) }
 func (x Decl) String() string  { return bfr.String(x) }

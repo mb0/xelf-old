@@ -41,14 +41,12 @@ func (a *Info) Key() string {
 	return a.key
 }
 
-var errParamNotFound = cor.StrError("param not found")
-
 // ParamByIdx returns a pointer to the field at idx or an error.
 func (a *Info) ParamByIdx(idx int) (*Param, error) {
 	if a != nil && idx >= 0 && idx < len(a.Params) {
 		return &a.Params[idx], nil
 	}
-	return nil, errParamNotFound
+	return nil, cor.Errorf("no param with idx %d", idx)
 }
 
 // ParamByKey returns a pointer to the field and its idex at key or an error.
@@ -60,7 +58,7 @@ func (a *Info) ParamByKey(key string) (*Param, int, error) {
 			}
 		}
 	}
-	return nil, -1, errParamNotFound
+	return nil, -1, cor.Errorf("no param with key %s", key)
 }
 
 // Param represents an type parameter with a name and type.
