@@ -20,7 +20,7 @@ func init() {
 	formBool = core.add("bool", plainBool, rslvBool)
 	formNot = core.add("not", plainBool, rslvNot)
 	core.add("if", []typ.Param{
-		{Name: "cond", Type: typ.Any}, {Name: "act"}, {Name: "rest"}, {Type: typ.Infer},
+		{Name: "cond", Type: typ.Any}, {Name: "act"}, {Name: "plain"}, {Type: typ.Infer},
 	}, rslvIf)
 }
 

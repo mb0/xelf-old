@@ -12,7 +12,7 @@ func init() {
 	}, rslvLet)
 	unisRest := []typ.Param{
 		{Name: "unis"},
-		{Name: "rest"},
+		{Name: "plain"},
 		{Type: typ.Infer},
 	}
 	std.add("with", unisRest, rslvWith)

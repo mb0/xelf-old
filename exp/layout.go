@@ -34,7 +34,6 @@ import (
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
 // TODO:
-//    allow naked and unnamed fields for form signatures
 //    add type validation when hints are provided
 type Layout struct {
 	ps   []typ.Param
@@ -179,8 +178,10 @@ Loop:
 		// check kind of parameter and consume matching args
 		tmp = nil
 		switch p.Name {
-		case "plain", "rest":
+		case "plain":
 			tmp, args = consumePlain(args)
+		case "rest":
+			tmp, args = args, nil
 		case "tags", "tail", "args":
 			tmp, args = consumeTags(args, p.Name != "tags")
 		case "decls":

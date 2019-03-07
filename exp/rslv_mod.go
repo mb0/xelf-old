@@ -18,14 +18,14 @@ var (
 func init() {
 	plainInfer := []typ.Param{
 		{Name: "a", Type: typ.Any},
-		{Name: "rest", Type: typ.List},
+		{Name: "plain", Type: typ.List},
 		{Type: typ.Infer},
 	}
 	core.add("cat", plainInfer, rslvCat)
 	core.add("apd", plainInfer, rslvApd)
 	core.add("set", []typ.Param{
 		{Name: "a", Type: typ.Dict},
-		{Name: "rest", Type: typ.List},
+		{Name: "plain", Type: typ.List},
 		{Name: "unis", Type: typ.Dict},
 		{Type: typ.Infer},
 	}, rslvSet)

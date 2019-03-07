@@ -9,7 +9,7 @@ func init() {
 	var rest2 = []typ.Param{
 		{Name: "a", Type: typ.Any},
 		{Name: "b", Type: typ.Any},
-		{Name: "rest", Type: typ.Arr(typ.Any)},
+		{Name: "plain", Type: typ.Arr(typ.Any)},
 		{Type: typ.Bool},
 	}
 	core.add("eq", rest2, rslvEq)

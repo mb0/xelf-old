@@ -17,7 +17,7 @@ func init() {
 	nums2 := []typ.Param{
 		{Name: "a", Type: typ.Num},
 		{Name: "b", Type: typ.Num},
-		{Name: "rest", Type: typ.Arr(typ.Num)},
+		{Name: "plain", Type: typ.Arr(typ.Num)},
 		{Type: typ.Num},
 	}
 	nums0 := nums2[2:]

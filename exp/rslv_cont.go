@@ -12,7 +12,7 @@ func init() {
 	std.add("reduce", []typ.Param{
 		{Name: "a", Type: typ.Any},
 		{Name: "unis", Type: typ.Void},
-		{Name: "rest", Type: typ.Void},
+		{Name: "plain", Type: typ.Void},
 		{Type: typ.Infer},
 	}, rslvReduce)
 }
