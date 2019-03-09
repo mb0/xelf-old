@@ -53,18 +53,14 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	switch v := x.(type) {
 	case Type: // resolve type references
 		last := v.Last()
-		if last.Kind&typ.FlagRef != 0 {
-			v, err = c.resolveTypRef(env, v, last)
-			if err == ErrUnres {
-				c.Unres = append(c.Unres, x)
-				return x, err
-			}
-		} else if last.Kind == typ.ExpFunc {
-			// TODO resolve func signatures
+		v, err = c.resolveType(env, v, last)
+		if err == ErrUnres {
+			c.Unres = append(c.Unres, x)
+			return x, err
 		}
 		return v, err
 	case *Sym:
-		return c.resolveRef(env, v, hint)
+		return c.resolveSym(env, v, hint)
 	case Tag:
 		_, err = c.ResolveAll(env, v.Args, typ.Void)
 		return x, err
@@ -88,7 +84,7 @@ func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
 	return defaultDyn(c, env, d, hint)
 }
 
-func (c *Ctx) resolveRef(env Env, ref *Sym, hint Type) (El, error) {
+func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 	sym := ref.Key()
 	tref := sym != "" && sym[0] == '@'
 	if tref {
@@ -96,12 +92,21 @@ func (c *Ctx) resolveRef(env Env, ref *Sym, hint Type) (El, error) {
 		if sym == "" {
 			return typ.Infer, nil
 		}
-		r := typ.Ref(sym)
+		t := typ.Ref(sym)
 		if sym[len(sym)-1] == '?' {
-			r.Ref = sym[:len(sym)-1]
-			return c.resolveTypRef(env, typ.Opt(r), r)
+			t = typ.Ref(sym[:len(sym)-1])
+			return c.resolveType(env, typ.Opt(t), t)
+		} else {
+			t = typ.Ref(sym)
+			return c.resolveType(env, t, t)
 		}
-		return c.resolveTypRef(env, r, r)
+	}
+	if strings.HasPrefix(sym, "arr|") || strings.HasPrefix(sym, "map|") {
+		t, err := typ.ParseSym(sym, nil)
+		if err != nil {
+			return nil, err
+		}
+		return c.resolveType(env, t, t.Last())
 	}
 	r, name, path, err := findResolver(env, sym)
 	if r == nil || err == ErrUnres {
@@ -128,7 +133,13 @@ func (c *Ctx) resolveRef(env Env, ref *Sym, hint Type) (El, error) {
 	return lit.Select(res.(Lit), path)
 }
 
-func (c *Ctx) resolveTypRef(env Env, t Type, last Type) (_ Type, err error) {
+func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
+	if last.Kind&typ.FlagRef == 0 {
+		if last.Kind == typ.ExpFunc {
+			// TODO resolve func signatures
+		}
+		return t, nil
+	}
 	k := last.Kind
 	if t.Info == nil || t.Info.Ref == "" {
 		if k != typ.FlagRef {
@@ -146,7 +157,7 @@ func (c *Ctx) resolveTypRef(env Env, t Type, last Type) (_ Type, err error) {
 		}
 		key = "~" + key
 	}
-	res, err := c.resolveRef(env, &Sym{Name: key}, typ.Void)
+	res, err := c.resolveSym(env, &Sym{Name: key}, typ.Void)
 	if err != nil {
 		return t, err
 	}
@@ -239,7 +250,7 @@ func replaceRef(t, el Type) (Type, error) {
 		k := t.Kind >> shift
 		switch k & typ.MaskElem {
 		case typ.KindArr, typ.KindMap:
-			mask |= k << shift
+			mask |= (k & typ.SlotMask) << shift
 			continue
 		}
 		el.Kind |= k & typ.FlagOpt

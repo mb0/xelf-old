@@ -152,6 +152,7 @@ func TestStdResolve(t *testing.T) {
 		{`(with +str int str)`, typ.Int},
 		{`(with +str int ~str)`, typ.Str},
 		{`(with +a (obj +b int) @a.b)`, typ.Int},
+		{`(with +a int +b arr|@a @b)`, typ.Arr(typ.Int)},
 		{`(with +f (fn + int 1) (f))`, lit.Int(1)},
 		{`(with +f (fn +a int + int (add $a 1)) (f 1))`, lit.Int(2)},
 	}
