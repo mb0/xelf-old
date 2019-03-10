@@ -141,7 +141,7 @@ func PathSetter(n Node, key string, el lit.Lit) error {
 	if err != nil {
 		return cor.Errorf("path setter key %s: %w", key, err)
 	}
-	err = lit.SetPath(n, path, el, true)
+	_, err = lit.SetPath(n, path, el, true)
 	if err != nil {
 		return cor.Errorf("path setter key %s: %w", key, err)
 	}

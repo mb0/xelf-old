@@ -102,6 +102,10 @@ func (p *proxyMap) SetKey(k string, l Lit) error {
 		if err != nil {
 			return err
 		}
+		if v.IsNil() {
+			v = reflect.MakeMap(v.Type())
+			p.val.Elem().Set(v)
+		}
 		v.SetMapIndex(reflect.ValueOf(k), ev.Elem())
 		return nil
 	}

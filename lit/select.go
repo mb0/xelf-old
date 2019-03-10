@@ -76,39 +76,13 @@ func Select(l Lit, path string) (Lit, error) {
 	return SelectPath(l, p)
 }
 
-// SelectPath returns the literal selected by path p from within the cotainer l or an error.
+// SelectPath returns the literal selected by path p from within l or an error.
 func SelectPath(l Lit, p Path) (_ Lit, err error) {
 	for _, s := range p {
 		if s.Key != "" {
-			switch v := l.(type) {
-			case typ.Type:
-				switch v.Kind & typ.MaskElem {
-				case typ.KindMap:
-					l = v.Next()
-				case typ.KindObj:
-					var f *typ.Param
-					f, _, err = v.ParamByKey(s.Key)
-					if f != nil {
-						l = f.Type
-					}
-				}
-			case Keyer:
-				l, err = v.Key(s.Key)
-			default:
-				return nil, ErrKeySeg
-			}
+			l, err = getKey(l, s.Key)
 		} else {
-			switch v := l.(type) {
-			case typ.Type:
-				if v.Kind&typ.MaskElem != typ.KindArr {
-					return nil, ErrIdxSeg
-				}
-				l = v.Next()
-			case Idxer:
-				l, err = v.Idx(s.Idx)
-			default:
-				return nil, ErrIdxSeg
-			}
+			l, err = getIdx(l, s.Idx)
 		}
 		if err != nil {
 			return nil, err
@@ -117,36 +91,131 @@ func SelectPath(l Lit, p Path) (_ Lit, err error) {
 	return l, nil
 }
 
+func getKey(l Lit, key string) (Lit, error) {
+	switch v := l.(type) {
+	case typ.Type:
+		if v.Kind == typ.KindAny {
+			return typ.Any, nil
+		}
+		switch v.Kind & typ.MaskElem {
+		case typ.BaseDict:
+			return typ.Any, nil
+		case typ.KindMap:
+			return v.Next(), nil
+		case typ.KindObj:
+			f, _, err := v.ParamByKey(key)
+			if err != nil {
+				return nil, err
+			}
+			return f.Type, nil
+		}
+	case Keyer:
+		return v.Key(key)
+	}
+	return nil, ErrKeySeg
+}
+
+func getIdx(l Lit, idx int) (Lit, error) {
+	switch v := l.(type) {
+	case typ.Type:
+		if v.Kind == typ.KindAny {
+			return typ.Any, nil
+		}
+		switch v.Kind & typ.MaskElem {
+		case typ.BaseList:
+			return typ.Any, nil
+		case typ.KindArr:
+			return v.Next(), nil
+		case typ.KindObj:
+			f, err := v.ParamByIdx(idx)
+			if err != nil {
+				return nil, err
+			}
+			return f.Type, nil
+		}
+		return nil, ErrIdxSeg
+	case Idxer:
+		return v.Idx(idx)
+	}
+	return nil, ErrIdxSeg
+}
+
 // SetPath sets literal l at path p to el or returns an error. If create is true it tries to
 // create or resize intermediate containers so they can hold el.
-func SetPath(l Lit, p Path, el Lit, create bool) (err error) {
-	// TODO implement create
-	for i, s := range p {
-		last := i == len(p)-1
-		if s.Key != "" {
-			v, ok := l.(Keyer)
-			if !ok {
-				return ErrKeySeg
-			}
-			if last {
-				err = v.SetKey(s.Key, el)
-			} else {
-				l, err = v.Key(s.Key)
-			}
-		} else {
-			v, ok := l.(Idxer)
-			if !ok {
-				return ErrIdxSeg
-			}
-			if last {
-				err = v.SetIdx(s.Idx, el)
-			} else {
-				l, err = v.Idx(s.Idx)
-			}
-		}
-		if err != nil {
-			return err
-		}
+func SetPath(l Lit, p Path, el Lit, create bool) (Lit, error) {
+	if l == nil {
+		return l, cor.Errorf("set path got nil literal")
 	}
-	return nil
+	if len(p) == 0 {
+		return nil, cor.Errorf("set path got empty path")
+	}
+	return setPath(l, el, p, create)
+}
+
+func setPath(l Lit, el Lit, p Path, create bool) (Lit, error) {
+	s := p[0]
+	if s.Key != "" {
+		return setKey(l, el, s.Key, p[1:], create)
+	}
+	return setIdx(l, el, s.Idx, p[1:], create)
+}
+
+func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
+	t := l.Typ()
+	v, ok := l.(Keyer)
+	if !ok && create && (t.Kind == typ.KindAny ||
+		t.Kind&typ.BaseDict != 0) {
+		v, ok = &Dict{}, true
+	}
+	if !ok {
+		return l, ErrKeySeg
+	}
+	if len(rest) > 0 {
+		sl, err := getKey(l, key)
+		if err != nil {
+			sl = Nil
+		}
+		sl, err = setPath(sl, el, rest, create)
+		if err != nil {
+			return l, err
+		}
+		el = sl
+	}
+	err := v.SetKey(key, el)
+	if err != nil {
+		return l, err
+	}
+	return v, nil
+}
+
+func setIdx(l Lit, el Lit, idx int, rest Path, create bool) (Lit, error) {
+	t := l.Typ()
+	v, ok := l.(Idxer)
+	if !ok && create && (t.Kind == typ.KindAny ||
+		t.Kind&typ.BaseList != 0) {
+		res := make(List, idx+1)
+		for i := range res {
+			res[i] = Nil
+		}
+		v, ok = &res, true
+	}
+	if !ok {
+		return l, ErrIdxSeg
+	}
+	if len(rest) > 0 {
+		sl, err := getIdx(l, idx)
+		if err != nil {
+			sl = Nil
+		}
+		sl, err = setPath(sl, el, rest, create)
+		if err != nil {
+			return l, err
+		}
+		el = sl
+	}
+	err := v.SetIdx(idx, el)
+	if err != nil {
+		return l, err
+	}
+	return v, nil
 }

@@ -103,6 +103,9 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 	if err != nil {
 		return nil, err
 	}
+	if t.Kind == typ.KindAny {
+		return &anyProxy{ptr, Nil}, nil
+	}
 	p := proxy{t, ptr}
 	switch t.Kind & typ.MaskBase {
 	case typ.BaseNum:
@@ -121,7 +124,7 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		}
 		return &proxyObj{p, idx}, nil
 	}
-	return nil, cor.Errorf("cannot proxy type %s", ptr.Type())
+	return nil, cor.Errorf("cannot proxy type %s as %s", ptr.Type(), t)
 }
 
 type proxy struct {
@@ -181,4 +184,31 @@ func (p typProxy) Assign(l Lit) error {
 		return nil
 	}
 	return ErrAssign(l.Typ(), typ.Typ)
+}
+
+type anyProxy struct {
+	val reflect.Value
+	Lit
+}
+
+func (p *anyProxy) Ptr() interface{} {
+	return p.val.Interface()
+}
+func (p *anyProxy) Assign(l Lit) error {
+	p.Lit = l
+	var v interface{}
+	switch x := l.(type) {
+	case Charer:
+		v = x.Val()
+	case Numer:
+		v = x.Val()
+	case Assignable:
+		v = x.Ptr()
+		p.val.Elem().Set(reflect.ValueOf(v).Elem())
+		return nil
+	default:
+		v = x
+	}
+	p.val.Elem().Set(reflect.ValueOf(v))
+	return nil
 }
