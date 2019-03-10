@@ -115,7 +115,7 @@ func (p *proxyArr) Append(ls ...Lit) (Appender, error) {
 	return &res, nil
 }
 
-func (p *proxyArr) Elem() typ.Type { return p.typ.Next() }
+func (p *proxyArr) Element() typ.Type { return p.typ.Next() }
 func (p *proxyArr) Len() int {
 	if v, ok := p.elem(reflect.Slice); ok {
 		return v.Len()
@@ -173,3 +173,5 @@ func (p *proxyArr) WriteBfr(b bfr.Ctx) error {
 	}
 	return b.WriteByte(']')
 }
+
+var _, _ Arr = &ListArr{}, &proxyArr{}

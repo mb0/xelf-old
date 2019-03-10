@@ -81,7 +81,7 @@ func (p *proxyMap) Assign(l Lit) error {
 		return nil
 	})
 }
-func (p *proxyMap) Elem() typ.Type { return p.typ.Next() }
+func (p *proxyMap) Element() typ.Type { return p.typ.Next() }
 func (p *proxyMap) Len() int {
 	if v, ok := p.elem(reflect.Map); ok {
 		return v.Len()
@@ -107,6 +107,18 @@ func (p *proxyMap) SetKey(k string, l Lit) error {
 	}
 	return ErrNilKeyer
 }
+
+func (p *proxyMap) Keys() []string {
+	if v, ok := p.elem(reflect.Map); ok {
+		keys := v.MapKeys()
+		res := make([]string, 0, len(keys))
+		for _, key := range keys {
+			res = append(res, key.String())
+		}
+	}
+	return nil
+}
+
 func (p *proxyMap) IterKey(it func(string, Lit) error) error {
 	if v, ok := p.elem(reflect.Map); ok {
 		keys := v.MapKeys()
@@ -145,3 +157,5 @@ func (p *proxyMap) WriteBfr(b bfr.Ctx) error {
 	}
 	return b.WriteByte('}')
 }
+
+var _, _ Map = &DictMap{}, &proxyMap{}
