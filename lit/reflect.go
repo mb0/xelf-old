@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
@@ -25,6 +26,11 @@ var (
 	refFlag = reflect.TypeOf((*MarkFlag)(nil))
 	refEnum = reflect.TypeOf((*MarkEnum)(nil))
 	refType = reflect.TypeOf(typ.Void)
+	refEl   = reflect.TypeOf((*interface {
+		WriteBfr(bfr.Ctx) error
+		String() string
+		Typ() typ.Type
+	})(nil)).Elem()
 )
 
 // Reflect returns the xelf type for the interface value v or an error.
@@ -137,6 +143,10 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		}
 		if isRef(t, refList) {
 			return typ.List, nil
+		}
+		if t.Name() == "Dyn" && isRef(t, refEl) {
+			res = typ.Dyn
+			break
 		}
 		et, err := reflectType(t.Elem(), nfos)
 		if err != nil {
