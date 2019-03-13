@@ -124,7 +124,7 @@ func (*ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
 
 func (p *ProgScope) Get(s string) Resolver {
 	if s[0] == '/' {
-		l, err := lit.Select(p.Param, s[1:])
+		l, err := lit.Select(p.Result, s[1:])
 		if err != nil {
 			return nil
 		}

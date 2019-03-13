@@ -53,7 +53,7 @@ func Zero(t typ.Type) Lit {
 	case typ.KindMap:
 		a, _ := MakeMap(t)
 		return a
-	case typ.KindObj:
+	case typ.KindObj, typ.KindRec:
 		a, _ := MakeObj(t)
 		return a
 	}

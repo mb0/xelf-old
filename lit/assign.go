@@ -19,6 +19,9 @@ func ErrAssign(src, dst typ.Type) error { return cor.Errorf("%q not assignable t
 
 // Assign assigns the value of l to the interface pointer value or returns an error
 func AssignTo(l Lit, ptr interface{}) error {
+	if a, ok := ptr.(Assignable); ok {
+		return assignTo(l, a)
+	}
 	return AssignToValue(l, reflect.ValueOf(ptr))
 }
 
@@ -31,11 +34,15 @@ func AssignToValue(l Lit, ptr reflect.Value) (err error) {
 	if err != nil {
 		return err
 	}
-	l, err = Convert(l, pp.Typ(), 0)
+	return assignTo(l, pp)
+}
+
+func assignTo(l Lit, p Assignable) error {
+	l, err := Convert(l, p.Typ(), 0)
 	if err != nil {
 		return err
 	}
-	return pp.Assign(l)
+	return p.Assign(l)
 }
 
 // Proxy returns an assignable literal for the pointer argument ptr or an error

@@ -104,7 +104,7 @@ func (v *Dict) Assign(l Lit) error {
 		*v = *lv
 	case Keyer:
 		res := v.List[:0]
-		err := v.IterKey(func(k string, e Lit) error {
+		err := lv.IterKey(func(k string, e Lit) error {
 			res = append(res, Keyed{k, e})
 			return nil
 		})
