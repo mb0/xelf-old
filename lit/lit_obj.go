@@ -15,7 +15,7 @@ func MakeObj(t typ.Type) (*DictObj, error) {
 	}
 	list := make([]Keyed, 0, len(t.Params))
 	for _, f := range t.Params {
-		list = append(list, Keyed{f.Key(), Null(f.Type)})
+		list = append(list, Keyed{f.Key(), ZeroProxy(f.Type)})
 	}
 	return &DictObj{t, Dict{list}}, nil
 }
@@ -135,9 +135,9 @@ func (a *DictObj) WriteBfr(b bfr.Ctx) error {
 
 func (p *proxyObj) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
-		return ErrAssign(l.Typ(), p.typ)
+		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
-	b, ok := l.(Keyer)
+	b, ok := deopt(l).(Keyer)
 	if !ok || b.IsZero() { // a nil obj?
 		v := p.val.Elem()
 		v.Set(reflect.New(v.Type().Elem()))

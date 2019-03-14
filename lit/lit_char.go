@@ -51,6 +51,7 @@ func (v UUID) WriteBfr(b bfr.Ctx) error { return b.Quote(v.Char()) }
 
 func (v *Str) Ptr() interface{} { return v }
 func (v *Str) Assign(l Lit) error {
+	l = deopt(l)
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().(string); ok {
 			*v = Str(e)
@@ -60,11 +61,12 @@ func (v *Str) Assign(l Lit) error {
 		*v = ""
 		return nil
 	}
-	return ErrAssign(l.Typ(), v.Typ())
+	return cor.Errorf("%q not assignable to %[2]q", l.Typ(), v.Typ())
 }
 
 func (v *Raw) Ptr() interface{} { return v }
 func (v *Raw) Assign(l Lit) error {
+	l = deopt(l)
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().([]byte); ok {
 			*v = Raw(e)
@@ -74,11 +76,12 @@ func (v *Raw) Assign(l Lit) error {
 		*v = nil
 		return nil
 	}
-	return ErrAssign(l.Typ(), v.Typ())
+	return cor.Errorf("%q not assignable to %q", l.Typ(), v.Typ())
 }
 
 func (v *UUID) Ptr() interface{} { return v }
 func (v *UUID) Assign(l Lit) error {
+	l = deopt(l)
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().([16]byte); ok {
 			*v = UUID(e)
@@ -88,7 +91,7 @@ func (v *UUID) Assign(l Lit) error {
 		*v = ZeroUUID
 		return nil
 	}
-	return ErrAssign(l.Typ(), v.Typ())
+	return cor.Errorf("%q not assignable to %q", l.Typ(), v.Typ())
 }
 
 func sglQuoteString(v string) string         { s, _ := lex.Quote(v, '\''); return s }

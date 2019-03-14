@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -53,13 +54,13 @@ func (a *DictMap) SetKey(key string, el Lit) (err error) {
 
 func (p *proxyMap) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
-		return ErrAssign(l.Typ(), p.typ)
+		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
 	v, ok := p.elem(reflect.Map)
 	if !ok {
 		return ErrNotMap
 	}
-	b, ok := l.(Keyer)
+	b, ok := deopt(l).(Keyer)
 	if !ok || b.IsZero() { // a nil map
 		v.Set(reflect.Zero(v.Type()))
 		return nil

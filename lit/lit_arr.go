@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -59,7 +60,7 @@ func (a ListArr) Append(ls ...Lit) (Appender, error) {
 
 func (p *proxyArr) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
-		return ErrAssign(l.Typ(), p.typ)
+		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
 	b, ok := l.(Idxer)
 	if !ok || b.IsZero() { // a nil obj?

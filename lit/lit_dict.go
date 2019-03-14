@@ -99,7 +99,7 @@ func (v *Dict) WriteBfr(b bfr.Ctx) error {
 
 func (v *Dict) Ptr() interface{} { return v }
 func (v *Dict) Assign(l Lit) error {
-	switch lv := l.(type) {
+	switch lv := deopt(l).(type) {
 	case *Dict:
 		*v = *lv
 	case Keyer:
@@ -113,7 +113,7 @@ func (v *Dict) Assign(l Lit) error {
 		}
 		v.List = res
 	default:
-		return ErrAssign(l.Typ(), v.Typ())
+		return cor.Errorf("%q %T not assignable to %q", l.Typ(), l, v.Typ())
 	}
 	return nil
 }

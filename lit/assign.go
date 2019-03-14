@@ -15,8 +15,6 @@ var (
 	ErrNotStruct   = cor.StrError("proxy not a struct")
 )
 
-func ErrAssign(src, dst typ.Type) error { return cor.Errorf("%q not assignable to %q", src, dst) }
-
 // Assign assigns the value of l to the interface pointer value or returns an error
 func AssignTo(l Lit, ptr interface{}) error {
 	if a, ok := ptr.(Assignable); ok {
@@ -43,6 +41,13 @@ func assignTo(l Lit, p Assignable) error {
 		return err
 	}
 	return p.Assign(l)
+}
+
+func deopt(l Lit) Lit {
+	if o, ok := l.(Opter); ok {
+		return o.Some()
+	}
+	return l
 }
 
 // Proxy returns an assignable literal for the pointer argument ptr or an error
@@ -190,7 +195,7 @@ func (p typProxy) Assign(l Lit) error {
 		*p.Type = t
 		return nil
 	}
-	return ErrAssign(l.Typ(), typ.Typ)
+	return cor.Errorf("%q not assignable to %q", l.Typ(), typ.Typ)
 }
 
 type anyProxy struct {

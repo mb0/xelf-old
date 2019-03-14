@@ -55,7 +55,7 @@ func (l List) WriteBfr(b bfr.Ctx) error {
 
 func (v *List) Ptr() interface{} { return v }
 func (l *List) Assign(val Lit) error {
-	switch v := val.(type) {
+	switch v := deopt(val).(type) {
 	case *List:
 		*l = *v
 	case List:
@@ -71,7 +71,7 @@ func (l *List) Assign(val Lit) error {
 		}
 		*l = res
 	default:
-		return ErrAssign(l.Typ(), v.Typ())
+		return cor.Errorf("%q not assignable to %q", val.Typ(), l.Typ())
 	}
 	return nil
 }
