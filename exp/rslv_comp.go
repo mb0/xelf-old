@@ -88,6 +88,7 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, sym bool, cmp cmpf) (El, error)
 	for _, arg := range e.Args {
 		arg, err = c.Resolve(env, arg, typ.Void)
 		if err == ErrUnres {
+			e.Type = typ.Bool
 			if !c.Part {
 				return e, err
 			}

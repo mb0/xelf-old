@@ -35,6 +35,7 @@ type (
 	// Sym is a unresolved symbol that refers to an element.
 	Sym struct {
 		Name string
+		// Type is partially resolve result type
 		Type Type
 		key  string
 	}
@@ -52,6 +53,8 @@ type (
 	Expr struct {
 		Rslv ExprResolver
 		Args []El
+		// Type is partially resolve result type
+		Type Type
 	}
 )
 

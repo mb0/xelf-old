@@ -235,6 +235,9 @@ func elType(el El) (Type, error) {
 		}
 	case typ.ExpForm, typ.ExpFunc:
 		x := el.(*Expr)
+		if x.Type != typ.Void {
+			return x.Type, nil
+		}
 		if t := x.Rslv.Res(); t != typ.Void {
 			return t, nil
 		}

@@ -72,7 +72,7 @@ func rslvSub(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	fst, err := c.Resolve(env, e.Args[0], hint)
 	if err == ErrUnres {
 		if c.Part { // resolve the rest and return partial result
-			rest := &Expr{formAdd, e.Args[1:]}
+			rest := &Expr{formAdd, e.Args[1:], typ.Num}
 			sub, err := reduceNums(c, env, rest, 0, false, opAdd)
 			if err == nil {
 				e.Args = append(e.Args[:1], sub)
@@ -108,7 +108,7 @@ func rslvDiv(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	fst, err := c.Resolve(env, e.Args[0], hint)
 	if err == ErrUnres {
 		if c.Part { // resolve the rest and return partial result
-			rest := &Expr{formMul, e.Args[1:]}
+			rest := &Expr{formMul, e.Args[1:], typ.Num}
 			sub, err := reduceNums(c, env, rest, 1, false, opMul)
 			if err == nil {
 				e.Args = append(e.Args[:1], sub)
@@ -152,7 +152,11 @@ func rslvRem(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	err = lo.Resolve(c, env)
 	if err != nil {
-		return e, err
+		if err == ErrUnres {
+			e.Type = typ.Int
+			return e, ErrUnres
+		}
+		return nil, err
 	}
 	res := lo.Arg(0).(lit.Int)
 	mod := lo.Arg(1).(lit.Int)

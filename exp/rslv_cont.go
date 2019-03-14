@@ -30,10 +30,13 @@ func rslvReduce(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		return nil, err
 	}
 	err = lo.Resolve(c, env)
+	red := lo.Arg(0)
 	if err != nil {
+		if err == ErrUnres {
+			e.Type, _ = elType(red)
+		}
 		return e, err
 	}
-	red := lo.Arg(0)
 	decls, err := lo.Unis(1)
 	if err != nil {
 		return nil, err

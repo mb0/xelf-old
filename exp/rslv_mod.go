@@ -40,6 +40,9 @@ func rslvCat(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	err = lo.Resolve(c, env)
 	if err != nil {
+		if err == ErrUnres {
+			e.Type, _ = elType(lo.Arg(0))
+		}
 		return e, err
 	}
 	fst := lo.Arg(0).(Lit)
@@ -98,6 +101,9 @@ func rslvApd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	err = lo.Resolve(c, env)
 	if err != nil {
+		if err == ErrUnres {
+			e.Type, _ = elType(lo.Arg(0))
+		}
 		return e, err
 	}
 	apd, ok := lo.Arg(0).(lit.Appender)
@@ -126,6 +132,9 @@ func rslvSet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	err = lo.Resolve(c, env)
 	if err != nil {
+		if err == ErrUnres {
+			e.Type, _ = elType(lo.Arg(0))
+		}
 		return e, err
 	}
 	fst := lo.Arg(0)

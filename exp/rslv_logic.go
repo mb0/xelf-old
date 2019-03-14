@@ -47,13 +47,14 @@ func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	for i, arg := range args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
+			e.Type = typ.Bool
 			if c.Part {
 				e.Args, err = c.WithExec(false).ResolveAll(env, args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{formBool, e.Args}
+					e = &Expr{formBool, e.Args, typ.Bool}
 				}
 			}
 			return e, ErrUnres
@@ -81,13 +82,14 @@ func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	for i, arg := range args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
+			e.Type = typ.Bool
 			if c.Part {
 				e.Args, err = c.WithExec(false).ResolveAll(env, args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{formBool, e.Args}
+					e = &Expr{formBool, e.Args, typ.Bool}
 				}
 			}
 			return e, ErrUnres
@@ -168,7 +170,7 @@ func simplifyBool(e *Expr, args []El) *Expr {
 	default:
 		return e
 	}
-	return &Expr{f, fst.Args}
+	return &Expr{f, fst.Args, typ.Bool}
 }
 
 // rslvIf resolves the arguments as condition, action pairs as part of an if-else condition.

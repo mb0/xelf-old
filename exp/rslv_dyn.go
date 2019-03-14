@@ -98,7 +98,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if xr != nil {
-		return xr.Resolve(c, env, &Expr{xr, args}, hint)
+		return xr.Resolve(c, env, &Expr{xr, args, typ.Void}, hint)
 	}
 	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", d[0])
 }
@@ -117,6 +117,10 @@ func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	// resolve all arguments
 	err = lo.Resolve(c, env)
 	if err != nil {
+		t, ok := lo.Arg(0).(Type)
+		if ok {
+			e.Type = t
+		}
 		return e, err
 	}
 	t, ok := lo.Arg(0).(Type)
