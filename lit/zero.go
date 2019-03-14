@@ -1,6 +1,7 @@
 package lit
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/mb0/xelf/typ"
@@ -58,4 +59,46 @@ func Zero(t typ.Type) Lit {
 		return a
 	}
 	return Null(t)
+}
+
+// ZeroProxy returns an assignable zero literal for the given type t.
+func ZeroProxy(tt typ.Type) (res Assignable) {
+	t, opt := tt.Deopt()
+	switch t.Kind & typ.MaskRef {
+	case typ.KindTyp:
+		res = typProxy{&typ.Type{}}
+	case typ.KindBool:
+		res = new(Bool)
+	case typ.KindInt:
+		res = new(Int)
+	case typ.KindReal:
+		res = new(Real)
+	case typ.KindStr:
+		res = new(Str)
+	case typ.KindRaw:
+		res = new(Raw)
+	case typ.KindUUID:
+		res = new(UUID)
+	case typ.KindTime:
+		res = new(Time)
+	case typ.KindSpan:
+		res = new(Span)
+	case typ.BaseList:
+		res = new(List)
+	case typ.BaseDict:
+		res = &Dict{}
+	case typ.KindArr:
+		res, _ = MakeArr(t, 0)
+	case typ.KindMap:
+		res, _ = MakeMap(t)
+	case typ.KindObj, typ.KindRec:
+		res, _ = MakeObj(t)
+	}
+	if res == nil {
+		return &anyProxy{reflect.ValueOf(new(interface{})), Nil}
+	}
+	if opt {
+		return SomeAssignable{res}
+	}
+	return res
 }
