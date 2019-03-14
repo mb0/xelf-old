@@ -22,6 +22,12 @@ type Some struct{ Lit }
 func (s Some) Typ() typ.Type { return typ.Opt(s.Lit.Typ()) }
 func (s Some) Some() Lit     { return s.Lit }
 
+// SomeAssignable represents non-null assignable option.
+type SomeAssignable struct{ Assignable }
+
+func (s SomeAssignable) Typ() typ.Type { return typ.Opt(s.Assignable.Typ()) }
+func (s SomeAssignable) Some() Lit     { return s.Assignable }
+
 // Any represents a non-null, any-typed literal.
 type Any struct{ Lit }
 
