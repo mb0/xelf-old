@@ -92,7 +92,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if sym != "" {
-		r, ok := Lookup(env, sym).(ExprResolver)
+		r, ok := LookupSupports(env, sym, '~').(ExprResolver)
 		if ok {
 			xr = r
 		}
@@ -100,7 +100,8 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	if xr != nil {
 		return xr.Resolve(c, env, &Expr{xr, args, typ.Void}, hint)
 	}
-	return nil, cor.Errorf("unexpected first argument %T in dynamic expression", d[0])
+	return nil, cor.Errorf("unexpected first argument %[1]T %[1]s in dynamic expression\n%s %s",
+		fst, sym, fst.Typ())
 }
 
 // rslvAs is a type conversion or constructor and must start with a type. It has four forms:
