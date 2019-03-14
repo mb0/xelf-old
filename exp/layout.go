@@ -237,13 +237,7 @@ func consumeTags(es []El, plain bool) ([]El, []El) {
 		case typ.Tag:
 			v := e.(Tag)
 			if v.Name == "::" {
-				rest := es[i+1:]
-				if len(v.Args) > 0 {
-					rest = make([]El, 0, len(v.Args)+len(rest))
-					rest = append(rest, v.Args...)
-					rest = append(rest, es[i+1:]...)
-				}
-				return es[:i], rest
+				return es[:i+1], es[i+1:]
 			}
 			plain = false
 			continue

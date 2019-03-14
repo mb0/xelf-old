@@ -126,16 +126,8 @@ func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 	for i, t := range seq {
 		if key, ok := lex.CheckSym(t, 1, lex.IsTag); ok {
 			tag = true
-			if key == "::" {
-				args, err := plainArgs(nil, seq[i+1:])
-				if err != nil {
-					return nil, err
-				}
-				res = append(res, Tag{key, args})
-				return res, nil
-			}
 			if lex.IsExp(t) {
-				args, err := plainArgs(nil, t.Seq[1:])
+				args, err := decledArgs(nil, t.Seq[1:])
 				if err != nil {
 					return nil, err
 				}
@@ -143,7 +135,7 @@ func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 				last = false
 			} else {
 				res = append(res, Tag{key, nil})
-				last = true
+				last = key != "::"
 			}
 		} else if last {
 			args, err := plainArgs(nil, seq[i:i+1])
@@ -155,12 +147,7 @@ func taggedArgs(res []El, seq []*lex.Tree) (_ []El, err error) {
 			res[len(res)-1] = lt
 			last = false
 		} else if tag {
-			args, err := plainArgs(nil, seq[i:])
-			if err != nil {
-				return nil, err
-			}
-			res = append(res, Tag{"::", args})
-			return res, nil
+			return decledArgs(res, seq[i:])
 		} else {
 			e, err := Parse(t)
 			if err != nil {
