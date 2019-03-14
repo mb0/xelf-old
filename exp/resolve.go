@@ -177,12 +177,11 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 	switch x := sym[0]; x {
 	case '~':
 		return LookupSupports(env, sym, x), sym, "", nil
-	case '$':
+	case '$', '/':
 		tmp := sym[1:]
-		if len(tmp) > 0 && tmp[0] == '$' {
-			// program parameter use the program result prefix to select
-			// the program environment.
-			return GetSupports(env, tmp, '/'), sym, "", nil
+		if len(tmp) > 0 && tmp[0] == x {
+			env = lastSupports(env, x)
+			return env.Get(tmp), sym, "", nil
 		}
 		env = Supports(env, x)
 		if env == nil {
@@ -195,10 +194,8 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 				return nil, "", "", cor.Errorf("no env found for prefix %q", x)
 			}
 		}
-		sym = "$" + tmp
+		sym = string(x) + tmp
 		return env.Get(sym), sym, "", nil
-	case '/':
-		return GetSupports(env, sym, x), sym, "", nil
 	case '.':
 		sym = sym[1:]
 		for len(sym) > 0 && sym[0] == '.' {
@@ -222,6 +219,15 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 		r = env.Get(sym)
 	}
 	return r, sym, path, nil
+}
+
+func lastSupports(env Env, x byte) (last Env) {
+	e := Supports(env, x)
+	for e != nil {
+		last = e
+		e = Supports(e.Parent(), x)
+	}
+	return last
 }
 
 func elType(el El) (Type, error) {
