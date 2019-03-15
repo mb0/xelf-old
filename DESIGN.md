@@ -18,8 +18,8 @@ Xelf should try to make gradual implementation easy where complexity cannot be a
 JSON
 ----
 
-One aspect of xelf is to provide a unified way to work with data across different environments
-and needs to choose the data format that poses the least resistance.
+One aspect of xelf is to provide a unified way to work with data across different environments.
+It needs to choose the data format that poses the least resistance.
 
 The most basic environment to think of here is a some-what idiomatic sqlite3 target.
 
@@ -52,7 +52,7 @@ and flag for bit sets, the specific types of char are str, raw for bytes, uuid, 
 for durations. The bool type is also considered a numeric type, because some environments might not
 have a dedicated bool type, indexedDB in browsers comes to mind. Both span and time are usually
 represented in a text format but can also be converted to an integer, representing milliseconds.
-The time type number represents milliseconds since the unix epoch.
+The time type as num are milliseconds since the unix epoch.
 
 The selection is based on what types strings and number literals are commonly used for, that
 differentiate enough in comparison or manipulation behavior. It is heavily informed by types
@@ -63,8 +63,8 @@ validation or storage layer. For most uses a couple of wasted bytes is not an is
 There are two distinct behavior of container types called idxer or keyer. An idxer provides access
 to its elements by index, and a keyer by a string key. The idxer base type list can have elements of
 any type, while the arr type takes an explicit element type. The keyer types are the base type dict,
-the map type with explicit element type, as well as obj and rec with field info.  Because object
-fields are inherently ordered, both the obj and rec types do implement idxer as well.  Dict is
+the map type with explicit element type, as well as obj and rec with field info. Because object
+fields are inherently ordered, both the obj and rec types do implement idxer as well. Dict is
 implemented to preserve field order for this reason, but does not provide the idxer interface.
 
 Apart from the any type all primitive and object types can be optional. Optional type variants have
@@ -78,7 +78,7 @@ covered by type embedding and type references. Recursive obj and rec declaration
 type references to itself or an ancestor. Type references are implicitly used in the type inference
 and resolution phase.
 
-The flag, enum and rec types are called schema types and are global references a type definition
+The flag, enum and rec types are called schema types and are global references to a type definition
 with additional information. The flag type is a integer type used as bit set with associated
 constants. The enum type is a string type with associated constants. A record is an object with a
 known schema.
@@ -133,15 +133,16 @@ The literals are usually converted to a specific type inferred from the expressi
 
 Every environment working with xelf literals requires some adapter code to convert, compare or
 otherwise work with literal. The xelf go package provides interfaces for each class of literal
-behaviors and both generic and proxy adapters.
+behaviors and both generic and proxy adapters. The generic adapters provide an abstract
+representation for all literals. Proxy adapters implement the literal interface but write through to
+to any compatible backing value in the native environment.
 
 Null literal
 ------------
 
 The 'null' literal turns out to be very useful if treated as a universal zero value. That means
 that it can be used in every type context as an appropriate zero value. This helps to translate
-the concept to language that do not have a null pointers and use none and some for optional types
-and do not provide.
+the concept to languages that do not have a null pointers and use none and some for optional types.
 
 Type Conversion
 ---------------
@@ -173,9 +174,9 @@ Symbols, Names and Keys
 -----------------------
 
 Xelf symbols are ascii identifiers that allow a large number of punctuation characters. Some
-punctuation characters already have a designated meaning. As prefix ':+-@', as suffix '?' and
-'$/.~' for special scope lookups. All other punctuation characters can be used in client libs.
-Built-in expression resolvers all have short ascii names for that reason.
+punctuation characters already have a designated meaning. As prefix ':+-@~', as suffix '?' and the
+prefixes '$/.' for special scope lookups. All other punctuation characters can be used in client
+libs. Built-in expression resolvers all use short ascii names instead of punctuation.
 
 By using only the ascii character set we can avoid any encoding issues or substitutions in
 environments without unicode identifier support.
@@ -201,9 +202,8 @@ we naturally choose lisp style parenthesis enclosed expressions. The parenthesis
 defining complex types. But apart from that always indicate that a resolver is called with the
 expression element.
 
-I would love to incorporate more parts of the lisp family of languages, but in many cases that does
-not work well when translating to the simpler targeted environments. Starting with logical
-expressions not resulting in booleans and ending at macros. Lisps are simply too powerful.
+Lisp is great. However, many key concepts of lisp languages are not easily expressed in simple
+environments. Xelf builds on JSON and adds a notation for types and expressions on top of it.
 
 Xelf has special handling for tag and declaration symbols within expressions. This is to avoid
 excessive nesting of expressions and to achieve a comfortable level of expressiveness in a variety
@@ -215,7 +215,7 @@ by key.
 Predefined Symbols
 ------------------
 
-Only the literal symbols null, false and true as well as the void type use hard keywords. All other
+Only the literal symbols null, false and true as well as the void type are hard keywords. All other
 types are just built-in definitions that can be overwritten in sub environment.
 
 The schema prefix can be used to refer to built-in types, even if shadowed by a another definition.
@@ -239,8 +239,8 @@ Unnamed references are inferred types and need to be inferred from context. They
 the resolution phase and may represent poly types by collecting candidates in the companion field
 list normally used by object types.
 
-Normal type references refer to a literal in scope and represent the type of that literal.
-Type references referring to type literals do use the underlying type and not the special typ type.
+Normal type references refer to any literal in scope and represent the type of that literal. Type
+references referring to type literals do use the underlying type and not the special typ type.
 
 Symbol Resolution
 -----------------
@@ -248,14 +248,14 @@ Symbol Resolution
 The normal symbol resolution process usually inspects the symbol for known special prefixes.
 The common prefixes are:
 
-The tilde '~' prefix is used for schema lookups and is followed by a model name that is usually
-qualified by a schema name or needs a context that can infer a default schema.
+The tilde '~' prefix is used for schema lookups and is followed by type or a model name that is
+usually qualified by a schema name or needs a context that can infer a default schema.
 
 Starting dots '.' are used for relative lookups. A single dot indicates that the following symbol
 can only be found in the current environment, each additional dot moves one parent up the ancestry.
 
 The dollar '$' and slash '/' prefixes are used for parameter and result paths and can be treated as
-literal by themself. Both use the next environment supporting the prefix and can be followed by
+literal by themselves. Both use the next environment supporting the prefix and can be followed by
 dots to select a supporting parent. A double prefix '$$' or '//' will select the outermost
 supporting environment.
 
@@ -266,9 +266,30 @@ This key is used to lookup the resolver. Following path segments are used to sel
 resolved literal. This implies that resolver names cannot contains dots and instead should
 use other punctuation without special meaning. Library resolvers use a colon for that reason.
 
-To avoid checking the symbol in each environment the default resolution cover most of the path
-aspects and will only the relevant environments. The environments implement a simple method to
+To avoid checking the symbol in each environment the default resolution covers most of the path
+aspects and will only call the relevant environments. The environments implement a simple method to
 indicate whether they can resolve a special symbol.
+
+This is about to change. Some type names and core expressions have names commonly used in
+application data. Using the scheme prefix for base types or looking up expressions only from the
+root environment are only a work-around. Resulting only in harder to discern symbols. All symbols
+referring to application data should be path symbols, while plain symbols should only be used for
+pre-declared types and expressions resolvers or explicitly declared resolvers.
+
+The idea is that an env must explicitly support the dot '.' prefix. These data scopes are usually
+backed by a literal. We could assume that all paths only resolve to a data and maybe type literals,
+which would free up an opportunity to add special handling for path symbols as first element.
+
+The with expression could accept a dot literal argument before any declaration arguments and then
+resulting in a plain scope inside a data scope or only one of them. The let expression would only
+be used for plain symbols. Normal functions and loop expressions should provide their arguments as
+a data scope too. This would make writing argument symbols easier, reading the more pleasant and
+also unload the parameter prefix '$'. We can reintroduce '.?' to lookup from all parent data scopes.
+
+Type references not starting with dots are first try to resolve as relative path symbol and after
+that as plain symbol. This change could even make the schema prefix completely unnecessary, because
+the plain symbol namespace is much less crowded.
+
 
 Expressions
 -----------
