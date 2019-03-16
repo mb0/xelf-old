@@ -73,7 +73,6 @@ func (t Type) Last() Type {
 		}
 		return Type{k, t.Info}
 	}
-	return t
 }
 
 // Ordered returns whether type t supports ordering.

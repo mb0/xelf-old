@@ -84,7 +84,7 @@ constants. The enum type is a string type with associated constants. A record is
 known schema.
 
 The void, typ and exp types are special types and are useful in a language context. The exp types
-provide a type signature for form, func types. They are otherwise used as a unversal indicator to
+provide a type signature for form, func types. They are otherwise used as an universal indicator to
 differentiate between all language elements. This allows us to replace some type switches and
 assertions to use a simple interface call instead.
 
@@ -107,7 +107,7 @@ arise.
 Literals
 --------
 
-Xelf literal parsing rules are a superset of json with minor additional rules to address specific
+Xelf literal parsing rules are a superset of JSON with minor additional rules to address specific
 issues, mainly to make writing literals by hand easier.
 
 Char literals can be single quoted escaped literals. Xelf is more often than not handled as string
@@ -147,7 +147,7 @@ the concept to languages that do not have a null pointers and use none and some 
 Type Conversion
 ---------------
 
-We need flexible type conversion rules, mostly because xelf is a typed language using untyped json
+We need flexible type conversion rules, mostly because xelf is a typed language using untyped JSON
 literals. The conversion rules are a bit more involved for that reason.
 
 Allowed conversions are encoded by the compare function in the typ package. It returns a comparison
@@ -173,12 +173,12 @@ specific type with a strict format (raw, uuid, time and span).
 Symbols, Names and Keys
 -----------------------
 
-Xelf symbols are ascii identifiers that allow a large number of punctuation characters. Some
+Xelf symbols are ASCII identifiers that allow a large number of punctuation characters. Some
 punctuation characters already have a designated meaning. As prefix ':+-@~', as suffix '?' and the
 prefixes '$/.' for special scope lookups. All other punctuation characters can be used in client
 libs. Built-in expression resolvers all use short ascii names instead of punctuation.
 
-By using only the ascii character set we can avoid any encoding issues or substitutions in
+By using only the ASCII character set we can avoid any encoding issues or substitutions in
 environments without unicode identifier support.
 
 Xelf will need to work in environment that are case-sensitive and case-insensitive. To address
@@ -369,7 +369,7 @@ expression should be able to omit and infer the function signature.
 
 If we have a full function type as hint, inferring the signature could be as simple as checking if
 all parameter references work with the declared type and whether the result type if comparable. The
-paramter sytax can use either index or key notation to refer to the parameters.
+parameter syntax can use either index or key notation to refer to the parameters.
 
 To infer the signature without any hint we must deduce all parameter references and their order as
 well as the result type. The prefix allow us to identify all parameter references. We can use index
