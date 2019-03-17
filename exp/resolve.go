@@ -197,21 +197,30 @@ func findResolver(env Env, sym string) (r Resolver, name, path string, err error
 		sym = string(x) + tmp
 		return env.Get(sym), sym, "", nil
 	case '.':
-		sym = sym[1:]
-		for len(sym) > 0 && sym[0] == '.' {
+		if len(sym) > 1 && sym[1] == '?' {
+			tmp := "." + sym[2:]
+			return LookupSupports(env, tmp, x), tmp, "", nil
+
+		}
+		env = Supports(env, x)
+		if env == nil {
+			return nil, "", "", cor.Errorf("no env found for prefix %q", x)
+		}
+		// always leave one dot as symbol prefix to indicate a relative path symbol
+		for len(sym) > 1 && sym[1] == '.' {
 			sym = sym[1:]
-			env = env.Parent()
+			env = Supports(env.Parent(), x)
 			if env == nil {
 				return nil, "", "", cor.Errorf("no env found for prefix %q", x)
 			}
 		}
 	default:
 		lookup = true
-	}
-	// check for path
-	idx := strings.IndexByte(sym, '.')
-	if idx > 0 {
-		sym, path = sym[:idx], sym[idx+1:]
+		// check for path
+		idx := strings.IndexByte(sym, '.')
+		if idx > 0 {
+			sym, path = sym[:idx], sym[idx+1:]
+		}
 	}
 	if lookup {
 		r = Lookup(env, sym)

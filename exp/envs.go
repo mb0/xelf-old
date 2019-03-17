@@ -66,12 +66,9 @@ func NewScope(parent Env) *Scope {
 	return &Scope{parent: parent}
 }
 
-// Parent returns the parent environment.
-func (c *Scope) Parent() Env {
-	return c.parent
-}
+func (c *Scope) Parent() Env { return c.parent }
 
-// Supports returns always false for simple scopes
+// Supports returns always false for simple scopes.
 func (*Scope) Supports(byte) bool { return false }
 
 // Def defines a symbol resolver binding for s and d or returns an error.
@@ -90,6 +87,37 @@ func (c *Scope) Get(s string) Resolver {
 	d, ok := c.decl[s]
 	if ok {
 		return d
+	}
+	return nil
+}
+
+// DataScope is a child environment that supports relative paths and is backed by a literal
+type DataScope struct {
+	Par Env
+	Dot Lit
+}
+
+// NewDataScope returns a data scope with the given parent environment.
+func NewDataScope(parent Env) *DataScope {
+	return &DataScope{Par: parent}
+}
+
+func (c *DataScope) Parent() Env { return c.Par }
+
+// Supports returns true for '.', false otherwise.
+func (*DataScope) Supports(x byte) bool { return x == '.' }
+
+// Def always returns an error for data scopes.
+func (c *DataScope) Def(s string, d Resolver) error { return ErrNoDefEnv }
+
+// Get returns a literal resolver for the relative path s or nil.
+func (c *DataScope) Get(s string) Resolver {
+	if s[0] == '.' {
+		l, err := lit.Select(c.Dot, s[1:])
+		if err != nil {
+			return nil
+		}
+		return LitResolver{l}
 	}
 	return nil
 }

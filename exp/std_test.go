@@ -153,8 +153,10 @@ func TestStdResolve(t *testing.T) {
 		{`(with +str int ~str)`, typ.Str},
 		{`(with +a (obj +b int) @a.b)`, typ.Int},
 		{`(with +a int +b arr|@a @b)`, typ.Arr(typ.Int)},
-		{`(with +f (fn + int 1) (f))`, lit.Int(1)},
-		{`(with +f (fn +a int + int (add $a 1)) (f 1))`, lit.Int(2)},
+		{`(with +f (fn - int 1) (f))`, lit.Int(1)},
+		{`(with +f (fn +a - int (add .a 1)) (f 1))`, lit.Int(2)},
+		{`(with 'test' .)`, lit.Char("test")},
+		{`(with ((obj +a int) [1]) .a)`, lit.Int(1)},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)

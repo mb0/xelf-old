@@ -34,12 +34,12 @@ func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) 
 		return nil, err
 	}
 	// use the calling env to resove parameters
-	s := &ParamScope{NewScope(env), nil}
+	s := &DataScope{env, lit.Nil}
 	if len(ps) > 0 {
 		// initialize an empty dict obj
 		o := &lit.DictObj{Type: typ.Obj(ps[:0])}
 		o.List = make([]lit.Keyed, 0, len(ps))
-		s.Param = o
+		s.Dot = o
 		for i, a := range lo.args {
 			p := ps[i]
 			el, err := c.Resolve(s, a[0], p.Type)
@@ -64,12 +64,12 @@ func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) 
 		}
 	}
 	// switch the function scope's parent to the declaration environment
-	s.parent = f.Env
+	env = NewScope(&DataScope{f.Env, s.Dot})
 	// and execute all body elements using the new scope
 	var res El
 	for _, e := range f.Els {
 		var err error
-		res, err = c.WithPart(false).Resolve(s, e, typ.Void)
+		res, err = c.WithPart(false).Resolve(env, e, typ.Void)
 		if err != nil {
 			return x, err
 		}

@@ -245,51 +245,40 @@ references referring to type literals do use the underlying type and not the spe
 Symbol Resolution
 -----------------
 
-The normal symbol resolution process usually inspects the symbol for known special prefixes.
-The common prefixes are:
+Some type names and core expressions have names commonly used in application data. Xelf uses a
+number of prefixes, to avoid shadowing, long names, implicit, or explicit namespaces. The schema and
+type reference prefixes do only refer to types, while path prefixes starting with a dot, dollar or
+slash only refer to literal data. Symbols without prefix are most importantly used for predefined
+types and expression resolvers, or otherwise explicitly declared resolvers.
 
-The tilde '~' prefix is used for schema lookups and is followed by type or a model name that is
-usually qualified by a schema name or needs a context that can infer a default schema.
+To avoid checking for prefixes in each environment the default resolution checks for prefixes and
+selects the appropriate environment. The environments implement a simple method to indicate whether
+they support one of the special prefixes.
 
-Starting dots '.' are used for relative lookups. A single dot indicates that the following symbol
-can only be found in the current environment, each additional dot moves one parent up the ancestry.
+The tilde '~' prefix is used for schema lookups and is followed by a model name that is usually
+qualified by its schema name or needs a context that can infer a default schema.
 
-The dollar '$' and slash '/' prefixes are used for parameter and result paths and can be treated as
-literal by themselves. Both use the next environment supporting the prefix and can be followed by
-dots to select a supporting parent. A double prefix '$$' or '//' will select the outermost
-supporting environment.
+Starting dots '.' are used for data lookups. The dot starts a relative path to a data scope. One dot
+represents the immediate data scope's literal, each additional dot moves one data scope up. If the
+first dot is followed by a question mark '?' the default resolver tries each data scope, starting
+with the immediate one.
 
-If a symbol does not start with a special lookup modifier prefix and instead starts with a name
-start character, it is parsed as a path in case it contains interior dots. And each path segment
-is resolved after another.  The first path segment can only be a key in the current context.
-This key is used to lookup the resolver. Following path segments are used to select into the
-resolved literal. This implies that resolver names cannot contains dots and instead should
-use other punctuation without special meaning. Library resolvers use a colon for that reason.
+The dollar '$' and slash '/' prefixes have a similar effect as the data scope, but are exclusively
+used for parameter and result paths. Both use the immediate environment supporting the prefix and
+can be followed by dots to select a supporting parent. A double prefix '$$' or '//' will select the
+outermost supporting environment.
 
-To avoid checking the symbol in each environment the default resolution covers most of the path
-aspects and will only call the relevant environments. The environments implement a simple method to
-indicate whether they can resolve a special symbol.
+The with expression starting with a plain literal argument creates a data scope. The literal
+argument can still be followed by declarations or have nested let expression that define normal
+scope resolvers. Normal functions and loop expressions provide their arguments as a data scope as
+well.
 
-This is about to change. Some type names and core expressions have names commonly used in
-application data. Using the scheme prefix for base types or looking up expressions only from the
-root environment are only a work-around. Resulting only in harder to discern symbols. All symbols
-referring to application data should be path symbols, while plain symbols should only be used for
-pre-declared types and expressions resolvers or explicitly declared resolvers.
-
-The idea is that an env must explicitly support the dot '.' prefix. These data scopes are usually
-backed by a literal. We could assume that all paths only resolve to a data and maybe type literals,
-which would free up an opportunity to add special handling for path symbols as first element.
-
-The with expression could accept a dot literal argument before any declaration arguments and then
-resulting in a plain scope inside a data scope or only one of them. The let expression would only
-be used for plain symbols. Normal functions and loop expressions should provide their arguments as
-a data scope too. This would make writing argument symbols easier, reading the more pleasant and
-also unload the parameter prefix '$'. We can reintroduce '.?' to lookup from all parent data scopes.
-
-Type references not starting with dots are first try to resolve as relative path symbol and after
-that as plain symbol. This change could even make the schema prefix completely unnecessary, because
-the plain symbol namespace is much less crowded.
-
+Type references not starting with dots first try to resolve as relative path symbol and after that
+as plain symbol. Schema prefix could become completely unnecessary at some point, because the
+plain symbol namespace is much less crowded and we can use it for schema types as well. We also
+moved the type parser to the exp package, that allows us to look up schema data from the resolution
+environment. There might not even any name conflicts because we only use references to models or
+their contents and not the schema, if we otherwise disallow dots in resolver names.
 
 Expressions
 -----------

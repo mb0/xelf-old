@@ -10,13 +10,17 @@ func init() {
 		{Name: "unis"},
 		{Type: typ.Infer},
 	}, rslvLet)
-	unisRest := []typ.Param{
+	std.add("with", []typ.Param{
+		{Name: "a?", Type: typ.Any},
 		{Name: "unis"},
 		{Name: "plain"},
 		{Type: typ.Infer},
-	}
-	std.add("with", unisRest, rslvWith)
-	std.add("fn", unisRest, rslvFn)
+	}, rslvWith)
+	std.add("fn", []typ.Param{
+		{Name: "unis"},
+		{Name: "plain"},
+		{Type: typ.Infer},
+	}, rslvFn)
 }
 
 // rslvLet declares one or more resolvers in the existing scope.
@@ -39,24 +43,34 @@ func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 
 // rslvWith declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-// (form 'with' +unis +rest - @)
+// (form 'with' +a? any +unis +rest - @)
 func rslvWith(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
-	decls, err := lo.Unis(0)
+	dot := lo.Arg(0)
+	if dot != nil {
+		el, err := c.Resolve(env, dot, typ.Void)
+		if err != nil {
+			return e, err
+		}
+		env = &DataScope{env, el.(Lit)}
+	}
+	decls, err := lo.Unis(1)
 	if err != nil {
 		return nil, err
 	}
-	rest := lo.Args(1)
+	rest := lo.Args(2)
 	if len(rest) == 0 {
 		return nil, cor.Errorf("with must have an expression")
 	}
 	s := NewScope(env)
-	_, err = letDecls(c, s, decls)
-	if err != nil {
-		return e, err
+	if len(decls) > 0 {
+		_, err = letDecls(c, s, decls)
+		if err != nil {
+			return e, err
+		}
 	}
 	rest, err = c.ResolveAll(s, rest, typ.Void)
 	if err != nil {
@@ -110,19 +124,17 @@ func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
 		if err != nil {
 			return nil, err
 		}
-		var rslv Resolver
-		switch dv := args[0].(type) {
+		res = args[0]
+		switch l := res.(type) {
 		case Lit:
-			res = dv
-			if r, ok := dv.(Resolver); ok {
-				rslv = r
+			if r, ok := l.(Resolver); ok {
+				err = env.Def(d.Name[1:], r)
 			} else {
-				rslv = LitResolver{dv}
+				err = env.Def(d.Name[1:], LitResolver{l})
 			}
 		default:
-			return nil, cor.Errorf("unexpected element as declaration value %v", d.Args[0])
+			return nil, cor.Errorf("unexpected element as declaration value %v", res)
 		}
-		err = env.Def(d.Name[1:], rslv)
 		if err != nil {
 			return nil, err
 		}
