@@ -146,11 +146,7 @@ func rslvDiv(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvRem calculates the remainder of the first two arguments and always returns an int.
 // (form 'rem' +a int +b int - int)
 func rslvRem(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	err = lo.Resolve(c, env)
+	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		if err == ErrUnres {
 			e.Type = typ.Int
@@ -166,11 +162,7 @@ func rslvRem(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvAbs returns the argument with the absolute numeric value.
 // (form 'abs' +a num - num)
 func rslvAbs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	err = lo.Resolve(c, env)
+	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
 	}

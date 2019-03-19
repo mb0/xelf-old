@@ -34,11 +34,7 @@ func init() {
 // rslvCat concatenates one or more arguments to a str, raw or idxer literal.
 // (form 'cat' +a any +rest list - @)
 func rslvCat(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	err = lo.Resolve(c, env)
+	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		if err == ErrUnres {
 			e.Type, _ = elType(lo.Arg(0))
@@ -95,11 +91,7 @@ func rslvCat(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvApd appends the rest literal arguments to the first literal appender argument.
 // (form 'apd' +a list +rest list - @)
 func rslvApd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	err = lo.Resolve(c, env)
+	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		if err == ErrUnres {
 			e.Type, _ = elType(lo.Arg(0))
@@ -126,11 +118,7 @@ func rslvApd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvSet sets the first keyer literal with the following declaration arguments.
 // (form 'set' +a +plain +unis - @)
 func rslvSet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	err = lo.Resolve(c, env)
+	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		if err == ErrUnres {
 			e.Type, _ = elType(lo.Arg(0))

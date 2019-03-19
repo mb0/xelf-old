@@ -111,12 +111,8 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 //    For idxer types one ore more literals are appended.
 // (form +t typ +args list +unis dict - @t)
 func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
 	// resolve all arguments
-	err = lo.Resolve(c, env)
+	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		t, ok := lo.Arg(0).(Type)
 		if ok {

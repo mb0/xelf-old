@@ -217,6 +217,15 @@ Loop:
 	return &Layout{params, res}, nil
 }
 
+func ResolveArgs(c *Ctx, env Env, e *Expr) (*Layout, error) {
+	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+	if err != nil {
+		return lo, err
+	}
+	err = lo.Resolve(c, env)
+	return lo, err
+}
+
 func consumePlain(es []El) ([]El, []El) {
 	for i, e := range es {
 		switch e.Typ() {
