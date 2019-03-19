@@ -1,6 +1,7 @@
 package exp
 
 import (
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -15,6 +16,15 @@ func init() {
 	core.add("eq", rest2, rslvEq)
 	core.add("ne", rest2, rslvNe)
 	core.add("equal", rest2, rslvEqual)
+
+	var ab = []typ.Param{
+		{Name: "a", Type: typ.Any},
+		{Name: "b", Type: typ.List},
+		{Type: typ.Bool},
+	}
+	core.add("in", ab, rslvIn)
+	core.add("ni", ab, rslvNi)
+
 	core.add("lt", rest2, rslvLt)
 	core.add("ge", rest2, rslvGe)
 	core.add("gt", rest2, rslvGt)
@@ -40,6 +50,38 @@ func rslvNe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // (form +a +b any +rest? list - bool)
 func rslvEqual(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, true, lit.Equal)
+}
+func rslvIn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+	return inOrNi(c, env, e, false)
+}
+func rslvNi(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+	return inOrNi(c, env, e, true)
+}
+
+func inOrNi(c *Ctx, env Env, e *Expr, neg bool) (El, error) {
+	lo, err := ResolveArgs(c, env, e)
+	if err != nil {
+		return e, err
+	}
+	a := lo.Arg(0).(Lit)
+	list, ok := lo.Arg(1).(lit.Idxer)
+	if !ok {
+		return nil, cor.Errorf("expect idxer got %s", lo.Arg(1).Typ())
+	}
+	var found bool
+	err = list.IterIdx(func(idx int, el Lit) error {
+		if found = lit.Equal(el, a); found {
+			return lit.BreakIter
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if neg {
+		return lit.Bool(!found), nil
+	}
+	return lit.Bool(found), nil
 }
 
 // rslvLt returns a bool whether the arguments are monotonic increasing literals.
