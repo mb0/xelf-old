@@ -86,3 +86,17 @@ func (t Type) Ordered() bool {
 	}
 	return false
 }
+
+// Elem returns a generalized element type for container types and void otherwise.
+func (t Type) Elem() Type {
+	switch t.Kind & MaskElem {
+	case KindArr, KindMap:
+		return t.Next()
+	case BaseList, BaseDict:
+		return Any
+	case KindObj:
+		// TODO consider an attempt to unify field types
+		return Any
+	}
+	return Void
+}
