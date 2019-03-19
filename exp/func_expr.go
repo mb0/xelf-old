@@ -26,6 +26,17 @@ func (f *ExprBody) WriteBfr(b bfr.Ctx) error {
 	return nil
 }
 
+type FuncScope struct {
+	DataScope
+}
+
+func (f *FuncScope) Get(s string) Resolver {
+	if s == "_" {
+		s = ".0"
+	}
+	return f.DataScope.Get(s)
+}
+
 func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) {
 	// build a parameter object from all arguments
 	ps := x.Rslv.Arg()
@@ -34,7 +45,7 @@ func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) 
 		return nil, err
 	}
 	// use the calling env to resove parameters
-	s := &DataScope{env, lit.Nil}
+	s := &FuncScope{DataScope{env, lit.Nil}}
 	if len(ps) > 0 {
 		// initialize an empty dict obj
 		o := &lit.DictObj{Type: typ.Obj(ps[:0])}
@@ -64,7 +75,7 @@ func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) 
 		}
 	}
 	// switch the function scope's parent to the declaration environment
-	env = NewScope(&DataScope{f.Env, s.Dot})
+	env = NewScope(&FuncScope{DataScope{f.Env, s.Dot}})
 	// and execute all body elements using the new scope
 	var res El
 	for _, e := range f.Els {

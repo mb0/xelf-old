@@ -341,7 +341,7 @@ must be implemented as form resolver.
 
 Because we have different kinds of function implementation we use a common function literal type,
 that implements the literal and expr resolver interface and delegates expression resolution to a
-function body implementation. The different are kinds built-in functions with custom or reflection
+function body implementation. The different kinds are built-in functions with custom or reflection
 base resolvers and normal function bodies with a list of expression elements.
 
 Functions are allowed to access the environment chain they were declared in. This is only useful
@@ -352,20 +352,22 @@ environment.
 Normal functions need to be inlined in environments without function literals. For this reason they
 are allowed to execute without exec context. Other functions only call the body if exec is true.
 
-A new resolver 'fn' is used to construct function literal. It has the same parameter and result
+A new resolver 'fn' is used to construct function literals. It has the same parameter and result
 declaration as the function type syntax but ends in a tail of body elements. Simple function
 expression should be able to omit and infer the function signature.
 
 If we have a full function type as hint, inferring the signature could be as simple as checking if
 all parameter references work with the declared type and whether the result type if comparable. The
-parameter syntax can use either index or key notation to refer to the parameters.
+dot prefix is used and allows path to use either keys or idexes to refer to the parameters. The
+underscope refers to the first parameter which allows use to easy infer the type signatures with two
+parameters.
 
 To infer the signature without any hint we must deduce all parameter references and their order as
 well as the result type. The prefix allow us to identify all parameter references. We can use index
 parameters to explicitly order some of the parameters append named ones in order.
 
 Functions should be used by other expressions, that need to execute in an isolated and parameterized
-environment like loop actions or the with expressions.
+environment like loop actions.
 
 Form Type and Literal
 ---------------------
