@@ -41,6 +41,13 @@ func (a *Info) Key() string {
 	return a.key
 }
 
+func (a *Info) ParamLen() int {
+	if a == nil {
+		return 0
+	}
+	return len(a.Params)
+}
+
 // ParamByIdx returns a pointer to the field at idx or an error.
 func (a *Info) ParamByIdx(idx int) (*Param, error) {
 	if a != nil && idx >= 0 && idx < len(a.Params) {
