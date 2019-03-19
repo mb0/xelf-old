@@ -49,6 +49,10 @@ func (v Str) WriteBfr(b bfr.Ctx) error  { return b.Quote(string(v)) }
 func (v Raw) WriteBfr(b bfr.Ctx) error  { return b.Quote(v.Char()) }
 func (v UUID) WriteBfr(b bfr.Ctx) error { return b.Quote(v.Char()) }
 
+func (v Str) Len() int  { return len(v) }
+func (v Char) Len() int { return len(v) }
+func (v Raw) Len() int  { return len(v) }
+
 func (v *Str) Ptr() interface{} { return v }
 func (v *Str) Assign(l Lit) error {
 	l = deopt(l)
