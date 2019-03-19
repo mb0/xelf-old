@@ -158,9 +158,9 @@ func rslvRem(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		}
 		return nil, err
 	}
-	res := lo.Arg(0).(lit.Int)
-	mod := lo.Arg(1).(lit.Int)
-	return res % mod, nil
+	res := lo.Arg(0).(lit.Numer).Num()
+	mod := lo.Arg(1).(lit.Numer).Num()
+	return lit.Int(res) % lit.Int(mod), nil
 }
 
 // rslvAbs returns the argument with the absolute numeric value.
