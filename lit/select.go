@@ -8,16 +8,11 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var (
-	ErrEmptySeg = cor.StrError("empty segment")
-	ErrIdxSeg   = cor.StrError("idx segment expects idxer")
-	ErrKeySeg   = cor.StrError("key segment expects keyer")
-)
-
 // Seg is one segment of a path it can either be a non-empty key or an index.
 type Seg struct {
 	Key string
 	Idx int
+	Sel bool
 }
 
 func (s Seg) String() string {
@@ -27,41 +22,65 @@ func (s Seg) String() string {
 	return strconv.Itoa(s.Idx)
 }
 
-// Path consists of non-empty segments separated by dots '.'. Segements starting with a digit
-// are idx segments that try to select into an idxer container literal, otherwise the segment
-// represents a key used to select into a keyer container literal.
+// Path consists of non-empty segments separated by dots '.'. Segments starting with a digit or
+// minus sign are idx segments that try to select into an idxer container literal, otherwise the
+// segment represents a key used to select into a keyer container literal.
 type Path []Seg
 
 func (p Path) String() string {
 	var b strings.Builder
 	for i, s := range p {
 		if i != 0 {
-			b.WriteByte('.')
+			if s.Sel {
+				b.WriteByte('/')
+			} else {
+				b.WriteByte('.')
+			}
 		}
 		b.WriteString(s.String())
 	}
 	return b.String()
 }
 
-// ReadPath reads and returns the dot seperated segments for the path or an error.
-func ReadPath(path string) (Path, error) {
+func addSeg(p Path, s string, sel bool) (Path, error) {
+	if s == "" {
+		return nil, cor.Error("empty segment")
+	}
+	if c := s[0]; c == '-' || c >= '0' && c <= '9' {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		p = append(p, Seg{Idx: i, Sel: sel})
+	} else {
+		p = append(p, Seg{Key: s, Sel: sel})
+	}
+	return p, nil
+}
+
+// ReadPath reads and returns the dot separated segments for the path or an error.
+func ReadPath(path string) (res Path, err error) {
 	if path == "" {
 		return nil, nil
 	}
-	segs := strings.Split(path, ".")
-	res := make(Path, 0, len(segs))
-	for _, seg := range segs {
-		if seg == "" {
-			return nil, ErrEmptySeg
-		}
-		if c := seg[0]; c >= '0' && c <= '9' {
-			i, err := strconv.Atoi(seg)
+	res = make(Path, 0, len(path)>>2)
+	var last int
+	var sel bool
+	for i, r := range path {
+		switch r {
+		case '.', '/':
+			res, err = addSeg(res, path[last:i], sel)
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, Seg{Idx: i})
-		} else {
-			res = append(res, Seg{Key: seg})
+			sel = r == '/'
+			last = i + 1
+		}
+	}
+	if len(path) > last {
+		res, err = addSeg(res, path[last:], sel)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return res, nil
@@ -77,23 +96,60 @@ func Select(l Lit, path string) (Lit, error) {
 }
 
 // SelectPath returns the literal selected by path p from within l or an error.
-func SelectPath(l Lit, p Path) (_ Lit, err error) {
-	for _, s := range p {
-		if s.Key != "" {
+func SelectPath(l Lit, p Path) (Lit, error) {
+	return selectPath(l, p, false)
+}
+func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
+	for i, s := range p {
+		if s.Sel && (i > 0 || !subs) {
+			sub := p[i:]
+			var res List
+			switch v := deopt(l).(type) {
+			case Idxer:
+				res = make(List, 0, v.Len())
+				err = v.IterIdx(func(_ int, el Lit) error {
+					el, err = selectPath(el, sub, true)
+					if err != nil {
+						return err
+					}
+					res = append(res, el)
+					return nil
+				})
+			case Keyer:
+				res = make(List, 0, v.Len())
+				err = v.IterKey(func(_ string, el Lit) error {
+					el, err = selectPath(el, sub, true)
+					if err != nil {
+						return err
+					}
+					res = append(res, el)
+					return nil
+				})
+			default:
+				err = cor.Errorf("want idxer or keyer got %s", l.Typ())
+			}
+			if err != nil {
+				return nil, err
+			}
+			return res, nil
+		} else if s.Key != "" {
 			l, err = getKey(l, s.Key)
 		} else {
 			l, err = getIdx(l, s.Idx)
 		}
 		if err != nil {
-			return nil, err
+			return nil, cor.Errorf("select %s: %w", p, err)
 		}
 	}
 	return l, nil
 }
 
 func getKey(l Lit, key string) (Lit, error) {
-	switch v := l.(type) {
+	switch v := deopt(l).(type) {
 	case typ.Type:
+		if key == "_" {
+			return v.Elem(), nil
+		}
 		if v.Kind == typ.KindAny {
 			return typ.Any, nil
 		}
@@ -112,7 +168,7 @@ func getKey(l Lit, key string) (Lit, error) {
 	case Keyer:
 		return v.Key(key)
 	}
-	return nil, ErrKeySeg
+	return nil, cor.Errorf("key segment expects keyer got %s", l.Typ())
 }
 
 func getIdx(l Lit, idx int) (Lit, error) {
@@ -127,17 +183,22 @@ func getIdx(l Lit, idx int) (Lit, error) {
 		case typ.KindArr:
 			return v.Next(), nil
 		case typ.KindObj:
+			if idx < 0 {
+				idx = v.ParamLen() + idx
+			}
 			f, err := v.ParamByIdx(idx)
 			if err != nil {
 				return nil, err
 			}
 			return f.Type, nil
 		}
-		return nil, ErrIdxSeg
 	case Idxer:
+		if idx < 0 {
+			idx = v.Len() + idx
+		}
 		return v.Idx(idx)
 	}
-	return nil, ErrIdxSeg
+	return nil, cor.Errorf("idx segment expects idxer got %s", l.Typ())
 }
 
 // SetPath sets literal l at path p to el or returns an error. If create is true it tries to
@@ -168,7 +229,7 @@ func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
 		v, ok = &Dict{}, true
 	}
 	if !ok {
-		return l, ErrKeySeg
+		return l, cor.Errorf("key segment expects keyer got %s", l.Typ())
 	}
 	if len(rest) > 0 {
 		sl, err := getKey(l, key)
@@ -200,7 +261,7 @@ func setIdx(l Lit, el Lit, idx int, rest Path, create bool) (Lit, error) {
 		v, ok = &res, true
 	}
 	if !ok {
-		return l, ErrIdxSeg
+		return nil, cor.Errorf("idx segment expects idxer got %s", l.Typ())
 	}
 	if len(rest) > 0 {
 		sl, err := getIdx(l, idx)
