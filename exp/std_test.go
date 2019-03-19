@@ -145,8 +145,30 @@ func TestStdResolve(t *testing.T) {
 		{`(let +a 1 +b 2 +c (int (add a b)))`, lit.Int(3)},
 		{`(if (let +a (int 1)) a)`, lit.Int(1)},
 		{`(with +a 1 +b 2 +c (add a b) (add a b c))`, lit.Num(6)},
-		{`(reduce 'hello' +e +i ['alice' 'bob'] (cat _ (if i ',') ' ' e))`,
-			lit.Str("hello alice, bob"),
+		{`(len 'test')`, lit.Int(4)},
+		{`(len [1 2 3])`, lit.Int(3)},
+		{`(len {a:1 b:2})`, lit.Int(2)},
+		{`(fst [1 2 3 4 5])`, lit.Num(1)},
+		{`(lst [1 2 3 4 5])`, lit.Num(5)},
+		{`(nth [1 2 3 4 5] 2)`, lit.Num(3)},
+		{`(nth [1 2 3 4 5] -3)`, lit.Num(3)},
+		{`(fst [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Num(2)},
+		{`(lst [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Num(4)},
+		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.List{
+			lit.Num(2), lit.Num(4),
+		}},
+		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 1)))`, lit.List{
+			lit.Num(1), lit.Num(3), lit.Num(5),
+		}},
+		{`(map [1 2 3 4] (fn +a num - num (mul _ _)))`, lit.ListArr{Elem: typ.Num,
+			List: lit.List{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
+		}},
+		{`(fold ['alice' 'bob' 'calvin'] 'hello'` +
+			`(fn +a +v str +i int - str (cat _ (if .i ',') ' ' .v)))`,
+			lit.Str("hello alice, bob, calvin"),
+		},
+		{`(foldr ['alice' 'bob' 'calvin'] 'hello' (fn +a +v str +i int - str (cat _ ' ' .v (if .i ','))))`,
+			lit.Str("hello calvin, bob, alice"),
 		},
 		{`(with +a int @a)`, typ.Int},
 		{`(with +str int str)`, typ.Int},
@@ -158,6 +180,21 @@ func TestStdResolve(t *testing.T) {
 		{`(with +f (fn +a - int (mul _ _)) (f 3))`, lit.Int(9)},
 		{`(with 'test' .)`, lit.Char("test")},
 		{`(with ((obj +a int) [1]) .a)`, lit.Int(1)},
+		{`(with [1 2 3 4 5] +even (fn +a num - bool (eq (rem _ 2) 0)) (and
+			(eq (len "test") 4)
+			(eq (len .) 5)
+			(eq (fst .) (nth . 0) 1)
+			(eq (lst .) (nth . -1) 5)
+			(eq (fst . even) 2)
+			(eq (lst . even) 4)
+			(eq (nth . 1 even) 4)
+			(eq (nth . -2 even) 2)
+			(eq (filter . even) [2 4])
+			(eq (map . even) [false true false true false])
+			(eq (fold . 0 (fn +a +v - num (add _ .v))) 15)
+			(eq (fold . [0] (fn +a list +v num - list (apd _ .v))) [0 1 2 3 4 5])
+			(eq (foldr . [0] (fn +a list +v num - list (apd _ .v))) [0 5 4 3 2 1])
+		))`, lit.True},
 	}
 	for _, test := range tests {
 		x, err := ParseString(test.raw)
@@ -172,7 +209,7 @@ func TestStdResolve(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(r, test.want) {
-			t.Errorf("%s want %s got %s", test.raw, test.want, r)
+			t.Errorf("%s want %s got %s %[3]T", test.raw, test.want, r)
 		}
 	}
 }
