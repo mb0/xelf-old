@@ -44,7 +44,7 @@ func (s Sig) Res() Type {
 }
 
 func (s Sig) String() string { return bfr.String(s) }
-func (s Sig) WriteBfr(b bfr.Ctx) error {
+func (s Sig) WriteBfr(b *bfr.Ctx) error {
 	key := s.Key()
 	if key != "" {
 		return b.Fmt(key)

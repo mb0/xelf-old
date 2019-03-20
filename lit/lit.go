@@ -18,7 +18,7 @@ type Lit interface {
 	// IsZero returns whether the literal value is the zero value.
 	IsZero() bool
 	// WriteBfr writes to a bfr ctx either as strict JSON or xelf representation.
-	WriteBfr(bfr.Ctx) error
+	WriteBfr(*bfr.Ctx) error
 	// String returns the xelf representation as string.
 	String() string
 	// MarshalJSON returns the JSON representation as bytes.

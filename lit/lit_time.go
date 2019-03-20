@@ -34,8 +34,8 @@ func (v Span) String() string { return sglQuoteString(v.Char()) }
 func (v Time) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
 func (v Span) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
 
-func (v Time) WriteBfr(b bfr.Ctx) error { return b.Quote(v.Char()) }
-func (v Span) WriteBfr(b bfr.Ctx) error { return b.Quote(v.Char()) }
+func (v Time) WriteBfr(b *bfr.Ctx) error { return b.Quote(v.Char()) }
+func (v Span) WriteBfr(b *bfr.Ctx) error { return b.Quote(v.Char()) }
 
 func (v Span) Seconds() float64 {
 	return time.Duration(v).Seconds()

@@ -21,7 +21,7 @@ type Func struct {
 
 func (f *Func) IsZero() bool   { return f.Body == nil }
 func (f *Func) String() string { return bfr.String(f) }
-func (f *Func) WriteBfr(b bfr.Ctx) error {
+func (f *Func) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('(')
 	err := f.Sig.WriteBfr(b)
 	if err != nil {

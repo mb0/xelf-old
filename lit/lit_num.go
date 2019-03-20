@@ -47,10 +47,10 @@ func (v Bool) MarshalJSON() ([]byte, error) { return strconv.AppendBool(nil, boo
 func (v Int) MarshalJSON() ([]byte, error)  { return strconv.AppendInt(nil, int64(v), 10), nil }
 func (v Real) MarshalJSON() ([]byte, error) { return floatToBytes(float64(v)), nil }
 
-func (v Num) WriteBfr(b bfr.Ctx) error  { return b.Fmt(v.String()) }
-func (v Bool) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
-func (v Int) WriteBfr(b bfr.Ctx) error  { return b.Fmt(v.String()) }
-func (v Real) WriteBfr(b bfr.Ctx) error { return b.Fmt(v.String()) }
+func (v Num) WriteBfr(b *bfr.Ctx) error  { return b.Fmt(v.String()) }
+func (v Bool) WriteBfr(b *bfr.Ctx) error { return b.Fmt(v.String()) }
+func (v Int) WriteBfr(b *bfr.Ctx) error  { return b.Fmt(v.String()) }
+func (v Real) WriteBfr(b *bfr.Ctx) error { return b.Fmt(v.String()) }
 
 func (v *Bool) Ptr() interface{} { return v }
 func (v *Bool) Assign(l Lit) error {
@@ -179,7 +179,7 @@ func (p *proxyNum) String() string {
 	return ""
 }
 func (p *proxyNum) MarshalJSON() ([]byte, error) { return []byte(p.String()), nil }
-func (p *proxyNum) WriteBfr(b bfr.Ctx) error     { return b.Fmt(p.String()) }
+func (p *proxyNum) WriteBfr(b *bfr.Ctx) error    { return b.Fmt(p.String()) }
 
 func boolToFloat(b bool) float64 {
 	if b {

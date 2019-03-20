@@ -146,7 +146,7 @@ func (a Param) equal(b Param, hist []infoPair) bool {
 func (a Type) String() string               { return bfr.String(a) }
 func (a Type) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
 
-func (a Type) WriteBfr(b bfr.Ctx) error {
+func (a Type) WriteBfr(b *bfr.Ctx) error {
 	if b.JSON {
 		b.WriteByte('{')
 		err := a.writeBfr(b, nil)
@@ -156,7 +156,7 @@ func (a Type) WriteBfr(b bfr.Ctx) error {
 	return a.writeBfr(b, nil)
 }
 
-func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
+func (a Type) writeBfr(b *bfr.Ctx, hist []*Info) error {
 	last := a.Last()
 	switch last.Kind & MaskRef {
 	case KindObj, KindRec:
@@ -208,7 +208,7 @@ func (a Type) writeBfr(b bfr.Ctx, hist []*Info) error {
 	return a.Kind.WriteBfr(b)
 }
 
-func writeArrAndMap(b bfr.Ctx, k Kind) Kind {
+func writeArrAndMap(b *bfr.Ctx, k Kind) Kind {
 	for {
 		switch k & MaskElem {
 		case KindArr:
@@ -222,7 +222,7 @@ func writeArrAndMap(b bfr.Ctx, k Kind) Kind {
 	}
 }
 
-func writeRef(b bfr.Ctx, ref string, k Kind) {
+func writeRef(b *bfr.Ctx, ref string, k Kind) {
 	if b.JSON {
 		b.WriteString(`"typ":"`)
 		k = writeArrAndMap(b, k)
@@ -245,7 +245,7 @@ func writeRef(b bfr.Ctx, ref string, k Kind) {
 	}
 }
 
-func (a *Info) writeXelf(b bfr.Ctx, detail bool, hist []*Info) error {
+func (a *Info) writeXelf(b *bfr.Ctx, detail bool, hist []*Info) error {
 	if a == nil {
 		return nil
 	}
@@ -277,7 +277,7 @@ func (a *Info) writeXelf(b bfr.Ctx, detail bool, hist []*Info) error {
 	return nil
 }
 
-func (a *Info) writeJSON(b bfr.Ctx, detail bool, hist []*Info) error {
+func (a *Info) writeJSON(b *bfr.Ctx, detail bool, hist []*Info) error {
 	if a == nil {
 		return nil
 	}

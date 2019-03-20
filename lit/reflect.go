@@ -27,7 +27,7 @@ var (
 	refEnum = reflect.TypeOf((*MarkEnum)(nil))
 	refType = reflect.TypeOf(typ.Void)
 	refEl   = reflect.TypeOf((*interface {
-		WriteBfr(bfr.Ctx) error
+		WriteBfr(*bfr.Ctx) error
 		String() string
 		Typ() typ.Type
 	})(nil)).Elem()

@@ -12,7 +12,7 @@ import (
 // El is the common interface for all language elements.
 type El interface {
 	// WriteBfr writes the element to a bfr.Ctx.
-	WriteBfr(bfr.Ctx) error
+	WriteBfr(*bfr.Ctx) error
 	// String returns the xelf representation as string.
 	String() string
 	// Typ returns the type
@@ -161,11 +161,11 @@ func (x Tag) String() string   { return bfr.String(x) }
 func (x Decl) String() string  { return bfr.String(x) }
 func (x *Expr) String() string { return bfr.String(x) }
 
-func (x *Sym) WriteBfr(b bfr.Ctx) error { return b.Fmt(x.Name) }
-func (x Dyn) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, "", x) }
-func (x Tag) WriteBfr(b bfr.Ctx) error  { return writeExpr(b, x.Name, x.Args) }
-func (x Decl) WriteBfr(b bfr.Ctx) error { return writeExpr(b, x.Name, x.Args) }
-func (x *Expr) WriteBfr(b bfr.Ctx) error {
+func (x *Sym) WriteBfr(b *bfr.Ctx) error { return b.Fmt(x.Name) }
+func (x Dyn) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, "", x) }
+func (x Tag) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, x.Name, x.Args) }
+func (x Decl) WriteBfr(b *bfr.Ctx) error { return writeExpr(b, x.Name, x.Args) }
+func (x *Expr) WriteBfr(b *bfr.Ctx) error {
 	t := x.Rslv.Typ()
 	name := t.Key()
 	if name == "" {
@@ -174,7 +174,7 @@ func (x *Expr) WriteBfr(b bfr.Ctx) error {
 	return writeExpr(b, name, x.Args)
 }
 
-func writeExpr(b bfr.Ctx, name string, args []El) error {
+func writeExpr(b *bfr.Ctx, name string, args []El) error {
 	b.WriteByte('(')
 	if name != "" {
 		b.WriteString(name)

@@ -154,7 +154,7 @@ func ParseKind(str string) (Kind, error) {
 	return KindVoid, ErrInvalid
 }
 
-func (k Kind) WriteBfr(b bfr.Ctx) (err error) {
+func (k Kind) WriteBfr(b *bfr.Ctx) (err error) {
 	str := simpleStr(k)
 	if str != "" {
 		err = b.Fmt(str)

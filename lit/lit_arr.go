@@ -161,7 +161,7 @@ func (p *proxyArr) IterIdx(it func(int, Lit) error) error {
 
 func (p *proxyArr) String() string               { return bfr.String(p) }
 func (p *proxyArr) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
-func (p *proxyArr) WriteBfr(b bfr.Ctx) error {
+func (p *proxyArr) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('[')
 	err := p.IterIdx(func(i int, el Lit) error {
 		if i > 0 {

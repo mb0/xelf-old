@@ -85,7 +85,7 @@ func (d *Dict) IterKey(it func(string, Lit) error) error {
 
 func (v *Dict) String() string               { return bfr.String(v) }
 func (v *Dict) MarshalJSON() ([]byte, error) { return bfr.JSON(v) }
-func (v *Dict) WriteBfr(b bfr.Ctx) error {
+func (v *Dict) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	for i, e := range v.List {
 		if i > 0 {
@@ -118,7 +118,7 @@ func (v *Dict) Assign(l Lit) error {
 	return nil
 }
 
-func writeKey(b bfr.Ctx, key string) (err error) {
+func writeKey(b *bfr.Ctx, key string) (err error) {
 	if !b.JSON && lex.IsName(key) {
 		b.WriteString(key)
 		return b.WriteByte(':')

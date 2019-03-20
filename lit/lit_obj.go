@@ -110,7 +110,7 @@ func (a *DictObj) IterIdx(it func(int, Lit) error) error {
 }
 func (a *DictObj) String() string               { return bfr.String(a) }
 func (a *DictObj) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
-func (a *DictObj) WriteBfr(b bfr.Ctx) error {
+func (a *DictObj) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	n := 0
 	for i, f := range a.Type.Params {
@@ -281,7 +281,7 @@ func (p *proxyObj) IterKey(it func(string, Lit) error) (err error) {
 }
 func (p *proxyObj) String() string               { return bfr.String(p) }
 func (p *proxyObj) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
-func (p *proxyObj) WriteBfr(b bfr.Ctx) error {
+func (p *proxyObj) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	n := 0
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {

@@ -14,7 +14,7 @@ func (Null) Some() Lit       { return nil }
 
 func (Null) String() string               { return "null" }
 func (Null) MarshalJSON() ([]byte, error) { return []byte("null"), nil }
-func (Null) WriteBfr(b bfr.Ctx) error     { _, err := b.WriteString("null"); return err }
+func (Null) WriteBfr(b *bfr.Ctx) error    { _, err := b.WriteString("null"); return err }
 
 // Some represents non-null option.
 type Some struct{ Lit }

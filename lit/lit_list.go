@@ -42,7 +42,7 @@ func (l List) IterIdx(it func(int, Lit) error) error {
 
 func (l List) String() string               { return bfr.String(l) }
 func (l List) MarshalJSON() ([]byte, error) { return bfr.JSON(l) }
-func (l List) WriteBfr(b bfr.Ctx) error {
+func (l List) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('[')
 	for i, e := range l {
 		if i > 0 {
@@ -80,14 +80,14 @@ func (l List) Append(vals ...Lit) (Appender, error) {
 	return append(l, vals...), nil
 }
 
-func writeSep(b bfr.Ctx) error {
+func writeSep(b *bfr.Ctx) error {
 	if b.JSON {
 		return b.WriteByte(',')
 	}
 	return b.WriteByte(' ')
 }
 
-func writeLit(b bfr.Ctx, e Lit) error {
+func writeLit(b *bfr.Ctx, e Lit) error {
 	if e == nil {
 		return b.Fmt("null")
 	}

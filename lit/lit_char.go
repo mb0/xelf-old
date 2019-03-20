@@ -44,10 +44,10 @@ func (v Str) MarshalJSON() ([]byte, error)  { return dblQuoteBytes(string(v)) }
 func (v Raw) MarshalJSON() ([]byte, error)  { return dblQuoteBytes(v.Char()) }
 func (v UUID) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
 
-func (v Char) WriteBfr(b bfr.Ctx) error { return b.Quote(string(v)) }
-func (v Str) WriteBfr(b bfr.Ctx) error  { return b.Quote(string(v)) }
-func (v Raw) WriteBfr(b bfr.Ctx) error  { return b.Quote(v.Char()) }
-func (v UUID) WriteBfr(b bfr.Ctx) error { return b.Quote(v.Char()) }
+func (v Char) WriteBfr(b *bfr.Ctx) error { return b.Quote(string(v)) }
+func (v Str) WriteBfr(b *bfr.Ctx) error  { return b.Quote(string(v)) }
+func (v Raw) WriteBfr(b *bfr.Ctx) error  { return b.Quote(v.Char()) }
+func (v UUID) WriteBfr(b *bfr.Ctx) error { return b.Quote(v.Char()) }
 
 func (v Str) Len() int  { return len(v) }
 func (v Char) Len() int { return len(v) }

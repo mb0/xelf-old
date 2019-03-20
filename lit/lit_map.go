@@ -146,7 +146,7 @@ func (p *proxyMap) IterKey(it func(string, Lit) error) error {
 
 func (p *proxyMap) String() string               { return bfr.String(p) }
 func (p *proxyMap) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
-func (p *proxyMap) WriteBfr(b bfr.Ctx) error {
+func (p *proxyMap) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	i := 0
 	err := p.IterKey(func(k string, el Lit) error {

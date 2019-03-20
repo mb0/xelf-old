@@ -15,7 +15,7 @@ type ExprBody struct {
 	Env Env
 }
 
-func (f *ExprBody) WriteBfr(b bfr.Ctx) error {
+func (f *ExprBody) WriteBfr(b *bfr.Ctx) error {
 	for _, el := range f.Els {
 		b.WriteByte(' ')
 		err := el.WriteBfr(b)

@@ -10,11 +10,13 @@ import (
 // Ctx is serialization context with output configuration flags
 type Ctx struct {
 	B
-	JSON bool
+	JSON  bool
+	Depth int
+	Tab   string
 }
 
 // Fmt writes the formatted string to the buffer or returns an error
-func (c Ctx) Fmt(f string, args ...interface{}) (err error) {
+func (c *Ctx) Fmt(f string, args ...interface{}) (err error) {
 	if len(args) > 0 {
 		_, err = fmt.Fprintf(c.B, f, args...)
 	} else {
@@ -23,9 +25,30 @@ func (c Ctx) Fmt(f string, args ...interface{}) (err error) {
 	return err
 }
 
+func (c *Ctx) Indent() error {
+	c.Depth++
+	return c.Break()
+}
+
+func (c *Ctx) Dedent() error {
+	c.Depth--
+	return c.Break()
+}
+
+func (c *Ctx) Break() error {
+	if c.Tab == "" {
+		return c.WriteByte(' ')
+	}
+	c.WriteByte('\n')
+	for i := c.Depth; i > 0; i-- {
+		c.WriteString(c.Tab)
+	}
+	return nil
+}
+
 // Quote writes the v as quoted string to the buffer or returns an error.
 // The quote used is depending on the json context flag.
-func (c Ctx) Quote(v string) (err error) {
+func (c *Ctx) Quote(v string) (err error) {
 	if c.JSON {
 		v, err = lex.Quote(v, '"')
 	} else {
@@ -39,13 +62,13 @@ func (c Ctx) Quote(v string) (err error) {
 
 // Writer is an interface for types that can write to a Ctx
 type Writer interface {
-	WriteBfr(Ctx) error
+	WriteBfr(*Ctx) error
 }
 
 // String writes w and returns the result as string ignoring any error
 func String(w Writer) string {
 	var b strings.Builder
-	_ = w.WriteBfr(Ctx{B: &b})
+	_ = w.WriteBfr(&Ctx{B: &b})
 	return b.String()
 }
 
@@ -53,6 +76,6 @@ func String(w Writer) string {
 func JSON(w Writer) ([]byte, error) {
 	b := Get()
 	defer Put(b)
-	err := w.WriteBfr(Ctx{B: b, JSON: true})
+	err := w.WriteBfr(&Ctx{B: b, JSON: true})
 	return b.Bytes(), err
 }
