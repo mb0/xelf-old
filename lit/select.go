@@ -125,6 +125,8 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 					res = append(res, el)
 					return nil
 				})
+			case typ.Type:
+				return typ.List, nil
 			default:
 				err = cor.Errorf("want idxer or keyer got %s", l.Typ())
 			}
