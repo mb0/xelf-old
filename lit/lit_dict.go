@@ -99,7 +99,7 @@ func (v *Dict) WriteBfr(b *bfr.Ctx) error {
 
 func (v *Dict) Ptr() interface{} { return v }
 func (v *Dict) Assign(l Lit) error {
-	switch lv := deopt(l).(type) {
+	switch lv := Deopt(l).(type) {
 	case *Dict:
 		*v = *lv
 	case Keyer:

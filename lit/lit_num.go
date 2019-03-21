@@ -54,7 +54,7 @@ func (v Real) WriteBfr(b *bfr.Ctx) error { return b.Fmt(v.String()) }
 
 func (v *Bool) Ptr() interface{} { return v }
 func (v *Bool) Assign(l Lit) error {
-	l = deopt(l)
+	l = Deopt(l)
 	if b, ok := l.(Numer); ok {
 		if e, ok := b.Val().(bool); ok {
 			*v = Bool(e)
@@ -69,7 +69,7 @@ func (v *Bool) Assign(l Lit) error {
 
 func (v *Int) Ptr() interface{} { return v }
 func (v *Int) Assign(l Lit) error {
-	l = deopt(l)
+	l = Deopt(l)
 	if b, ok := l.(Numer); ok {
 		if e, ok := b.Val().(int64); ok {
 			*v = Int(e)
@@ -84,7 +84,7 @@ func (v *Int) Assign(l Lit) error {
 
 func (v *Real) Ptr() interface{} { return v }
 func (v *Real) Assign(l Lit) error {
-	l = deopt(l)
+	l = Deopt(l)
 	if b, ok := l.(Numer); ok {
 		if e, ok := b.Val().(float64); ok {
 			*v = Real(e)
@@ -112,7 +112,7 @@ func (p *proxyNum) Val() interface{} {
 }
 
 func (p *proxyNum) Assign(l Lit) error {
-	l = deopt(l)
+	l = Deopt(l)
 	if b, ok := l.(Numer); ok {
 		if v := p.el(); v.IsValid() {
 			switch v.Kind() {

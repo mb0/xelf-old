@@ -43,7 +43,7 @@ func assignTo(l Lit, p Assignable) error {
 	return p.Assign(l)
 }
 
-func deopt(l Lit) Lit {
+func Deopt(l Lit) Lit {
 	if o, ok := l.(Opter); ok {
 		return o.Some()
 	}

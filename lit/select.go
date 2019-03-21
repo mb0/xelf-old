@@ -104,7 +104,7 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 		if s.Sel && (i > 0 || !subs) {
 			sub := p[i:]
 			var res List
-			switch v := deopt(l).(type) {
+			switch v := Deopt(l).(type) {
 			case Idxer:
 				res = make(List, 0, v.Len())
 				err = v.IterIdx(func(_ int, el Lit) error {
@@ -147,7 +147,7 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 }
 
 func getKey(l Lit, key string) (Lit, error) {
-	switch v := deopt(l).(type) {
+	switch v := Deopt(l).(type) {
 	case typ.Type:
 		if key == "_" {
 			return v.Elem(), nil

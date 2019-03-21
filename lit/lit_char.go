@@ -55,7 +55,7 @@ func (v Raw) Len() int  { return len(v) }
 
 func (v *Str) Ptr() interface{} { return v }
 func (v *Str) Assign(l Lit) error {
-	l = deopt(l)
+	l = Deopt(l)
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().(string); ok {
 			*v = Str(e)
@@ -70,7 +70,7 @@ func (v *Str) Assign(l Lit) error {
 
 func (v *Raw) Ptr() interface{} { return v }
 func (v *Raw) Assign(l Lit) error {
-	l = deopt(l)
+	l = Deopt(l)
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().([]byte); ok {
 			*v = Raw(e)
@@ -85,7 +85,7 @@ func (v *Raw) Assign(l Lit) error {
 
 func (v *UUID) Ptr() interface{} { return v }
 func (v *UUID) Assign(l Lit) error {
-	l = deopt(l)
+	l = Deopt(l)
 	if b, ok := l.(Charer); ok {
 		if e, ok := b.Val().([16]byte); ok {
 			*v = UUID(e)

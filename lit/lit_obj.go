@@ -137,7 +137,7 @@ func (p *proxyObj) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
-	b, ok := deopt(l).(Keyer)
+	b, ok := Deopt(l).(Keyer)
 	if !ok || b.IsZero() { // a nil obj?
 		v := p.val.Elem()
 		v.Set(reflect.New(v.Type().Elem()))

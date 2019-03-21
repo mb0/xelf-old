@@ -60,7 +60,7 @@ func (p *proxyMap) Assign(l Lit) error {
 	if !ok {
 		return ErrNotMap
 	}
-	b, ok := deopt(l).(Keyer)
+	b, ok := Deopt(l).(Keyer)
 	if !ok || b.IsZero() { // a nil map
 		v.Set(reflect.Zero(v.Type()))
 		return nil

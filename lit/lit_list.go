@@ -55,7 +55,7 @@ func (l List) WriteBfr(b *bfr.Ctx) error {
 
 func (v *List) Ptr() interface{} { return v }
 func (l *List) Assign(val Lit) error {
-	switch v := deopt(val).(type) {
+	switch v := Deopt(val).(type) {
 	case *List:
 		*l = *v
 	case List:
