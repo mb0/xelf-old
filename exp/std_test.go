@@ -182,6 +182,11 @@ func TestStdResolve(t *testing.T) {
 		{`(with +f (fn - int 1) (f))`, lit.Int(1)},
 		{`(with +f (fn +a - int (add .a 1)) (f 1))`, lit.Int(2)},
 		{`(with +f (fn +a - int (mul _ _)) (f 3))`, lit.Int(9)},
+		{`(with +sum (fn +n arr|int - int
+				(fold .n 0 (fn +a +b - int (add .a .b)))
+			)
+			(sum 1 2 3)
+		)`, lit.Int(6)},
 		{`(with 'test' .)`, lit.Char("test")},
 		{`(with ((obj +a int) [1]) .a)`, lit.Int(1)},
 		{`(with [1 2 3 4 5] +even (fn +a num - bool (eq (rem _ 2) 0)) (and

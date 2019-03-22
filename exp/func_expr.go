@@ -9,7 +9,7 @@ import (
 )
 
 // ExprBody is the body for normal functions consisting of a list of expression elements
-// and its declaration envirnoment that is used for execution.
+// and its declaration environment that is used for execution.
 type ExprBody struct {
 	Els []El
 	Env Env
@@ -39,43 +39,33 @@ func (f *FuncScope) Get(s string) Resolver {
 
 func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) {
 	// build a parameter object from all arguments
-	ps := x.Rslv.Arg()
-	lo, err := FuncArgs(x)
+	lo, err := ResolveFuncArgs(c, env, x)
 	if err != nil {
-		return nil, err
+		return x, err
 	}
-	// use the calling env to resove parameters
-	s := &FuncScope{DataScope{env, lit.Nil}}
-	if len(ps) > 0 {
-		// initialize an empty dict obj
-		o := &lit.DictObj{Type: typ.Obj(ps[:0])}
-		o.List = make([]lit.Keyed, 0, len(ps))
-		s.Dot = o
-		for i, a := range lo.args {
-			p := ps[i]
-			el, err := c.Resolve(s, a[0], p.Type)
-			if err != nil {
-				return x, err
-			}
-			// ensure conversion to param type until hints are used everywhere
-			l, err := lit.Convert(el.(Lit), p.Type, 0)
-			if err != nil {
-				return nil, err
-			}
-			name := p.Key()
-			if name == "" {
-				// otherwise use a synthetic name
-				name = fmt.Sprintf("arg%d", i)
-			}
-			// update parameters on each iteral so the next parameter can
-			// refer to previous ones.
-			o.List = append(o.List, lit.Keyed{name, l})
-			// make new field accessible to following parameters
-			o.Type.Params = ps[:i+1]
+	// use the calling env to resolve parameters
+	ps := x.Rslv.Arg()
+	keyed := make([]lit.Keyed, 0, len(ps))
+	for i, p := range ps {
+		a := lo.args[i]
+		kl := lit.Keyed{p.Key(), nil}
+		if len(a) == 0 { // can only be optional parameter; use zero value
+			kl.Lit = lit.Zero(p.Type)
+		} else {
+			kl.Lit = a[0].(Lit)
 		}
+		if kl.Key == "" {
+			// otherwise use a synthetic name
+			kl.Key = fmt.Sprintf("arg%d", i)
+		}
+		keyed = append(keyed, kl)
+	}
+	s := DataScope{env, lit.Nil}
+	if len(keyed) > 0 {
+		s.Dot = &lit.DictObj{Type: typ.Obj(ps), Dict: lit.Dict{List: keyed}}
 	}
 	// switch the function scope's parent to the declaration environment
-	env = NewScope(&FuncScope{DataScope{f.Env, s.Dot}})
+	env = NewScope(&FuncScope{s})
 	// and execute all body elements using the new scope
 	var res El
 	for _, e := range f.Els {

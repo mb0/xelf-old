@@ -17,12 +17,7 @@ type ReflectBody struct {
 }
 
 func (f *ReflectBody) ResolveFunc(c *exp.Ctx, env exp.Env, x *exp.Expr, h typ.Type) (exp.El, error) {
-	lo, err := exp.FuncArgs(x)
-	if err != nil {
-		return nil, err
-	}
-	// resolve args
-	err = lo.Resolve(c, env)
+	lo, err := exp.ResolveFuncArgs(c, env, x)
 	if err != nil {
 		return x, err
 	}

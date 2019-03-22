@@ -241,6 +241,8 @@ list normally used by object types.
 
 Normal type references refer to any literal in scope and represent the type of that literal. Type
 references referring to type literals do use the underlying type and not the special typ type.
+Type references can refer to a generalized element type of any container with a underscore path
+segment.
 
 Symbol Resolution
 -----------------
@@ -336,6 +338,11 @@ signature allows us to factor out the default type checking and inference and pr
 and comfortable user experience. Functions are called only if all their arguments are successfully
 resolved and then use their declaration environment for evaluation.
 
+If the last function parameter has an arr or list type, it can be called as variadic parameter -
+meaning multiple elemement arguments can be used instead of the expected indexer argument. When
+exactly one argument is used that is convertible to the list or arr type it is used-as, in other
+cases it is treated as element.
+
 Resolvers that need to have control over type checking or can partially resolve their arguments
 must be implemented as form resolver.
 
@@ -365,9 +372,6 @@ parameters.
 To infer the signature without any hint we must deduce all parameter references and their order as
 well as the result type. The prefix allow us to identify all parameter references. We can use index
 parameters to explicitly order some of the parameters append named ones in order.
-
-Functions should be used by other expressions, that need to execute in an isolated and parameterized
-environment like loop actions.
 
 Form Type and Literal
 ---------------------

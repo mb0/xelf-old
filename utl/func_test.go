@@ -65,7 +65,7 @@ func TestFuncResolver(t *testing.T) {
 		{strings.ToLower, nil, []exp.El{
 			lit.Str("HELLO"),
 		}, `'hello'`, nil},
-		{time.Time.Format, []string{"t", "format"}, []exp.El{
+		{time.Time.Format, []string{"t?", "format"}, []exp.El{
 			exp.Tag{Name: ":format", Args: []exp.El{
 				lit.Char(`2006-02-01`),
 			}},
