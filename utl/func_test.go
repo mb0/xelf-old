@@ -1,6 +1,7 @@
 package utl
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -70,6 +71,11 @@ func TestFuncResolver(t *testing.T) {
 				lit.Char(`2006-02-01`),
 			}},
 		}, `'0001-01-01'`, nil},
+		{fmt.Sprintf, nil, []exp.El{
+			lit.Str("Hi %s no. %d."),
+			lit.Str("you"),
+			lit.Int(9),
+		}, `'Hi you no. 9.'`, nil},
 	}
 	for _, test := range tests {
 		r, err := ReflectFunc("", test.fun, test.names...)

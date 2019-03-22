@@ -9,10 +9,11 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// ReflectBody is a funcition resolver wrapping a reflected go function.
+// ReflectBody is a function resolver wrapping a reflected go function.
 type ReflectBody struct {
 	val   reflect.Value
 	ptyps []reflect.Type
+	vari  bool
 	err   bool
 }
 
@@ -40,7 +41,12 @@ func (f *ReflectBody) ResolveFunc(c *exp.Ctx, env exp.Env, x *exp.Expr, h typ.Ty
 	}
 	// get reflect values from argument
 	// call reflect function with value
-	res := f.val.Call(args)
+	var res []reflect.Value
+	if f.vari {
+		res = f.val.CallSlice(args)
+	} else {
+		res = f.val.Call(args)
+	}
 	if f.err { // check last result
 		last := res[len(res)-1]
 		if !last.IsNil() {
@@ -60,14 +66,11 @@ var refErr = reflect.TypeOf((*error)(nil)).Elem()
 // ReflectFunc reflects val and returns a function literal or an error.
 // The names are optionally and associated to the arguments by index.
 func ReflectFunc(name string, val interface{}, names ...string) (*exp.Func, error) {
-	f := ReflectBody{val: reflect.ValueOf(val)}
-	if f.val.Kind() != reflect.Func {
+	v := reflect.ValueOf(val)
+	if v.Kind() != reflect.Func {
 		return nil, cor.Errorf("expect function argument got %T", val)
 	}
-	t := f.val.Type()
-	if t.IsVariadic() {
-		return nil, cor.Error("variadic fuctions are not yet supported")
-	}
+	t := v.Type()
 	n := t.NumIn()
 	fs := make([]typ.Param, 0, n+1)
 	pt := make([]reflect.Type, 0, n)
@@ -84,7 +87,7 @@ func ReflectFunc(name string, val interface{}, names ...string) (*exp.Func, erro
 		pt = append(pt, rt)
 		fs = append(fs, typ.Param{Name: name, Type: xt})
 	}
-	f.ptyps = pt
+	f := ReflectBody{val: v, ptyps: pt, vari: v.Type().IsVariadic()}
 	n = t.NumOut()
 	var res typ.Type
 	for i := 0; i < n; i++ {
