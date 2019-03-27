@@ -25,25 +25,25 @@ func (c *Ctx) Fmt(f string, args ...interface{}) (err error) {
 	return err
 }
 
-func (c *Ctx) Indent() error {
+func (c *Ctx) Indent() bool {
 	c.Depth++
 	return c.Break()
 }
 
-func (c *Ctx) Dedent() error {
+func (c *Ctx) Dedent() bool {
 	c.Depth--
 	return c.Break()
 }
 
-func (c *Ctx) Break() error {
+func (c *Ctx) Break() bool {
 	if c.Tab == "" {
-		return c.WriteByte(' ')
+		return false
 	}
 	c.WriteByte('\n')
 	for i := c.Depth; i > 0; i-- {
 		c.WriteString(c.Tab)
 	}
-	return nil
+	return true
 }
 
 // Quote writes the v as quoted string to the buffer or returns an error.
