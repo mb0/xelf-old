@@ -64,8 +64,12 @@ func (p *proxyArr) Assign(l Lit) error {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
 	b, ok := l.(Idxer)
-	if !ok || b.IsZero() { // a nil obj?
-		p.val.Set(reflect.Zero(p.val.Type()))
+	if !ok || b.IsZero() { // a nil arr?
+		if p.val.CanAddr() {
+			p.val.Set(reflect.Zero(p.val.Type()))
+		} else {
+			p.val = reflect.New(p.val.Type().Elem())
+		}
 		return nil
 	}
 	v, ok := p.elem(reflect.Slice)
