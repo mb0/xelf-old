@@ -191,7 +191,7 @@ func checkList(l List, to typ.Type) (res Idxer, err error) {
 		return nil, err
 	}
 	for i, e := range l {
-		err := res.SetIdx(i, e)
+		_, err := res.SetIdx(i, e)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +209,7 @@ func checkDict(l *Dict, to typ.Type) (res Keyer, err error) {
 	}
 	if l != nil {
 		for _, e := range l.List {
-			err := res.SetKey(e.Key, e.Lit)
+			_, err := res.SetKey(e.Key, e.Lit)
 			if err != nil {
 				return nil, err
 			}
@@ -224,7 +224,8 @@ func checkArr(l Lit, to typ.Type) (Arr, error) {
 			return nil, err
 		}
 		err = v.IterIdx(func(i int, e Lit) error {
-			return res.SetIdx(i, e)
+			_, err := res.SetIdx(i, e)
+			return err
 		})
 		if err != nil {
 			return nil, err
@@ -240,7 +241,8 @@ func checkMap(l Lit, to typ.Type) (Map, error) {
 			return nil, err
 		}
 		err = v.IterKey(func(k string, e Lit) error {
-			return res.SetKey(k, e)
+			_, err := res.SetKey(k, e)
+			return err
 		})
 		if err != nil {
 			return nil, err
@@ -262,7 +264,8 @@ func checkObj(l Lit, to typ.Type) (Lit, error) {
 			return nil, err
 		}
 		err = v.IterKey(func(k string, e Lit) error {
-			return res.SetKey(k, e)
+			_, err := res.SetKey(k, e)
+			return err
 		})
 		if err != nil {
 			return nil, err

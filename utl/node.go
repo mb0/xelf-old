@@ -21,7 +21,7 @@ func GetNode(val interface{}) (Node, error) {
 	if !ok {
 		p, err := lit.Proxy(val)
 		if err != nil {
-			return nil, err
+			return nil, cor.Errorf("proxy %T: %w", val, err)
 		}
 		n, ok = p.(Node)
 		if !ok {
@@ -72,7 +72,7 @@ func (r *NodeResolver) getNode() (Node, error) {
 	}
 	p, err := lit.ProxyValue(v)
 	if err != nil {
-		return nil, err
+		return nil, cor.Errorf("proxy for %s: %w", v.Type(), err)
 	}
 	return p.(Node), nil
 }

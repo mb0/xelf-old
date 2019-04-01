@@ -114,7 +114,7 @@ func adaptArr(v reflect.Value) (Arr, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = res.SetIdx(i, el)
+		_, err = res.SetIdx(i, el)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +137,7 @@ func adaptMap(v reflect.Value) (Map, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = res.SetKey(k.String(), el)
+		_, err = res.SetKey(k.String(), el)
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +159,7 @@ func adaptObj(v reflect.Value) (Obj, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = res.SetKey(f.Key(), el)
+		_, err = res.SetKey(f.Key(), el)
 		if err != nil {
 			return nil, err
 		}

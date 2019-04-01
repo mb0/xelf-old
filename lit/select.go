@@ -226,15 +226,14 @@ func setPath(l Lit, el Lit, p Path, create bool) (Lit, error) {
 func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
 	t := l.Typ()
 	v, ok := l.(Keyer)
-	if !ok && create && (t.Kind == typ.KindAny ||
-		t.Kind&typ.BaseDict != 0) {
+	if !ok && create && (t.Kind == typ.KindAny || t.Kind&typ.BaseDict != 0) {
 		v, ok = &Dict{}, true
 	}
 	if !ok {
-		return l, cor.Errorf("key segment expects keyer got %s", l.Typ())
+		return l, cor.Errorf("key segment %q expects keyer got %s", key, l.Typ())
 	}
 	if len(rest) > 0 {
-		sl, err := getKey(l, key)
+		sl, err := getKey(v, key)
 		if err != nil {
 			sl = Nil
 		}
@@ -244,9 +243,9 @@ func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
 		}
 		el = sl
 	}
-	err := v.SetKey(key, el)
+	v, err := v.SetKey(key, el)
 	if err != nil {
-		return l, err
+		return l, cor.Errorf("set key %q: %w", key, err)
 	}
 	return v, nil
 }
@@ -276,7 +275,7 @@ func setIdx(l Lit, el Lit, idx int, rest Path, create bool) (Lit, error) {
 		}
 		el = sl
 	}
-	err := v.SetIdx(idx, el)
+	_, err := v.SetIdx(idx, el)
 	if err != nil {
 		return l, err
 	}

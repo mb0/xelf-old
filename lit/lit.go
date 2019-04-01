@@ -69,8 +69,8 @@ type Idxer interface {
 	Len() int
 	// Idx returns the literal of the element at idx or an error.
 	Idx(idx int) (Lit, error)
-	// SetIdx sets the element value at idx to l or returns an error.
-	SetIdx(idx int, l Lit) error
+	// SetIdx sets the element value at idx to l and returns the indexer or an error.
+	SetIdx(idx int, l Lit) (Idxer, error)
 	// IterIdx iterates over elements, calling iter with the elements index and literal value.
 	// If iter returns an error the iteration is aborted.
 	IterIdx(iter func(int, Lit) error) error
@@ -85,8 +85,8 @@ type Keyer interface {
 	Keys() []string
 	// Key returns the literal of the element with key key or an error.
 	Key(key string) (Lit, error)
-	// SetKey sets the elements value with key key to l or returns an error.
-	SetKey(key string, l Lit) error
+	// SetKey sets the elements value with key key to l and returns the keyer or an error.
+	SetKey(key string, l Lit) (Keyer, error)
 	// IterKey iterates over elements, calling iter with the elements key and literal value.
 	// If iter returns an error the iteration is aborted.
 	IterKey(iter func(string, Lit) error) error
@@ -122,12 +122,12 @@ type Obj interface {
 	Keys() []string
 	// Key returns the literal of the field with key key or an error.
 	Key(key string) (Lit, error)
-	// SetKey sets the fields value with key key to l or returns an error.
-	SetKey(key string, l Lit) error
+	// SetKey sets the fields value with key key to l and returns the obj as keyer or an error.
+	SetKey(key string, l Lit) (Keyer, error)
 	// Idx returns the literal of the field at idx or an error.
 	Idx(idx int) (Lit, error)
-	// SetIdx sets the field value at idx to l or returns an error.
-	SetIdx(idx int, l Lit) error
+	// SetIdx sets the field value at idx to l and returns the obj as indexer or an error.
+	SetIdx(idx int, l Lit) (Idxer, error)
 	// IterKey iterates over fields, calling iter with the fields key and literal value.
 	// If iter returns an error the iteration is aborted
 	IterKey(iter func(string, Lit) error) error

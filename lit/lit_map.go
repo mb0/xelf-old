@@ -42,14 +42,19 @@ func (a *DictMap) Key(k string) (Lit, error) {
 	}
 	return l, nil
 }
-func (a *DictMap) SetKey(key string, el Lit) (err error) {
+func (a *DictMap) SetKey(key string, el Lit) (res Keyer, err error) {
 	if el != nil {
 		el, err = Convert(el, a.Elem, 0)
 		if err != nil {
-			return err
+			return a, err
 		}
 	}
-	return a.Dict.SetKey(key, el)
+	res, err = a.Dict.SetKey(key, el)
+	if err != nil {
+		return a, err
+	}
+	a.Dict = *res.(*Dict)
+	return a, nil
 }
 
 func (p *proxyMap) Assign(l Lit) error {
@@ -96,21 +101,21 @@ func (p *proxyMap) Key(k string) (Lit, error) {
 	}
 	return Null(p.typ.Next()), nil
 }
-func (p *proxyMap) SetKey(k string, l Lit) error {
+func (p *proxyMap) SetKey(k string, l Lit) (Keyer, error) {
 	if v, ok := p.elem(reflect.Map); ok {
 		ev := reflect.New(v.Type().Elem())
 		err := AssignToValue(l, ev)
 		if err != nil {
-			return err
+			return p, err
 		}
 		if v.IsNil() {
 			v = reflect.MakeMap(v.Type())
 			p.val.Elem().Set(v)
 		}
 		v.SetMapIndex(reflect.ValueOf(k), ev.Elem())
-		return nil
+		return p, nil
 	}
-	return ErrNilKeyer
+	return p, ErrNilKeyer
 }
 
 func (p *proxyMap) Keys() []string {

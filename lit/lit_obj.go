@@ -66,36 +66,41 @@ func (a *DictObj) Key(key string) (Lit, error) {
 	}
 	return a.Dict.Key(key)
 }
-func (a *DictObj) SetIdx(i int, el Lit) error {
+func (a *DictObj) SetIdx(i int, el Lit) (Idxer, error) {
 	f, err := a.Type.ParamByIdx(i)
 	if err != nil {
-		return err
+		return a, err
 	}
 	if el == nil {
 		el = Null(f.Type)
 	} else {
 		el, err = Convert(el, f.Type, 0)
 		if err != nil {
-			return err
+			return a, err
 		}
 	}
 	a.Dict.List[i].Lit = el
-	return nil
+	return a, nil
 }
-func (a *DictObj) SetKey(key string, el Lit) error {
+func (a *DictObj) SetKey(key string, el Lit) (Keyer, error) {
 	f, _, err := a.Type.ParamByKey(key)
 	if err != nil {
-		return err
+		return a, err
 	}
 	if el == nil {
 		el = Null(f.Type)
 	} else {
 		el, err = Convert(el, f.Type, 0)
 		if err != nil {
-			return err
+			return a, err
 		}
 	}
-	return a.Dict.SetKey(key, el)
+	res, err := a.Dict.SetKey(key, el)
+	if err != nil {
+		return a, err
+	}
+	a.Dict = *res.(*Dict)
+	return a, nil
 }
 func (a *DictObj) IterIdx(it func(int, Lit) error) error {
 	for i, el := range a.Dict.List {
@@ -213,25 +218,25 @@ func (p *proxyObj) Key(k string) (Lit, error) {
 	}
 	return Null(f.Type), nil
 }
-func (p *proxyObj) SetIdx(i int, l Lit) error {
+func (p *proxyObj) SetIdx(i int, l Lit) (Idxer, error) {
 	_, err := p.typ.ParamByIdx(i)
 	if err != nil {
-		return err
+		return p, err
 	}
 	if v, ok := p.elem(reflect.Struct); ok {
-		return AssignToValue(l, v.FieldByIndex(p.idx[i]).Addr())
+		return p, AssignToValue(l, v.FieldByIndex(p.idx[i]).Addr())
 	}
-	return ErrNotStruct
+	return p, ErrNotStruct
 }
-func (p *proxyObj) SetKey(k string, l Lit) error {
+func (p *proxyObj) SetKey(k string, l Lit) (Keyer, error) {
 	_, i, err := p.typ.ParamByKey(k)
 	if err != nil {
-		return err
+		return p, err
 	}
 	if v, ok := p.elem(reflect.Struct); ok {
-		return AssignToValue(l, v.FieldByIndex(p.idx[i]).Addr())
+		return p, AssignToValue(l, v.FieldByIndex(p.idx[i]).Addr())
 	}
-	return ErrNotStruct
+	return p, ErrNotStruct
 }
 func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {

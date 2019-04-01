@@ -35,7 +35,7 @@ func NewDelta(a, b lit.Obj) (*lit.Dict, error) {
 func MergeDeltas(a, b *lit.Dict) error {
 	for _, kv := range b.List {
 		// TODO check for common prefix, but order preserving dict works for now
-		err := a.SetKey(kv.Key, kv.Lit)
+		_, err := a.SetKey(kv.Key, kv.Lit)
 		if err != nil {
 			return err
 		}

@@ -65,7 +65,7 @@ func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) 
 	for i, t := range tags {
 		err = tr.ResolveTag(c, env, t, i, node)
 		if err != nil {
-			return err
+			return cor.Errorf("resolve tag %s for %T: %w", t.Name, node.Typ(), err)
 		}
 	}
 	return nil
@@ -139,11 +139,11 @@ func DynPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (_ lit.Lit, er
 func PathSetter(n Node, key string, el lit.Lit) error {
 	path, err := lit.ReadPath(key)
 	if err != nil {
-		return cor.Errorf("path setter key %s: %w", key, err)
+		return cor.Errorf("read path %s: %w", key, err)
 	}
 	_, err = lit.SetPath(n, path, el, true)
 	if err != nil {
-		return cor.Errorf("path setter key %s: %w", key, err)
+		return cor.Errorf("set path %s: %w", key, err)
 	}
 	return nil
 }
@@ -152,18 +152,10 @@ func PathSetter(n Node, key string, el lit.Lit) error {
 func ExtraMapSetter(mapkey string) KeySetter {
 	return func(n Node, key string, el lit.Lit) error {
 		err := PathSetter(n, key, el)
-		if err == nil {
-			return nil
+		if err != nil && key != mapkey {
+			err = PathSetter(n, mapkey+"."+key, el)
 		}
-		m, err := n.Key(mapkey)
-		if err != nil {
-			return err
-		}
-		v, ok := m.(lit.Keyer)
-		if !ok {
-			return cor.Errorf("expect keyer field for %q got %T", key, m)
-		}
-		return v.SetKey(key, el)
+		return err
 	}
 }
 
@@ -205,7 +197,8 @@ func FlagSetter(key string) KeySetter {
 		if !ok {
 			return cor.Errorf("expect int lit for %q got %T", key, el)
 		}
-		return n.SetKey(key, lit.Int(uint64(v.Num())|uint64(w)))
+		_, err = n.SetKey(key, lit.Int(uint64(v.Num())|uint64(w)))
+		return err
 	}
 }
 

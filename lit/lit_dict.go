@@ -50,9 +50,9 @@ func (d *Dict) Key(k string) (Lit, error) {
 	}
 	return Nil, nil
 }
-func (d *Dict) SetKey(k string, el Lit) error {
+func (d *Dict) SetKey(k string, el Lit) (Keyer, error) {
 	if d == nil {
-		return ErrNilKeyer
+		d = &Dict{}
 	}
 	for i, v := range d.List {
 		if v.Key == k {
@@ -61,11 +61,11 @@ func (d *Dict) SetKey(k string, el Lit) error {
 			} else {
 				d.List = append(d.List[:i], d.List[i+1:]...)
 			}
-			return nil
+			return d, nil
 		}
 	}
 	d.List = append(d.List, Keyed{k, el})
-	return nil
+	return d, nil
 }
 
 func (d *Dict) IterKey(it func(string, Lit) error) error {
@@ -99,6 +99,9 @@ func (v *Dict) WriteBfr(b *bfr.Ctx) error {
 
 func (v *Dict) Ptr() interface{} { return v }
 func (v *Dict) Assign(l Lit) error {
+	if v == nil {
+		return ErrNilKeyer
+	}
 	switch lv := Deopt(l).(type) {
 	case *Dict:
 		*v = *lv

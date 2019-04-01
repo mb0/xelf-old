@@ -143,7 +143,7 @@ func rslvSet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		if !ok {
 			return nil, cor.Error("want literal in declaration argument")
 		}
-		err = res.SetKey(d.Name[1:], el)
+		_, err = res.SetKey(d.Name[1:], el)
 		if err != nil {
 			return nil, err
 		}

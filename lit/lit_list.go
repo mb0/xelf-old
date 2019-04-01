@@ -21,12 +21,12 @@ func (l List) Idx(i int) (Lit, error) {
 	}
 	return l[i], nil
 }
-func (l List) SetIdx(i int, el Lit) error {
+func (l List) SetIdx(i int, el Lit) (Idxer, error) {
 	if i < 0 || i >= len(l) {
-		return ErrIdxBounds
+		return l, ErrIdxBounds
 	}
 	l[i] = el
-	return nil
+	return l, nil
 }
 func (l List) IterIdx(it func(int, Lit) error) error {
 	for i, el := range l {

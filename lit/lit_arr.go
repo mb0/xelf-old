@@ -35,16 +35,17 @@ type (
 
 func (a ListArr) Typ() typ.Type     { return typ.Arr(a.Elem) }
 func (a ListArr) Element() typ.Type { return a.Elem }
-func (a ListArr) SetIdx(i int, el Lit) (err error) {
+func (a ListArr) SetIdx(i int, el Lit) (_ Idxer, err error) {
 	if el == nil {
 		el = Null(a.Elem)
 	} else {
 		el, err = Convert(el, a.Elem, 0)
 		if err != nil {
-			return err
+			return a, err
 		}
 	}
-	return a.List.SetIdx(i, el)
+	_, err = a.List.SetIdx(i, el)
+	return a, err
 }
 
 func (a ListArr) Append(ls ...Lit) (Appender, error) {
@@ -132,13 +133,13 @@ func (p *proxyArr) Idx(i int) (Lit, error) {
 	}
 	return nil, ErrIdxBounds
 }
-func (p *proxyArr) SetIdx(i int, l Lit) error {
+func (p *proxyArr) SetIdx(i int, l Lit) (Idxer, error) {
 	if v, ok := p.elem(reflect.Slice); ok {
 		if i >= 0 && i < v.Len() {
-			return AssignToValue(l, v.Index(i).Addr())
+			return p, AssignToValue(l, v.Index(i).Addr())
 		}
 	}
-	return ErrIdxBounds
+	return p, ErrIdxBounds
 }
 func (p *proxyArr) IterIdx(it func(int, Lit) error) error {
 	if v, ok := p.elem(reflect.Slice); ok {

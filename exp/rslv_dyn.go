@@ -152,7 +152,7 @@ func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 			if !ok {
 				return nil, cor.Error("want literal in declaration argument")
 			}
-			err = res.SetKey(d.Name[1:], el)
+			_, err = res.SetKey(d.Name[1:], el)
 			if err != nil {
 				return nil, err
 			}
@@ -171,7 +171,7 @@ func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 			if apd != nil { // list or arr uses append
 				apd, err = apd.Append(el)
 			} else { // otherwise its an obj literal set by index
-				err = res.SetIdx(i, el)
+				_, err = res.SetIdx(i, el)
 			}
 			if err != nil {
 				return nil, err

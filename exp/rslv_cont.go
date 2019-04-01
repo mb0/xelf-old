@@ -386,7 +386,7 @@ func rslvMap(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 			if err != nil {
 				return err
 			}
-			err = out.SetKey(key, res)
+			_, err = out.SetKey(key, res)
 			if err != nil {
 				return err
 			}
