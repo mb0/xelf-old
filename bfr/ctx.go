@@ -77,5 +77,11 @@ func JSON(w Writer) ([]byte, error) {
 	b := Get()
 	defer Put(b)
 	err := w.WriteBfr(&Ctx{B: b, JSON: true})
-	return b.Bytes(), err
+	if err != nil {
+		return nil, err
+	}
+	buf := b.Bytes()
+	res := make([]byte, len(buf))
+	copy(res, buf)
+	return res, nil
 }
