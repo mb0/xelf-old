@@ -210,7 +210,8 @@ func (p *proxyObj) Key(k string) (Lit, error) {
 		return nil, err
 	}
 	if v, ok := p.elem(reflect.Struct); ok {
-		res, err := ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
+		v = fieldByIndex(v, p.idx[i])
+		res, err := ProxyValue(v.Addr())
 		if err != nil {
 			return nil, err
 		}
@@ -234,9 +235,22 @@ func (p *proxyObj) SetKey(k string, l Lit) (Keyer, error) {
 		return p, err
 	}
 	if v, ok := p.elem(reflect.Struct); ok {
-		return p, AssignToValue(l, v.FieldByIndex(p.idx[i]).Addr())
+		v = fieldByIndex(v, p.idx[i])
+		return p, AssignToValue(l, v.Addr())
 	}
 	return p, ErrNotStruct
+}
+func fieldByIndex(v reflect.Value, idx []int) reflect.Value {
+	for _, x := range idx {
+		if v.Kind() == reflect.Ptr && v.Type().Elem().Kind() == reflect.Struct {
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
+		}
+		v = v.Field(x)
+	}
+	return v
 }
 func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
@@ -291,7 +305,8 @@ func (p *proxyObj) WriteBfr(b *bfr.Ctx) error {
 	n := 0
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
 		for i, f := range p.typ.Params {
-			el, err := ProxyValue(v.FieldByIndex(p.idx[i]).Addr())
+			v := fieldByIndex(v, p.idx[i])
+			el, err := ProxyValue(v.Addr())
 			if err != nil {
 				return err
 			}

@@ -109,6 +109,14 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		if v, ok := toRef(ptr.Type(), refDict, ptr); ok {
 			return v.Interface().(*Dict), nil
 		}
+	case reflect.Ptr:
+		if v, ok := ptrRef(et, refDict, ptr); ok {
+			dptr := v.Interface().(**Dict)
+			if *dptr == nil {
+				*dptr = &Dict{}
+			}
+			return *dptr, nil
+		}
 	}
 	// generic proxy fallback
 	t, err := ReflectType(et)

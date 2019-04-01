@@ -7,8 +7,6 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var ErrNilKeyer = cor.StrError("nil keyer")
-
 // Dict is a generic container implementing Keyer.
 type Dict struct {
 	List []Keyed
@@ -100,7 +98,7 @@ func (v *Dict) WriteBfr(b *bfr.Ctx) error {
 func (v *Dict) Ptr() interface{} { return v }
 func (v *Dict) Assign(l Lit) error {
 	if v == nil {
-		return ErrNilKeyer
+		return cor.Errorf("nil keyer")
 	}
 	switch lv := Deopt(l).(type) {
 	case *Dict:

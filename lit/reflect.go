@@ -226,6 +226,11 @@ func collectFields(t reflect.Type, idx []int, col fieldCollector) error {
 	n := t.NumField()
 	for i := 0; i < n; i++ {
 		f := t.Field(i)
+		if f.Name != "" && !f.Anonymous {
+			if c := f.Name[0]; c < 'A' || c > 'Z' {
+				continue
+			}
+		}
 		var key string
 		var opt bool
 		// check for a json struct tag first

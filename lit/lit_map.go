@@ -115,7 +115,7 @@ func (p *proxyMap) SetKey(k string, l Lit) (Keyer, error) {
 		v.SetMapIndex(reflect.ValueOf(k), ev.Elem())
 		return p, nil
 	}
-	return p, ErrNilKeyer
+	return p, cor.Errorf("nil keyer")
 }
 
 func (p *proxyMap) Keys() []string {

@@ -13,6 +13,12 @@ type myUUID [16]byte
 type myTime time.Time
 type myPoint struct {
 	X, Y int
+	priv int
+}
+type myPOI struct {
+	myPoint
+	Name string
+	Text string
 }
 
 func TestAdapt(t *testing.T) {
@@ -39,7 +45,7 @@ func TestAdapt(t *testing.T) {
 		{[]*int64{cor.Int(1), cor.Int(2)},
 			&ListArr{typ.Opt(typ.Int), List{Some{Int(1)}, Some{Int(2)}}},
 		},
-		{myPoint{1, 2}, &DictObj{typ.Obj([]typ.Param{
+		{myPoint{1, 2, 3}, &DictObj{typ.Obj([]typ.Param{
 			{Name: "X", Type: typ.Int},
 			{Name: "Y", Type: typ.Int},
 		}), Dict{[]Keyed{
@@ -50,6 +56,12 @@ func TestAdapt(t *testing.T) {
 			{Name: "X", Type: typ.Int},
 			{Name: "Y", Type: typ.Int},
 		}))},
+		{(*myPOI)(nil), Null(typ.Obj([]typ.Param{
+			{Name: "X", Type: typ.Int},
+			{Name: "Y", Type: typ.Int},
+			{Name: "Name", Type: typ.Str},
+			{Name: "Text", Type: typ.Str},
+		}))},
 	}
 	for _, test := range tests {
 		got, err := Adapt(test.val)
@@ -58,7 +70,7 @@ func TestAdapt(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("adapt val want %#v got %#v", test.want, got)
+			t.Errorf("adapt val want %v got %v", test.want, got)
 		}
 		got, err = Adapt(got)
 		if err != nil {
