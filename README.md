@@ -4,7 +4,8 @@ xelf
 xelf is a cross-environment expression language framework.
 
 
-It is currently a work in progress.
+It is currently a work in progress. Development is paused for a couple of weeks, while i concentrate
+on other tasks. Please check again in June or July.
 
 Overview [![GoDoc](https://godoc.org/github.com/mb0/xelf?status.svg)](https://godoc.org/github.com/mb0/xelf)
 --------
