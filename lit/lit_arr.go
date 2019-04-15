@@ -18,7 +18,7 @@ func MakeArrCap(t typ.Type, len, cap int) (*ListArr, error) {
 	if t.Kind&typ.MaskElem != typ.KindArr {
 		return nil, typ.ErrInvalid
 	}
-	res := ListArr{t.Next(), make(List, len, cap)}
+	res := ListArr{t.Elem(), make(List, len, cap)}
 	for i := range res.List {
 		res.List[i] = Null(res.Elem)
 	}
@@ -121,7 +121,7 @@ func (p *proxyArr) Append(ls ...Lit) (Appender, error) {
 	return &res, nil
 }
 
-func (p *proxyArr) Element() typ.Type { return p.typ.Next() }
+func (p *proxyArr) Element() typ.Type { return p.typ.Elem() }
 func (p *proxyArr) Len() int {
 	if v, ok := p.elem(reflect.Slice); ok {
 		return v.Len()

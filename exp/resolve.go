@@ -264,7 +264,7 @@ func elType(el El) (Type, error) {
 func replaceRef(t, el Type) (Type, bool) {
 	switch k := t.Kind & typ.MaskRef; k {
 	case typ.KindArr, typ.KindMap:
-		n, ok := replaceRef(t.Next(), el)
+		n, ok := replaceRef(t.Elem(), el)
 		if ok {
 			if k == typ.KindArr {
 				return typ.Arr(n), true

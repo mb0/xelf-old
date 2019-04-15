@@ -168,7 +168,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 			pre = &strings.Builder{}
 		}
 		pre.WriteString(a.Kind.String())
-		return a.Next().writeBfr(b, pre, hist)
+		return a.Elem().writeBfr(b, pre, hist)
 	}
 	switch a.Kind & MaskRef {
 	case KindRef:

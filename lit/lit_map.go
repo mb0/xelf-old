@@ -19,7 +19,7 @@ func MakeMapCap(t typ.Type, cap int) (*DictMap, error) {
 		return nil, typ.ErrInvalid
 	}
 	list := make([]Keyed, 0, cap)
-	return &DictMap{t.Next(), Dict{list}}, nil
+	return &DictMap{t.Elem(), Dict{list}}, nil
 }
 
 type (
@@ -87,7 +87,7 @@ func (p *proxyMap) Assign(l Lit) error {
 		return nil
 	})
 }
-func (p *proxyMap) Element() typ.Type { return p.typ.Next() }
+func (p *proxyMap) Element() typ.Type { return p.typ.Elem() }
 func (p *proxyMap) Len() int {
 	if v, ok := p.elem(reflect.Map); ok {
 		return v.Len()
@@ -99,7 +99,7 @@ func (p *proxyMap) Key(k string) (Lit, error) {
 	if v, ok := p.elem(reflect.Map); ok {
 		return AdaptValue(v.MapIndex(reflect.ValueOf(k)))
 	}
-	return Null(p.typ.Next()), nil
+	return Null(p.typ.Elem()), nil
 }
 func (p *proxyMap) SetKey(k string, l Lit) (Keyer, error) {
 	if v, ok := p.elem(reflect.Map); ok {

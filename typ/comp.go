@@ -206,7 +206,7 @@ func compare(src, dst Type) Cmp {
 	switch s & MaskElem {
 	case KindArr:
 		if s&MaskElem == KindArr {
-			sub := Compare(src.Next(), dst.Next())
+			sub := Compare(src.Elem(), dst.Elem())
 			if sub > LvlConv {
 				return CmpConvArr
 			}
@@ -216,7 +216,7 @@ func compare(src, dst Type) Cmp {
 		}
 	case KindMap:
 		if s&MaskElem == KindMap {
-			sub := Compare(src.Next(), dst.Next())
+			sub := Compare(src.Elem(), dst.Elem())
 			if sub > LvlConv {
 				return CmpConvMap
 			}

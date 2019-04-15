@@ -65,26 +65,28 @@ func (t Type) Deopt() (_ Type, ok bool) {
 	return t, ok
 }
 
-// Next returns the next sub type of t if t is a arr or map type,
-// otherwise t is returned as is.
-func (t Type) Next() Type {
+// Elem returns a generalized element type for container types and void otherwise.
+func (t Type) Elem() Type {
 	switch t.Kind & MaskElem {
 	case KindArr, KindMap:
 		if t.Info == nil || len(t.Params) == 0 {
 			return Any
 		}
 		return t.Params[0].Type
+	case BaseList, BaseDict:
+		return Any
+	case KindObj:
+		// TODO consider an attempt to unify field types
+		return Any
 	}
 	return Void
 }
 
-// Last returns the last sub type of t if t is a arr or map type,
-// otherwise t is returned as is.
+// Last returns the last element type if t is a arr or map type otherwise t is returned as is.
 func (t Type) Last() Type {
-	el := t.Next()
-	for el != Void {
-		t = el
-		el = t.Next()
+	el := t.Elem()
+	for el != Void && el != Any {
+		t, el = el, el.Elem()
 	}
 	return t
 }
@@ -99,18 +101,4 @@ func (t Type) Ordered() bool {
 		return true
 	}
 	return false
-}
-
-// Elem returns a generalized element type for container types and void otherwise.
-func (t Type) Elem() Type {
-	switch t.Kind & MaskElem {
-	case KindArr, KindMap:
-		return t.Next()
-	case BaseList, BaseDict:
-		return Any
-	case KindObj:
-		// TODO consider an attempt to unify field types
-		return Any
-	}
-	return Void
 }

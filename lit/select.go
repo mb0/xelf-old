@@ -159,7 +159,7 @@ func getKey(l Lit, key string) (Lit, error) {
 		case typ.BaseDict:
 			return typ.Any, nil
 		case typ.KindMap:
-			return v.Next(), nil
+			return v.Elem(), nil
 		case typ.KindObj:
 			f, _, err := v.ParamByKey(key)
 			if err != nil {
@@ -183,7 +183,7 @@ func getIdx(l Lit, idx int) (Lit, error) {
 		case typ.BaseList:
 			return typ.Any, nil
 		case typ.KindArr:
-			return v.Next(), nil
+			return v.Elem(), nil
 		case typ.KindObj:
 			if idx < 0 {
 				idx = v.ParamLen() + idx
