@@ -60,7 +60,6 @@ func ParseSym(s string, hist []Type) (res Type, _ error) {
 			res = Opt(res)
 		}
 		return res, nil
-
 	}
 	if len(s) > 4 && s[3] == '|' {
 		t, err := ParseSym(s[4:], hist)

@@ -82,12 +82,11 @@ func ParseKind(str string) (Kind, error) {
 		return KindVoid, ErrInvalid
 	}
 	if len(str) > 4 && str[3] == '|' {
-		kk, err := ParseKind(str[4:])
 		switch str[:3] {
 		case "arr":
-			return KindArr | kk<<SlotSize, err
+			return KindArr, nil
 		case "map":
-			return KindMap | kk<<SlotSize, err
+			return KindMap, nil
 		}
 	}
 	switch str {
@@ -166,15 +165,7 @@ func (k Kind) WriteBfr(b *bfr.Ctx) (err error) {
 		}
 		return err
 	}
-	switch k & SlotMask {
-	case KindArr:
-		b.WriteString("arr|")
-	case KindMap:
-		b.WriteString("map|")
-	default:
-		return ErrInvalid
-	}
-	return (k >> SlotSize).WriteBfr(b)
+	return nil
 }
 
 func (k Kind) String() string {
@@ -184,12 +175,6 @@ func (k Kind) String() string {
 			return str + "?"
 		}
 		return str
-	}
-	switch k & SlotMask {
-	case KindArr:
-		return "arr|" + (k >> SlotSize).String()
-	case KindMap:
-		return "map|" + (k >> SlotSize).String()
 	}
 	return "invalid"
 }
@@ -229,6 +214,10 @@ func simpleStr(k Kind) string {
 		}
 	case KindVar:
 		return fmt.Sprintf("~%d", k>>SlotSize)
+	case KindArr:
+		return "arr|"
+	case KindMap:
+		return "map|"
 	}
 	switch k & MaskRef {
 	case KindRef:

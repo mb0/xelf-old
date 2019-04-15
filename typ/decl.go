@@ -30,8 +30,8 @@ var (
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | FlagOpt, t.Info} }
-func Arr(t Type) Type     { return Type{t.Kind<<SlotSize | KindArr, t.Info} }
-func Map(t Type) Type     { return Type{t.Kind<<SlotSize | KindMap, t.Info} }
+func Arr(t Type) Type     { return Type{KindArr, &Info{Params: []Param{{Type: t}}}} }
+func Map(t Type) Type     { return Type{KindMap, &Info{Params: []Param{{Type: t}}}} }
 func Obj(fs []Param) Type { return Type{KindObj, &Info{Params: fs}} }
 
 func Ref(name string) Type  { return Type{KindRef, &Info{Ref: name}} }
@@ -70,21 +70,23 @@ func (t Type) Deopt() (_ Type, ok bool) {
 func (t Type) Next() Type {
 	switch t.Kind & MaskElem {
 	case KindArr, KindMap:
-		t.Kind = t.Kind >> SlotSize
+		if t.Info == nil || len(t.Params) == 0 {
+			return Any
+		}
+		return t.Params[0].Type
 	}
-	return t
+	return Void
 }
 
 // Last returns the last sub type of t if t is a arr or map type,
 // otherwise t is returned as is.
 func (t Type) Last() Type {
-	for k := t.Kind; ; k = k >> SlotSize {
-		switch k & MaskElem {
-		case KindArr, KindMap:
-			continue
-		}
-		return Type{k, t.Info}
+	el := t.Next()
+	for el != Void {
+		t = el
+		el = t.Next()
 	}
+	return t
 }
 
 // Ordered returns whether type t supports ordering.

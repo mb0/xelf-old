@@ -14,10 +14,6 @@ type Type struct {
 	*Info
 }
 
-func (a Type) Sub() Type {
-	a.Kind = a.Kind >> SlotSize
-	return a
-}
 func (Type) Typ() Type { return Typ }
 
 type Const = cor.Const
@@ -149,33 +145,38 @@ func (a Type) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
 func (a Type) WriteBfr(b *bfr.Ctx) error {
 	if b.JSON {
 		b.WriteByte('{')
-		err := a.writeBfr(b, nil)
+		err := a.writeBfr(b, nil, nil)
 		b.WriteByte('}')
 		return err
 	}
-	return a.writeBfr(b, nil)
+	return a.writeBfr(b, nil, nil)
 }
 
-func (a Type) writeBfr(b *bfr.Ctx, hist []*Info) error {
-	last := a.Last()
-	switch last.Kind & MaskRef {
+func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
+	var detail bool
+	switch a.Kind & MaskRef {
 	case KindObj, KindRec:
 		for i := 0; i < len(hist); i++ {
 			h := hist[len(hist)-1-i]
 			if a.Info.Equal(h) {
-				writeRef(b, strconv.Itoa(i), a.Kind)
+				writeRef(b, pre, strconv.Itoa(i), a)
 				return nil
 			}
 		}
+	case KindArr, KindMap:
+		if pre == nil {
+			pre = &strings.Builder{}
+		}
+		pre.WriteString(a.Kind.String())
+		return a.Next().writeBfr(b, pre, hist)
 	}
-	var detail bool
-	switch last.Kind & MaskRef {
+	switch a.Kind & MaskRef {
 	case KindRef:
 		ref := ""
 		if a.Info != nil {
 			ref = a.Ref
 		}
-		writeRef(b, ref, a.Kind)
+		writeRef(b, pre, ref, a)
 		return nil
 	case KindObj, KindExp:
 		detail = true
@@ -186,7 +187,7 @@ func (a Type) writeBfr(b *bfr.Ctx, hist []*Info) error {
 		} else {
 			b.WriteByte('(')
 		}
-		err := a.Kind.WriteBfr(b)
+		err := writePre(b, pre, a)
 		if err != nil {
 			return err
 		}
@@ -201,33 +202,28 @@ func (a Type) writeBfr(b *bfr.Ctx, hist []*Info) error {
 	}
 	if b.JSON {
 		b.WriteString(`"typ":"`)
-		err := a.Kind.WriteBfr(b)
+		err := writePre(b, pre, a)
 		b.WriteByte('"')
 		return err
+	}
+	return writePre(b, pre, a)
+}
+
+func writePre(b *bfr.Ctx, pre *strings.Builder, a Type) error {
+	if pre != nil {
+		b.WriteString(pre.String())
 	}
 	return a.Kind.WriteBfr(b)
 }
 
-func writeArrAndMap(b *bfr.Ctx, k Kind) Kind {
-	for {
-		switch k & MaskElem {
-		case KindArr:
-			b.WriteString("arr|")
-		case KindMap:
-			b.WriteString("map|")
-		default:
-			return k
-		}
-		k = k >> SlotSize
-	}
-}
-
-func writeRef(b *bfr.Ctx, ref string, k Kind) {
+func writeRef(b *bfr.Ctx, pre *strings.Builder, ref string, a Type) {
 	if b.JSON {
 		b.WriteString(`"typ":"`)
-		k = writeArrAndMap(b, k)
+		if pre != nil {
+			b.WriteString(pre.String())
+		}
 		b.WriteString("ref")
-		if k&FlagOpt != 0 {
+		if a.Kind&FlagOpt != 0 {
 			b.WriteByte('?')
 		}
 		if ref != "" {
@@ -236,10 +232,12 @@ func writeRef(b *bfr.Ctx, ref string, k Kind) {
 		}
 		b.WriteByte('"')
 	} else {
-		k = writeArrAndMap(b, k)
+		if pre != nil {
+			b.WriteString(pre.String())
+		}
 		b.WriteByte('@')
 		b.WriteString(ref)
-		if k&FlagOpt != 0 {
+		if a.Kind&FlagOpt != 0 {
 			b.WriteByte('?')
 		}
 	}
@@ -269,7 +267,7 @@ func (a *Info) writeXelf(b *bfr.Ctx, detail bool, hist []*Info) error {
 			i++
 		}
 		b.WriteByte(' ')
-		err := f.Type.writeBfr(b, hist)
+		err := f.Type.writeBfr(b, nil, hist)
 		if err != nil {
 			return err
 		}
@@ -300,7 +298,7 @@ func (a *Info) writeJSON(b *bfr.Ctx, detail bool, hist []*Info) error {
 			b.Quote(f.Name)
 			b.WriteByte(',')
 		}
-		err := f.Type.writeBfr(b, hist)
+		err := f.Type.writeBfr(b, nil, hist)
 		if err != nil {
 			return err
 		}

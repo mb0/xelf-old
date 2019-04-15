@@ -86,8 +86,7 @@ func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 	sym := ref.Key()
-	tref := sym != "" && sym[0] == '@'
-	if tref {
+	if sym != "" && sym[0] == '@' {
 		sym = sym[1:]
 		if sym == "" {
 			return typ.Infer, nil
@@ -96,10 +95,9 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 		if sym[len(sym)-1] == '?' {
 			t = typ.Ref(sym[:len(sym)-1])
 			return c.resolveType(env, typ.Opt(t), t)
-		} else {
-			t = typ.Ref(sym)
-			return c.resolveType(env, t, t)
 		}
+		t = typ.Ref(sym)
+		return c.resolveType(env, t, t)
 	}
 	if strings.HasPrefix(sym, "arr|") || strings.HasPrefix(sym, "map|") {
 		t, err := typ.ParseSym(sym, nil)
@@ -141,18 +139,18 @@ func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
 		return t, nil
 	}
 	k := last.Kind
-	if t.Info == nil || t.Info.Ref == "" {
+	if last.Info == nil || last.Ref == "" {
 		if k != typ.FlagRef {
 			return t, cor.Errorf("unnamed %s not allowed", k)
 		}
 		// TODO infer type
 		return t, ErrUnres
 	}
-	key := t.Info.Key()
+	key := last.Key()
 	switch k {
 	case typ.KindFlag, typ.KindEnum, typ.KindRec:
 		// return already resolved schema types, otherwise add schema prefix '~'
-		if len(t.Params) > 0 || len(t.Consts) > 0 {
+		if len(last.Params) > 0 || len(last.Consts) > 0 {
 			return t, nil
 		}
 		key = "~" + key
@@ -165,7 +163,8 @@ func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
 	if err != nil {
 		return t, err
 	}
-	return replaceRef(t, et)
+	t, _ = replaceRef(t, et)
+	return t, nil
 }
 
 func findResolver(env Env, sym string) (r Resolver, name, path string, err error) {
@@ -262,17 +261,18 @@ func elType(el El) (Type, error) {
 	return typ.Void, ErrUnres
 }
 
-func replaceRef(t, el Type) (Type, error) {
-	var mask, shift typ.Kind
-	for shift = 0; ; shift += typ.SlotSize {
-		k := t.Kind >> shift
-		switch k & typ.MaskElem {
-		case typ.KindArr, typ.KindMap:
-			mask |= (k & typ.SlotMask) << shift
-			continue
+func replaceRef(t, el Type) (Type, bool) {
+	switch k := t.Kind & typ.MaskRef; k {
+	case typ.KindArr, typ.KindMap:
+		n, ok := replaceRef(t.Next(), el)
+		if ok {
+			if k == typ.KindArr {
+				return typ.Arr(n), true
+			}
+			return typ.Map(n), true
 		}
-		el.Kind |= k & typ.FlagOpt
-		el.Kind = (el.Kind << shift) | mask
-		return el, nil
+	case typ.KindRef, typ.KindVar:
+		return el, true
 	}
+	return t, false
 }
