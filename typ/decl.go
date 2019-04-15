@@ -39,6 +39,18 @@ func Flag(name string) Type { return Type{KindFlag, &Info{Ref: name}} }
 func Enum(name string) Type { return Type{KindEnum, &Info{Ref: name}} }
 func Rec(n string) Type     { return Type{KindRec, &Info{Ref: n}} }
 
+func Var(id uint64, opts ...Type) Type {
+	t := Type{Kind: Kind(id<<SlotSize) | KindVar}
+	if len(opts) > 0 {
+		ps := make([]Param, 0, len(opts))
+		for _, p := range opts {
+			ps = append(ps, Param{Type: p})
+		}
+		t.Info = &Info{Params: ps}
+	}
+	return t
+}
+
 // IsOpt returns whether t is an optional type and not any.
 func (t Type) IsOpt() bool {
 	return t.Kind&FlagOpt != 0 && t.Kind&MaskRef != 0

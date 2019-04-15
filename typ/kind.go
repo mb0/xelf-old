@@ -1,6 +1,8 @@
 package typ
 
 import (
+	"fmt"
+
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 )
@@ -61,6 +63,7 @@ const (
 	KindMap = BaseDict | Spec1
 	KindObj = BaseDict | BaseList | Spec1
 
+	KindVar  = FlagRef | Spec1
 	KindFlag = FlagRef | KindInt
 	KindEnum = FlagRef | KindStr
 	KindRec  = FlagRef | KindObj
@@ -224,6 +227,8 @@ func simpleStr(k Kind) string {
 		case ExpDecl:
 			return "decl"
 		}
+	case KindVar:
+		return fmt.Sprintf("~%d", k>>SlotSize)
 	}
 	switch k & MaskRef {
 	case KindRef:

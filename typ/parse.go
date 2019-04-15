@@ -23,6 +23,13 @@ func ParseSym(s string, hist []Type) (res Type, _ error) {
 	switch s[0] {
 	case '~':
 		ref := s[1:]
+		if c := ref[0]; c >= '0' && c <= '9' {
+			id, err := strconv.ParseUint(ref, 10, 64)
+			if err != nil {
+				return Void, cor.Errorf("invalid id: %w", err)
+			}
+			return Var(id), nil
+		}
 		i := strings.IndexByte(ref, '.')
 		if i == 0 { // explicit type
 			return ParseSym(ref, hist)
