@@ -25,8 +25,9 @@ func TestParse(t *testing.T) {
 		{`(bool 1)`, Dyn{&Sym{Name: "bool"}, lit.Num(1)}},
 		{`(bool (() comment) 1)`, Dyn{&Sym{Name: "bool"}, lit.Num(1)}},
 		{`(obj +x +y int)`, Dyn{&Sym{Name: "obj"},
-			Decl{Name: "+x"},
-			Decl{Name: "+y", Args: []El{&Sym{Name: "int"}}},
+			&Sym{Name: "+x"},
+			&Sym{Name: "+y"},
+			&Sym{Name: "int"},
 		}},
 		{`('Hello ' $Name '!')`, Dyn{
 			lit.Char("Hello "),
@@ -35,30 +36,27 @@ func TestParse(t *testing.T) {
 		}},
 		{`(a :b +c d)`, Dyn{
 			&Sym{Name: "a"},
-			Tag{Name: ":b"},
-			Decl{Name: "+c", Args: []El{
-				&Sym{Name: "d"},
-			}},
+			&Sym{Name: ":b"},
+			&Sym{Name: "+c"},
+			&Sym{Name: "d"},
 		}},
 		{`((1 2) 1 2)`, Dyn{
 			Dyn{lit.Num(1), lit.Num(2)},
 			lit.Num(1), lit.Num(2),
 		}},
-		{`(1 (+z 3 4))`, Dyn{
-			lit.Num(1),
-			Decl{Name: "+z", Args: []El{
+		{`(1 (+z 3 4))`, Dyn{lit.Num(1),
+			Dyn{&Sym{Name: "+z"},
 				lit.Num(3),
 				lit.Num(4),
-			}},
+			},
 		}},
 		{`(s (+m +a u :t))`, Dyn{
 			&Sym{Name: "s"},
-			Decl{Name: "+m", Args: []El{
-				Decl{Name: "+a", Args: []El{
-					&Sym{Name: "u"},
-					Tag{Name: ":t"},
-				}},
-			}},
+			Dyn{&Sym{Name: "+m"},
+				&Sym{Name: "+a"},
+				&Sym{Name: "u"},
+				&Sym{Name: ":t"},
+			},
 		}},
 	}
 	for _, test := range tests {

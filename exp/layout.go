@@ -1,6 +1,8 @@
 package exp
 
 import (
+	"strings"
+
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
@@ -62,8 +64,6 @@ func (l *Layout) Tags(idx int) ([]Tag, error) {
 		switch arg.Typ() {
 		case typ.Tag:
 			res = append(res, arg.(Tag))
-		case typ.Decl:
-			return nil, cor.Errorf("unexpected decl %s", arg)
 		default:
 			res = append(res, Tag{Args: args[i : i+1]})
 		}
@@ -75,11 +75,10 @@ func (l *Layout) Decls(idx int) ([]Decl, error) {
 	args := l.Args(idx)
 	res := make([]Decl, 0, len(args))
 	for _, arg := range args {
-		switch arg.Typ() {
-		case typ.Decl:
-			res = append(res, arg.(Decl))
-		default:
-			return nil, cor.Errorf("unexpected element %s", arg)
+		if d, ok := arg.(Decl); ok {
+			res = append(res, d)
+		} else {
+			return nil, cor.Errorf("unexpected decl element %s", arg)
 		}
 	}
 	return res, nil
@@ -87,26 +86,22 @@ func (l *Layout) Decls(idx int) ([]Decl, error) {
 
 func (l *Layout) Unis(idx int) ([]Decl, error) {
 	args := l.Args(idx)
-	var naked int
 	res := make([]Decl, 0, len(args))
+	var naked int
 	for _, arg := range args {
-		switch arg.Typ() {
-		case typ.Decl:
-			d := arg.(Decl)
+		if d, ok := arg.(Decl); ok {
 			switch len(d.Args) {
 			case 0:
 				naked++
-			case 1:
+			default:
 				for naked > 0 {
 					res[len(res)-naked].Args = d.Args
 					naked--
 				}
-			default:
-				return nil, cor.Errorf("unexpected tail for %s", d)
 			}
 			res = append(res, d)
-		default:
-			return nil, cor.Errorf("unexpected element %s", arg)
+		} else {
+			return nil, cor.Errorf("unexpected uni element %T %s", arg, arg)
 		}
 	}
 	return res, nil
@@ -126,10 +121,7 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 			continue
 		}
 		switch p.Name {
-		case "plain", "rest",
-			"tags", "tail", "args",
-			"decls",
-			"unis":
+		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
 			args, err := c.ResolveAll(env, args, typ.Void)
 			if err != nil {
 				if err == ErrUnres {
@@ -169,7 +161,7 @@ func LayoutArgs(params []typ.Param, args []El) (*Layout, error) {
 		if len(args) > 0 {
 			return nil, cor.Error("unexpected argument count")
 		}
-		return nil, nil
+		return &Layout{}, nil
 	}
 	res := make([][]El, 0, len(params))
 	var tmp []El
@@ -179,13 +171,20 @@ Loop:
 		tmp = nil
 		switch p.Name {
 		case "plain":
-			tmp, args = consumePlain(args)
+			tmp, args = consumePlain(args, tmp)
 		case "rest":
-			tmp, args = args, nil
-		case "tags", "tail", "args":
-			tmp, args = consumeTags(args, p.Name != "tags")
+			for len(args) > 0 {
+				tmp, args = consumePlain(args, tmp)
+				tmp, args = consumeTags(args, tmp)
+				tmp, args = consumeDecls(args, tmp)
+			}
+		case "tail", "args":
+			tmp, args = consumePlain(args, tmp)
+			tmp, args = consumeTags(args, tmp)
+		case "tags":
+			tmp, args = consumeTags(args, tmp)
 		case "decls":
-			tmp, args = consumeDecls(args)
+			tmp, args = consumeDecls(args, tmp)
 		case "unis":
 			tmp, args = consumeUnis(args)
 		default: // explicit param
@@ -195,16 +194,11 @@ Loop:
 				}
 				continue
 			}
-			switch args[0].Typ() {
-			case typ.Tag:
+			if _, _, _, ok := isSpecial(args[0], ":+-;"); ok {
 				if !p.Opt() {
 					break Loop
 				}
-			case typ.Decl:
-				if !p.Opt() {
-					break Loop
-				}
-			default:
+			} else {
 				tmp, args = args[:1], args[1:]
 			}
 		}
@@ -212,7 +206,7 @@ Loop:
 	}
 	// at this point all arguments should have been consumed
 	if len(args) > 0 {
-		return nil, cor.Errorf("unexpected element %s", args[0])
+		return nil, cor.Errorf("unexpected tail element %s", args[0])
 	}
 	return &Layout{params, res}, nil
 }
@@ -225,82 +219,149 @@ func ResolveArgs(c *Ctx, env Env, e *Expr) (*Layout, error) {
 	err = lo.Resolve(c, env)
 	return lo, err
 }
-
-func consumePlain(es []El) ([]El, []El) {
-	for i, e := range es {
-		switch e.Typ() {
-		case typ.Tag:
-		case typ.Decl:
-		default:
-			continue
+func consumeArg(es []El) (El, []El) {
+	if len(es) != 0 {
+		e := es[0]
+		//switch e.Typ() {
+		//case typ.Sym, typ.Dyn:
+		if _, _, _, ok := isSpecial(e, ":+-;"); !ok {
+			return e, es[1:]
 		}
-		return es[:i], es[i:]
 	}
-	return es, nil
+	return nil, es
+}
+func consumeTag(es []El) (El, []El) {
+	if len(es) != 0 {
+		e := es[0]
+		if t, s, a, ok := isSpecial(e, ":+-;"); ok {
+			if s[0] != ':' {
+				return nil, es
+			}
+			tag := Tag{Name: s}
+			es = es[1:]
+			if t != typ.Sym {
+				tag.Args, a = consumePlain(a, nil)
+				tag.Args, a = consumeTags(a, tag.Args)
+				tag.Args, a = consumeDecls(a, tag.Args)
+			} else {
+				var arg El
+				arg, es = consumeArg(es)
+				if arg != nil {
+					tag.Args = append(tag.Args, arg)
+				}
+			}
+			return tag, es
+		}
+	}
+	return nil, es
 }
 
-func consumeTags(es []El, plain bool) ([]El, []El) {
-	for i, e := range es {
-		switch e.Typ() {
-		case typ.Decl:
-		case typ.Tag:
+func consumeDecl(es []El, uni bool) (El, []El) {
+	if len(es) == 0 {
+		return nil, nil
+	}
+	e := es[0]
+	if t, s, a, ok := isSpecial(e, "+-;"); ok {
+		if s[0] == ';' {
+			return nil, es[1:]
+		}
+		d := Decl{Name: s}
+		es = es[1:]
+		if t != typ.Sym {
+			d.Args, a = consumePlain(a, nil)
+			d.Args, a = consumeTags(a, d.Args)
+			d.Args, _ = consumeDecls(a, d.Args)
+		} else if uni {
+			var arg El
+			arg, es = consumeArg(es)
+			if arg != nil {
+				d.Args = append(d.Args, arg)
+			}
+		} else {
+			d.Args, es = consumePlain(es, nil)
+			d.Args, es = consumeTags(es, d.Args)
+		}
+		return d, es
+	}
+	return nil, es
+}
+
+func consumePlain(es []El, res []El) ([]El, []El) {
+	var e El
+	for len(es) > 0 {
+		e, es = consumeArg(es)
+		if e != nil {
+			res = append(res, e)
+			continue
+		}
+		break
+	}
+	return res, es
+}
+func consumeTags(es []El, res []El) ([]El, []El) {
+	var e El
+	for len(es) > 0 {
+		e, es = consumeTag(es)
+		if e != nil {
+			res = append(res, e)
+			continue
+		}
+		break
+	}
+	return res, es
+}
+func consumeDecls(es []El, res []El) ([]El, []El) {
+	var e El
+	for len(es) > 0 {
+		e, es = consumeDecl(es, false)
+		if e != nil {
+			res = append(res, e)
+			continue
+		}
+		break
+	}
+	return res, es
+}
+func consumeUnis(es []El) (res, _ []El) {
+	var e El
+	for len(es) > 0 {
+		e, es = consumeDecl(es, true)
+		if e != nil {
+			res = append(res, e)
+			continue
+		}
+		break
+	}
+	return res, es
+}
+
+func isSpecial(e El, pre string) (t Type, s string, a []El, ok bool) {
+	switch t = e.Typ(); t {
+	case typ.Sym:
+		s, ok = isSpecialSym(e, pre)
+	case typ.Dyn:
+		if d, _ := e.(Dyn); len(d) != 0 {
+			s, ok = isSpecialSym(d[0], pre)
+			a = d[1:]
+		}
+	case typ.Tag:
+		if strings.IndexByte(pre, ':') != -1 {
 			v := e.(Tag)
-			if v.Name == "::" {
-				return es[:i+1], es[i+1:]
-			}
-			plain = false
-			continue
-		default:
-			if !plain {
-				break
-			}
-			continue
+			s, a, ok = v.Name, v.Args, true
 		}
-		return es[:i], es[i:]
-	}
-	return es, nil
-}
-func consumeDecls(es []El) ([]El, []El) {
-	for i, e := range es {
-		switch e.Typ() {
-		case typ.Decl:
+	case typ.Decl:
+		if strings.IndexByte(pre, '+') != -1 {
 			v := e.(Decl)
-			if v.Name == "-" {
-				rest := es[i+1:]
-				if len(v.Args) > 0 {
-					rest = make([]El, 0, len(v.Args)+len(rest))
-					rest = append(rest, v.Args...)
-					rest = append(rest, es[i+1:]...)
-				}
-				return es[:i], rest
-			}
-			continue
+			s, a, ok = v.Name, v.Args, true
 		}
-		return es[:i], es[i:]
 	}
-	return es, nil
+	return
 }
-func consumeUnis(es []El) ([]El, []El) {
-	for i, e := range es {
-		switch e.Typ() {
-		case typ.Decl:
-			v := e.(Decl)
-			if len(v.Args) > 1 {
-				rest := v.Args[1:]
-				v.Args = v.Args[:1]
-				es[i] = v
-				if len(es) > i+1 {
-					if l := len(rest); l == 0 {
-						rest = es[i+1:]
-					} else {
-						rest = append(rest[:l:l], es[i+1:]...)
-					}
-				}
-				return es[:i+1], append(rest, es[i+1:]...)
-			}
-			continue
+func isSpecialSym(e El, pre string) (string, bool) {
+	if s, ok := e.(*Sym); ok && s.Name != "" {
+		if c := s.Name[0]; strings.IndexByte(pre, c) != -1 {
+			return s.Name, true
 		}
-		return es[:i], es[i:]
 	}
-	return es, nil
+	return "", false
 }

@@ -91,7 +91,7 @@ func (r *NodeResolver) ResolveForm(c *exp.Ctx, env exp.Env, x *exp.Expr, h exp.T
 	// associate to arguments using using rules
 	for i, fp := range fps {
 		switch fp.Name {
-		case "pain", "tags", "args":
+		case "plain", "tags", "args":
 			tags, err := lo.Tags(i)
 			if err != nil {
 				return nil, err

@@ -44,6 +44,11 @@ func TestLayout(t *testing.T) {
 				"((+a ) (+b 1) (+c 2))",
 			},
 		},
+		{"(form '_' +decls + any)",
+			"(_ (+a +b 1) +c 2)", []string{
+				"((+a (+b 1)) (+c 2))",
+			},
+		},
 	}
 	for _, test := range tests {
 		form, err := ParseTypeString(test.sig)
@@ -59,7 +64,7 @@ func TestLayout(t *testing.T) {
 		}
 		l, err := LayoutArgs(ps, el.(Dyn)[1:])
 		if err != nil {
-			t.Errorf("layout %s %s err: %v", test.sig, test.raw, err)
+			t.Errorf("layout %s %s %s err: %v", test.sig, test.raw, ps, err)
 			continue
 		}
 		res := make([]string, 0, len(l.args))
