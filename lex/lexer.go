@@ -6,6 +6,8 @@ import (
 	"io"
 	"sort"
 	"strings"
+
+	"github.com/mb0/xelf/cor"
 )
 
 // Scan returns a Tree scanned from s or an error.
@@ -38,7 +40,7 @@ func New(r io.Reader) *Lexer {
 // If simple is true, symbols can only be ascii names.
 func (l *Lexer) Lex(simple bool) (Token, error) {
 	r := l.next()
-	for IsSpace(r) {
+	for cor.Space(r) {
 		r = l.next()
 	}
 	switch r {
@@ -50,13 +52,13 @@ func (l *Lexer) Lex(simple bool) (Token, error) {
 	case '"', '\'', '`':
 		return l.lexChar()
 	}
-	if IsLetter(r) {
+	if cor.NameStart(r) {
 		return l.lexSym(simple)
 	}
-	if IsDigit(r) || r == '-' && IsDigit(l.nxt) {
+	if cor.Digit(r) || r == '-' && cor.Digit(l.nxt) {
 		return l.lexNum()
 	}
-	if IsPunct(r) {
+	if cor.Punct(r) {
 		if simple {
 			return l.tok(r, ""), nil
 		}
@@ -130,7 +132,7 @@ func (l *Lexer) lexSym(simple bool) (Token, error) {
 	var b strings.Builder
 	t := l.tok(Sym, "")
 	b.WriteRune(l.cur)
-	for IsNamePart(l.nxt) || !simple && IsPunct(l.nxt) {
+	for cor.NamePart(l.nxt) || !simple && cor.Punct(l.nxt) {
 		b.WriteRune(l.next())
 	}
 	t.Val = b.String()
@@ -176,10 +178,10 @@ func (l *Lexer) lexNum() (Token, error) {
 // lexDigits reads the next digits and writes the to b.
 // It returns false if no digit was read.
 func (l *Lexer) lexDigits(b *strings.Builder) bool {
-	if !IsDigit(l.nxt) {
+	if !cor.Digit(l.nxt) {
 		return false
 	}
-	for ok := true; ok; ok = IsDigit(l.nxt) {
+	for ok := true; ok; ok = cor.Digit(l.nxt) {
 		b.WriteRune(l.nxt)
 		l.next()
 	}

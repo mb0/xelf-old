@@ -34,7 +34,7 @@ func ConstByVal(s []Const, val int64) (c Const, ok bool) {
 // FormatEnum returns the lowercase name of the constant matching val or an empty string.
 func FormatEnum(s []Const, val int64) string {
 	if c, ok := ConstByVal(s, val); ok {
-		return strings.ToLower(c.Name)
+		return LastKey(c.Name)
 	}
 	return ""
 }
@@ -47,14 +47,14 @@ func FormatFlag(s []Const, mask int64) string {
 	case 0:
 		return ""
 	case 1:
-		return strings.ToLower(res[0].Name)
+		return LastKey(res[0].Name)
 	}
 	var b strings.Builder
 	for i, r := range res {
 		if i > 0 {
 			b.WriteByte('|')
 		}
-		b.WriteString(strings.ToLower(r.Name))
+		b.WriteString(LastKey(r.Name))
 	}
 	return b.String()
 }

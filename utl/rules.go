@@ -75,7 +75,7 @@ func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) 
 func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag exp.Tag, idx int, node Node) (err error) {
 	var key string
 	if tag.Name != "" {
-		key = strings.ToLower(tag.Name[1:])
+		key = cor.LastKey(tag.Name)
 	} else if tr.IdxKeyer != nil {
 		key = tr.IdxKeyer(node, idx)
 	}

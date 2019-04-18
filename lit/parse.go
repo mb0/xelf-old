@@ -79,7 +79,7 @@ func parseDict(tree *lex.Tree) (*Dict, error) {
 		var key string
 		switch a := tree.Seq[i]; a.Tok {
 		case lex.Sym:
-			if len(a.Val) == 0 || !lex.IsName(a.Val) {
+			if len(a.Val) == 0 || !cor.IsName(a.Val) {
 				return nil, a.Err(ErrKey)
 			}
 			key = a.Val

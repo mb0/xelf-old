@@ -28,13 +28,13 @@ type Info struct {
 
 // Key returns the lowercase ref key.
 func (a *Info) Key() string {
-	if a == nil {
-		return ""
+	if a != nil {
+		if a.key == "" {
+			a.key = cor.LastKey(a.Ref)
+		}
+		return a.key
 	}
-	if a.Ref != "" && a.key == "" {
-		a.key = strings.ToLower(a.Ref)
-	}
-	return a.key
+	return ""
 }
 
 func (a *Info) ParamLen() int {
@@ -76,11 +76,8 @@ func (a Param) Opt() bool { n := a.Name; return n != "" && n[len(n)-1] == '?' }
 
 // Key returns the lowercase param key.
 func (a Param) Key() string {
-	if n := a.Name; n != "" && a.key == "" {
-		if a.Opt() {
-			n = n[:len(n)-1]
-		}
-		a.key = strings.ToLower(n)
+	if a.key == "" {
+		a.key = cor.LastKey(a.Name)
 	}
 	return a.key
 }

@@ -1,8 +1,6 @@
 package exp
 
 import (
-	"strings"
-
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
@@ -113,7 +111,7 @@ func FuncArgs(x *Expr) (*Layout, error) {
 			return nil, cor.Errorf("unexpected arguments %s", x)
 		} else {
 			tagged = true
-			key := strings.ToLower(tag.Name[1:])
+			key := cor.Keyed(tag.Name)
 			_, idx, err = x.Rslv.Typ().ParamByKey(key)
 			if err != nil {
 				return nil, err

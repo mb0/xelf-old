@@ -1,8 +1,6 @@
 package exp
 
 import (
-	"strings"
-
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
@@ -60,7 +58,7 @@ type (
 
 func (r *Sym) Key() string {
 	if r.key == "" {
-		r.key = strings.ToLower(r.Name)
+		r.key = cor.LastKey(r.Name)
 	}
 	return r.key
 }

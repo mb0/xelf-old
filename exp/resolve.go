@@ -85,28 +85,27 @@ func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
 }
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
-	sym := ref.Key()
-	if sym != "" && sym[0] == '@' {
-		sym = sym[1:]
-		if sym == "" {
+	n := ref.Name
+	if n != "" && n[0] == '@' {
+		n = n[1:]
+		if n == "" {
 			return typ.Infer, nil
 		}
-		t := typ.Ref(sym)
-		if sym[len(sym)-1] == '?' {
-			t = typ.Ref(sym[:len(sym)-1])
+		if n[len(n)-1] == '?' {
+			t := typ.Ref(n[:len(n)-1])
 			return c.resolveType(env, typ.Opt(t), t)
 		}
-		t = typ.Ref(sym)
+		t := typ.Ref(n)
 		return c.resolveType(env, t, t)
 	}
-	if strings.HasPrefix(sym, "arr|") || strings.HasPrefix(sym, "map|") {
-		t, err := typ.ParseSym(sym, nil)
+	if strings.HasPrefix(n, "arr|") || strings.HasPrefix(n, "map|") {
+		t, err := typ.ParseSym(n, nil)
 		if err != nil {
 			return nil, err
 		}
 		return c.resolveType(env, t, t.Last())
 	}
-	r, name, path, err := findResolver(env, sym)
+	r, name, path, err := findResolver(env, n)
 	if r == nil || err == ErrUnres {
 		c.Unres = append(c.Unres, ref)
 		return ref, ErrUnres
@@ -115,7 +114,7 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 		return nil, err
 	}
 	tmp := ref
-	if sym != name {
+	if n != name {
 		tmp = &Sym{Name: name}
 	}
 	res, err := r.Resolve(c, env, tmp, typ.Void)

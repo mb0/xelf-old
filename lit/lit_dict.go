@@ -120,7 +120,7 @@ func (v *Dict) Assign(l Lit) error {
 }
 
 func writeKey(b *bfr.Ctx, key string) (err error) {
-	if !b.JSON && lex.IsName(key) {
+	if !b.JSON && cor.IsName(key) {
 		b.WriteString(key)
 		return b.WriteByte(':')
 	}

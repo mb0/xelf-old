@@ -261,11 +261,11 @@ func collectFields(t reflect.Type, idx []int, col fieldCollector) error {
 		}
 		name := f.Name
 		// use simple capitalization if key does not match the lowercase name
-		if key != "" && key != strings.ToLower(name) {
+		if key != "" && key != cor.LastKey(name) {
 			name = strings.ToUpper(key[:1]) + key[1:]
 		}
 		if key == "" {
-			key = strings.ToLower(name)
+			key = cor.LastKey(name)
 		}
 		if opt { // append a question mark to optional fields
 			name += "?"
