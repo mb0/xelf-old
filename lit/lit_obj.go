@@ -24,7 +24,7 @@ func MakeObj(t typ.Type) (*DictObj, error) {
 func ObjFromKeyed(list []Keyed) *DictObj {
 	fs := make([]typ.Param, 0, len(list))
 	for _, d := range list {
-		fs = append(fs, typ.Param{Name: d.Key, Type: d.Lit.Typ()})
+		fs = append(fs, typ.Param{d.Key, d.Lit.Typ()})
 	}
 	return &DictObj{typ.Obj(fs), Dict{list}}
 }

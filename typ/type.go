@@ -23,16 +23,12 @@ type Info struct {
 	Ref    string  `json:"ref,omitempty"`
 	Params []Param `json:"params,omitempty"`
 	Consts []Const `json:"consts,omitempty"`
-	key    string
 }
 
 // Key returns the lowercase ref key.
 func (a *Info) Key() string {
 	if a != nil {
-		if a.key == "" {
-			a.key = cor.LastKey(a.Ref)
-		}
-		return a.key
+		return cor.LastKey(a.Ref)
 	}
 	return ""
 }
@@ -68,19 +64,13 @@ func (a *Info) ParamByKey(key string) (*Param, int, error) {
 type Param struct {
 	Name string `json:"name,omitempty"`
 	Type
-	key string
 }
 
 // Opt returns true if the param is optional, indicated by its name ending in a question mark.
 func (a Param) Opt() bool { n := a.Name; return n != "" && n[len(n)-1] == '?' }
 
 // Key returns the lowercase param key.
-func (a Param) Key() string {
-	if a.key == "" {
-		a.key = cor.LastKey(a.Name)
-	}
-	return a.key
-}
+func (a Param) Key() string { return cor.LastKey(a.Name) }
 
 func (a Type) IsZero() bool { return a.Kind == 0 && a.Info.IsZero() }
 func (a *Info) IsZero() bool {

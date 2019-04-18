@@ -111,8 +111,7 @@ func FuncArgs(x *Expr) (*Layout, error) {
 			return nil, cor.Errorf("unexpected arguments %s", x)
 		} else {
 			tagged = true
-			key := cor.Keyed(tag.Name)
-			_, idx, err = x.Rslv.Typ().ParamByKey(key)
+			_, idx, err = x.Rslv.Typ().ParamByKey(tag.Key())
 			if err != nil {
 				return nil, err
 			}

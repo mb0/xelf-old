@@ -112,3 +112,14 @@ func Keyed(s string) string {
 	}
 	return ""
 }
+
+func Cased(n string) (s string) {
+	s = LastName(n)
+	for _, c := range s {
+		if !KeyStart(c) {
+			break
+		}
+		return strings.ToUpper(s[:1]) + s[1:]
+	}
+	return s
+}

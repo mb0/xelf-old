@@ -5,16 +5,28 @@ import (
 	"strings"
 )
 
+func Consts(m map[string]int64) []Const {
+	res := make([]Const, 0, len(m))
+	for name, val := range m {
+		res = append(res, Const{name, val})
+	}
+	sort.Sort(byVal(res))
+	return res
+}
+
 // Const represents named integer constant for flags or enums
-type Const = struct {
+type Const struct {
 	Name string `json:"name"`
 	Val  int64  `json:"val"`
 }
 
+func (c Const) Key() string   { return LastKey(c.Name) }
+func (c Const) Cased() string { return Cased(c.Name) }
+
 // ConstByKey finds and returns a constant with key in s. If a const was found, ok is true.
 func ConstByKey(s []Const, key string) (c Const, ok bool) {
 	for _, e := range s {
-		if strings.EqualFold(key, e.Name) {
+		if key == e.Key() {
 			return e, true
 		}
 	}
@@ -34,7 +46,7 @@ func ConstByVal(s []Const, val int64) (c Const, ok bool) {
 // FormatEnum returns the lowercase name of the constant matching val or an empty string.
 func FormatEnum(s []Const, val int64) string {
 	if c, ok := ConstByVal(s, val); ok {
-		return LastKey(c.Name)
+		return c.Key()
 	}
 	return ""
 }
@@ -47,19 +59,19 @@ func FormatFlag(s []Const, mask int64) string {
 	case 0:
 		return ""
 	case 1:
-		return LastKey(res[0].Name)
+		return res[0].Key()
 	}
 	var b strings.Builder
 	for i, r := range res {
 		if i > 0 {
 			b.WriteByte('|')
 		}
-		b.WriteString(LastKey(r.Name))
+		b.WriteString(r.Key())
 	}
 	return b.String()
 }
 
-// GetFlags returns the matching constants s contained in mask. The given constants are checkt in
+// GetFlags returns the matching constants s contained in mask. The given constants are checked in
 // reverse and thus should match combined, more specific constants first.
 func GetFlags(s []Const, mask uint64) []Const {
 	if len(s) == 0 {

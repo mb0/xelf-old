@@ -262,7 +262,7 @@ func compareInfo(src, dst *Info) Cmp {
 		return CmpNone
 	}
 	for _, df := range dst.Params {
-		sf := findField(src.Params, df.Name)
+		sf := findField(src.Params, df.Key())
 		if sf == nil {
 			if !df.Opt() { // field is required
 				return CmpNone
@@ -284,7 +284,7 @@ func compareInfo(src, dst *Info) Cmp {
 
 func findField(fs []Param, key string) *Param {
 	for _, f := range fs {
-		if f.Name == key {
+		if f.Key() == key {
 			return &f
 		}
 	}

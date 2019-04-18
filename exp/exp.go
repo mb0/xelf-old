@@ -35,7 +35,6 @@ type (
 		Name string
 		// Type is partially resolve result type
 		Type Type
-		key  string
 	}
 
 	// Dyn is a unresolved expression where a resolver has to be determined.
@@ -56,12 +55,6 @@ type (
 	}
 )
 
-func (r *Sym) Key() string {
-	if r.key == "" {
-		r.key = cor.LastKey(r.Name)
-	}
-	return r.key
-}
 func (*Sym) Typ() Type    { return typ.Sym }
 func (Dyn) Typ() Type     { return typ.Dyn }
 func (Tag) Typ() Type     { return typ.Tag }
@@ -189,3 +182,6 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 	}
 	return b.WriteByte(')')
 }
+func (x *Sym) Key() string { return cor.Keyed(x.Name) }
+func (x Tag) Key() string  { return cor.Keyed(x.Name) }
+func (x Decl) Key() string { return cor.Keyed(x.Name) }

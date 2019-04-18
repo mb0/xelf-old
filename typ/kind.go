@@ -4,14 +4,13 @@ import (
 	"fmt"
 
 	"github.com/mb0/xelf/bfr"
-	"github.com/mb0/xelf/cor"
 )
 
 // Kind is a bit-set describing a type. It represents all type information except reference names
 // and object fields. It is a handy implementation detail, but not part of the xelf specification.
 type Kind uint64
 
-func (Kind) Flags() []cor.Const { return kindConsts }
+func (Kind) Flags() map[string]int64 { return kindConsts }
 
 // A Kind consists of up to seven slots each eight bits wide. The first slot uses the least
 // significant byte. The following slots are only used for arr and map type slots.
@@ -258,23 +257,23 @@ func simpleStr(k Kind) string {
 	return ""
 }
 
-var kindConsts = []cor.Const{
-	{"Ref", int64(KindRef)},
-	{"Any", int64(KindAny)},
-	{"Typ", int64(KindTyp)},
-	{"Exp", int64(KindExp)},
-	{"Bool", int64(KindBool)},
-	{"Int", int64(KindInt)},
-	{"Real", int64(KindReal)},
-	{"Str", int64(KindStr)},
-	{"Raw", int64(KindRaw)},
-	{"UUID", int64(KindUUID)},
-	{"Time", int64(KindTime)},
-	{"Span", int64(KindSpan)},
-	{"Arr", int64(KindArr)},
-	{"Map", int64(KindMap)},
-	{"Obj", int64(KindObj)},
-	{"Flag", int64(KindFlag)},
-	{"Enum", int64(KindEnum)},
-	{"Rec", int64(KindRec)},
+var kindConsts = map[string]int64{
+	"Ref":  int64(KindRef),
+	"Any":  int64(KindAny),
+	"Typ":  int64(KindTyp),
+	"Exp":  int64(KindExp),
+	"Bool": int64(KindBool),
+	"Int":  int64(KindInt),
+	"Real": int64(KindReal),
+	"Str":  int64(KindStr),
+	"Raw":  int64(KindRaw),
+	"UUID": int64(KindUUID),
+	"Time": int64(KindTime),
+	"Span": int64(KindSpan),
+	"Arr":  int64(KindArr),
+	"Map":  int64(KindMap),
+	"Obj":  int64(KindObj),
+	"Flag": int64(KindFlag),
+	"Enum": int64(KindEnum),
+	"Rec":  int64(KindRec),
 }

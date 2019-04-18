@@ -1,8 +1,6 @@
 package utl
 
 import (
-	"strings"
-
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
@@ -75,7 +73,7 @@ func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) 
 func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag exp.Tag, idx int, node Node) (err error) {
 	var key string
 	if tag.Name != "" {
-		key = cor.LastKey(tag.Name)
+		key = tag.Name[1:]
 	} else if tr.IdxKeyer != nil {
 		key = tr.IdxKeyer(node, idx)
 	}
@@ -170,8 +168,9 @@ func FlagPrepper(consts []cor.Const) KeyPrepper {
 			return l, err
 		}
 		if l == lit.Nil {
+			k := cor.Keyed(key)
 			for _, b := range consts {
-				if strings.EqualFold(key, b.Name) {
+				if k == b.Key() {
 					return lit.Int(b.Val), nil
 				}
 			}
