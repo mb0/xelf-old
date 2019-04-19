@@ -7,8 +7,6 @@ import (
 )
 
 var (
-	// ErrNoDefEnv is returned when the environment cannot define any resolvers
-	ErrNoDefEnv = cor.StrError("not a definition env")
 	// ErrRedefine is returned when the symbol is redefined in the same scope.
 	ErrRedefine = cor.StrError("redefined symbol")
 )
@@ -27,9 +25,6 @@ func (Builtin) Parent() Env { return nil }
 
 // Supports returns true for built-in schema type lookups
 func (Builtin) Supports(x byte) bool { return x == '~' }
-
-// Def always returns ErrNoDefEnv for the built-in lookups
-func (Builtin) Def(string, Resolver) error { return ErrNoDefEnv }
 
 // Get returns a resolver for the given sym
 func (b Builtin) Get(sym string) Resolver {
@@ -106,9 +101,6 @@ func (c *DataScope) Parent() Env { return c.Par }
 
 // Supports returns true for '.', false otherwise.
 func (*DataScope) Supports(x byte) bool { return x == '.' }
-
-// Def always returns an error for data scopes.
-func (c *DataScope) Def(s string, d Resolver) error { return ErrNoDefEnv }
 
 // Get returns a literal resolver for the relative path s or nil.
 func (c *DataScope) Get(s string) Resolver {

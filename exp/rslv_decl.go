@@ -7,15 +7,11 @@ import (
 
 func init() {
 	std.add("let", []typ.Param{
-		{Name: "unis"},
-		{Type: typ.Infer},
-	}, rslvLet)
-	std.add("with", []typ.Param{
 		{Name: "a?", Type: typ.Any},
 		{Name: "unis"},
 		{Name: "plain"},
 		{Type: typ.Infer},
-	}, rslvWith)
+	}, rslvLet)
 	std.add("fn", []typ.Param{
 		{Name: "unis"},
 		{Name: "plain"},
@@ -23,28 +19,10 @@ func init() {
 	}, rslvFn)
 }
 
-// rslvLet declares one or more resolvers in the existing scope.
-// (form 'let' +unis - @)
-func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	decls, err := lo.Unis(0)
-	if err != nil {
-		return nil, err
-	}
-	res, err := letDecls(c, env, decls)
-	if err != nil {
-		return e, err
-	}
-	return res, nil
-}
-
-// rslvWith declares one or more resolvers in a new scope and resolves the tailing actions.
+// rslvLet declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-// (form 'with' +a? any +unis +rest - @)
-func rslvWith(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+// (form 'let' +a? any +unis +rest - @)
+func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
 	if err != nil {
 		return nil, err
@@ -62,14 +40,17 @@ func rslvWith(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		return nil, err
 	}
 	rest := lo.Args(2)
-	if len(rest) == 0 {
-		return nil, cor.Errorf("with must have an expression")
+	if len(rest) == 0 && len(decls) == 0 {
+		return nil, cor.Errorf("let must have declarations or a body")
 	}
 	s := NewScope(env)
 	if len(decls) > 0 {
-		_, err = letDecls(c, s, decls)
+		res, err := letDecls(c, s, decls)
 		if err != nil {
 			return e, err
+		}
+		if len(rest) == 0 {
+			return res, nil
 		}
 	}
 	rest, err = c.ResolveAll(s, rest, typ.Void)
@@ -114,7 +95,7 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return &Func{sig, &ExprBody{rest, env}}, nil
 }
 
-func letDecls(c *Ctx, env Env, decls []*Named) (res El, err error) {
+func letDecls(c *Ctx, env *Scope, decls []*Named) (res El, err error) {
 	for _, d := range decls {
 		if len(d.Name) < 2 {
 			return nil, cor.Error("unnamed declaration")

@@ -145,10 +145,9 @@ func TestStdResolve(t *testing.T) {
 		{`(if 1 'a')`, lit.Char("a")},
 		{`(if 0 'a' 'b')`, lit.Char("b")},
 		{`(if 0 'a')`, lit.Char("")},
-		{`(let +a (int 1))`, lit.Int(1)},
-		{`(let +a 1 +b 2 +c (int (add a b)))`, lit.Int(3)},
-		{`(if (let +a (int 1)) a)`, lit.Int(1)},
-		{`(with +a 1 +b 2 +c (add a b) (add a b c))`, lit.Num(6)},
+		{`(let +a (int 1) a)`, lit.Int(1)},
+		{`(let +a 1 +b 2 +c (int (add a b)) c)`, lit.Int(3)},
+		{`(let +a 1 +b 2 +c (add a b) (add a b c))`, lit.Num(6)},
 		{`(len 'test')`, lit.Int(4)},
 		{`(len [1 2 3])`, lit.Int(3)},
 		{`(len {a:1 b:2})`, lit.Int(2)},
@@ -174,20 +173,19 @@ func TestStdResolve(t *testing.T) {
 		{`(foldr ['alice' 'bob' 'calvin'] 'hello' (fn +a +v str +i int - str (cat _ ' ' .v (if .i ','))))`,
 			lit.Str("hello calvin, bob, alice"),
 		},
-		{`(with +a int @a)`, typ.Int},
-		{`(with +a (obj +b int) @a.b)`, typ.Int},
-		{`(with +a int +b arr|@a @b)`, typ.Arr(typ.Int)},
-		{`(with +f (fn - int 1) (f))`, lit.Int(1)},
-		{`(with +f (fn +a - int (add .a 1)) (f 1))`, lit.Int(2)},
-		{`(with +f (fn +a - int (mul _ _)) (f 3))`, lit.Int(9)},
-		{`(with +sum (fn +n arr|int - int
-				(fold .n 0 (fn +a +b - int (add .a .b)))
-			)
+		{`(let +a int @a)`, typ.Int},
+		{`(let +a (obj +b int) @a.b)`, typ.Int},
+		{`(let +a int +b arr|@a @b)`, typ.Arr(typ.Int)},
+		{`(let +f (fn - int 1) (f))`, lit.Int(1)},
+		{`(let +f (fn +a - int (add .a 1)) (f 1))`, lit.Int(2)},
+		{`(let +f (fn +a - int (mul _ _)) (f 3))`, lit.Int(9)},
+		{`(let +sum (fn +n arr|int - int
+				(fold .n 0 (fn +a +b - int (add .a .b))))
 			(sum 1 2 3)
 		)`, lit.Int(6)},
-		{`(with 'test' .)`, lit.Char("test")},
-		{`(with ((obj +a int) [1]) .a)`, lit.Int(1)},
-		{`(with [1 2 3 4 5] +even (fn +a num - bool (eq (rem _ 2) 0)) (and
+		{`(let 'test' .)`, lit.Char("test")},
+		{`(let ((obj +a int) [1]) .a)`, lit.Int(1)},
+		{`(let [1 2 3 4 5] +even (fn +a num - bool (eq (rem _ 2) 0)) (and
 			(eq (len "test") 4)
 			(eq (len .) 5)
 			(eq (fst .) (nth . 0) 1)
