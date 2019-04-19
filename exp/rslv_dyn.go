@@ -72,9 +72,6 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 		if tt == typ.Void {
 			return fst, nil
 		}
-		if nr, nf := typ.NeedsInfo(tt); nr || nf {
-			return parseTypeInfo(tt, args[1:], nr, nf, nil)
-		}
 		if tt == typ.Bool {
 			xr, args = formBool, args[1:]
 		} else {
