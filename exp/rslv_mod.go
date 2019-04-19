@@ -139,9 +139,9 @@ func rslvSet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		return nil, err
 	}
 	for _, d := range decls {
-		el, ok := d.Args[0].(Lit)
+		el, ok := d.Arg().(Lit)
 		if !ok {
-			return nil, cor.Error("want literal in declaration argument")
+			return nil, cor.Errorf("want literal in declaration got %s", d.El)
 		}
 		_, err = res.SetKey(d.Key(), el)
 		if err != nil {

@@ -96,7 +96,7 @@ func FuncArgs(x *Expr) (*Layout, error) {
 			if idx >= len(args) {
 				if vari {
 					idx = len(args) - 1
-					args[idx] = append(args[idx], tag.Args...)
+					args[idx] = append(args[idx], tag.El)
 					continue
 				}
 				return nil, cor.Errorf("unexpected arguments %s", x)
@@ -104,7 +104,7 @@ func FuncArgs(x *Expr) (*Layout, error) {
 		} else if tag.Name == "::" {
 			if vari {
 				idx = len(args) - 1
-				args[idx] = append(args[idx], tag.Args...)
+				args[idx] = append(args[idx], tag.El)
 				continue
 			}
 			return nil, cor.Errorf("unexpected arguments %s", x)
@@ -118,7 +118,7 @@ func FuncArgs(x *Expr) (*Layout, error) {
 		if len(args[idx]) > 0 {
 			return nil, cor.Errorf("duplicate parameter %s", params[idx].Name)
 		}
-		args[idx] = tag.Args
+		args[idx] = []El{tag.El}
 	}
 	for i, pa := range params {
 		arg := args[i]

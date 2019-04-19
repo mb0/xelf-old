@@ -45,26 +45,26 @@ func (l *Lexer) Lex(simple bool) (Token, error) {
 	}
 	switch r {
 	case EOF:
-		t := l.tok(r, "")
+		t := l.tok(r)
 		return t, ErrorAt(t, l.err)
-	case ',', '(', ')', '[', ']', '{', '}':
-		return l.tok(r, ""), nil
+	case ',', ';', '(', ')', '[', ']', '{', '}':
+		return l.tok(r), nil
 	case '"', '\'', '`':
-		return l.lexChar()
+		return l.lexString()
 	}
 	if cor.NameStart(r) {
-		return l.lexSym(simple)
+		return l.lexSymbol(simple)
 	}
 	if cor.Digit(r) || r == '-' && cor.Digit(l.nxt) {
-		return l.lexNum()
+		return l.lexNumber()
 	}
 	if cor.Punct(r) {
 		if simple {
-			return l.tok(r, ""), nil
+			return l.tok(r), nil
 		}
-		return l.lexSym(false)
+		return l.lexSymbol(false)
 	}
-	t := l.tok(r, "")
+	t := l.tok(r)
 	return t, ErrorAt(t, ErrUnexpected)
 }
 
@@ -92,22 +92,31 @@ func (l *Lexer) next() rune {
 	return l.cur
 }
 
-// tok returns a new token at the current offset.
-func (l *Lexer) tok(r rune, val string) Token {
-	if r == 0 {
-		r = l.cur
-	}
-	i := sort.SearchInts(l.lines, l.idx)
+// pos returns a new pos at the current offset.
+func (l *Lexer) pos() Pos {
 	n, c := 1, l.idx
-	if i > 0 {
+	if i := sort.SearchInts(l.lines, l.idx); i > 0 {
 		n += i
 		c -= l.lines[i-1]
 	}
-	return Token{r, l.idx, n, c, val}
+	return Pos{uint32(l.idx), uint16(n), uint16(c)}
 }
 
-// lexChar reads and returns a char token starting at the current offset.
-func (l *Lexer) lexChar() (Token, error) {
+// tok returns a new token at the current offset.
+func (l *Lexer) tok(r rune) Token {
+	p := l.pos()
+	return Token{Tok: r, Src: Src{Pos: p, End: p.add(1)}}
+}
+
+// tokval returns a new value token at the current offset.
+func (l *Lexer) val(t Token, val string) (Token, error) {
+	t.Raw, t.End = val, l.pos()
+	return t, nil
+}
+
+// lexString reads and returns a string token starting at the current offset.
+func (l *Lexer) lexString() (Token, error) {
+	t := l.tok(String)
 	q := l.cur
 	var b strings.Builder
 	b.WriteRune(q)
@@ -119,30 +128,36 @@ func (l *Lexer) lexChar() (Token, error) {
 		c = l.next()
 	}
 	if c == EOF {
-		t := l.tok(Str, b.String())
+		t, _ = l.val(t, b.String())
 		return t, ErrorWant(t, ErrUnterminated, q)
 	}
 	b.WriteRune(q)
-	return l.tok(Str, b.String()), nil
+	return l.val(t, b.String())
 }
 
-// lexSym reads and returns a sym token starting at the current offset.
+// lexSymbol reads and returns a symbol token starting at the current offset.
 // If simple is true, it only accepts ascii letters and digits.
-func (l *Lexer) lexSym(simple bool) (Token, error) {
+func (l *Lexer) lexSymbol(simple bool) (t Token, _ error) {
 	var b strings.Builder
-	t := l.tok(Sym, "")
+	switch l.cur {
+	case ':':
+		t = l.tok(Tag)
+	case '+', '-':
+		t = l.tok(Decl)
+	default:
+		t = l.tok(Symbol)
+	}
 	b.WriteRune(l.cur)
 	for cor.NamePart(l.nxt) || !simple && cor.Punct(l.nxt) {
 		b.WriteRune(l.next())
 	}
-	t.Val = b.String()
-	return t, nil
+	return l.val(t, b.String())
 }
 
-// lexNum reads and returns a num token starting at the current offset.
-func (l *Lexer) lexNum() (Token, error) {
+// lexNumber reads and returns a number token starting at the current offset.
+func (l *Lexer) lexNumber() (Token, error) {
 	var b strings.Builder
-	t := l.tok(Num, "")
+	t := l.tok(Number)
 	if l.cur == '-' {
 		b.WriteRune(l.cur)
 		l.next()
@@ -156,7 +171,8 @@ func (l *Lexer) lexNum() (Token, error) {
 		l.next()
 		if ok := l.lexDigits(&b); !ok {
 			l.next()
-			return t, ErrorAt(t, ErrExpectDigit)
+			t, _ = l.val(t, b.String())
+			return t, ErrorAtPos(l.pos(), ErrExpectDigit)
 		}
 	}
 	if l.nxt == 'e' || l.nxt == 'E' {
@@ -168,11 +184,11 @@ func (l *Lexer) lexNum() (Token, error) {
 		}
 		if ok := l.lexDigits(&b); !ok {
 			l.next()
-			return t, ErrorAt(t, ErrExpectDigit)
+			t, _ = l.val(t, b.String())
+			return t, ErrorAtPos(l.pos(), ErrExpectDigit)
 		}
 	}
-	t.Val = b.String()
-	return t, nil
+	return l.val(t, b.String())
 }
 
 // lexDigits reads the next digits and writes the to b.
@@ -207,7 +223,7 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 	simple := end != ')'
 	t, err := l.Lex(simple)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 	for t.Tok != end && t.Tok != EOF {
 		a, err := l.scanTree(t)
@@ -217,12 +233,12 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 		res.Seq = append(res.Seq, a)
 		t, err = l.Lex(simple)
 		if err != nil {
-			return nil, err
+			return res, err
 		}
 	}
+	res.End = t.Pos
 	if t.Tok != end {
 		return res, ErrorWant(t, ErrUnterminated, end)
 	}
-	res.End = &t
 	return res, nil
 }

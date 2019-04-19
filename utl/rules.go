@@ -30,7 +30,7 @@ type (
 	// IdxKeyer returns a key for an unnamed tag at idx.
 	IdxKeyer = func(n Node, idx int) string
 	// KeyPrepper resolves els and returns a literal for key or an error.
-	KeyPrepper = func(c *exp.Ctx, env exp.Env, key string, els []exp.El) (lit.Lit, error)
+	KeyPrepper = func(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error)
 	// KeySetter sets l to node with key or returns an error.
 	KeySetter = func(node Node, key string, l lit.Lit) error
 )
@@ -59,7 +59,7 @@ func (tr TagRules) WithOffset(off int) *TagRules {
 }
 
 // Resolve resolves tags using c and env and assigns them to node or returns an error
-func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) (err error) {
+func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []*exp.Named, node Node) (err error) {
 	for i, t := range tags {
 		err = tr.ResolveTag(c, env, t, i, node)
 		if err != nil {
@@ -70,10 +70,10 @@ func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []exp.Tag, node Node) 
 }
 
 // ResolveTag resolves tag using c and env and assigns them to node or returns an error
-func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag exp.Tag, idx int, node Node) (err error) {
+func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag *exp.Named, idx int, node Node) (err error) {
 	var key string
 	if tag.Name != "" {
-		key = tag.Name[1:]
+		key = tag.Key()
 	} else if tr.IdxKeyer != nil {
 		key = tr.IdxKeyer(node, idx)
 	}
@@ -81,7 +81,7 @@ func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag exp.Tag, idx int, no
 		return cor.Errorf("unrecognized tag %s", tag)
 	}
 	r := tr.Rules[key]
-	l, err := tr.prepper(r)(c, env, key, tag.Args)
+	l, err := tr.prepper(r)(c, env, tag)
 	if err != nil {
 		return err
 	}
@@ -103,8 +103,8 @@ func OffsetKeyer(offset int) IdxKeyer {
 }
 
 // ListPrepper resolves args using c and env and returns a list or an error.
-func ListPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (lit.Lit, error) {
-	args, err := c.ResolveAll(env, args, typ.Any)
+func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
+	args, err := c.ResolveAll(env, n.Args(), typ.Any)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +117,11 @@ func ListPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (lit.Lit, err
 
 // DynPrepper resolves args using c and env and returns a literal or an error.
 // Empty args return a untyped null literal. Multiple args are resolved as dyn expression.
-func DynPrepper(c *exp.Ctx, env exp.Env, _ string, args []exp.El) (_ lit.Lit, err error) {
-	if len(args) == 0 {
+func DynPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (_ lit.Lit, err error) {
+	if n.El == nil {
 		return lit.Nil, nil
 	}
+	args := n.Args()
 	var x exp.El
 	if len(args) == 1 {
 		x, err = c.Resolve(env, args[0], typ.Void)
@@ -162,25 +163,25 @@ func ExtraMapSetter(mapkey string) KeySetter {
 
 // FlagPrepper returns a key prepper that tries to resolve a flag constant.
 func FlagPrepper(consts []cor.Const) KeyPrepper {
-	return func(c *exp.Ctx, env exp.Env, key string, args []exp.El) (lit.Lit, error) {
-		l, err := DynPrepper(c, env, key, args)
+	return func(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
+		l, err := DynPrepper(c, env, n)
 		if err != nil {
 			return l, err
 		}
 		if l == lit.Nil {
-			k := cor.Keyed(key)
+			k := n.Key()
 			for _, b := range consts {
 				if k == b.Key() {
 					return lit.Int(b.Val), nil
 				}
 			}
-			return nil, cor.Errorf("no constant named %q", key)
+			return nil, cor.Errorf("no constant named %q", k)
 		}
-		n, ok := l.(lit.Numer)
+		num, ok := l.(lit.Numer)
 		if !ok {
-			return nil, cor.Errorf("expect numer for %q got %T", key, l)
+			return nil, cor.Errorf("expect numer for %q got %T", n.Key(), l)
 		}
-		return lit.Int(n.Num()), nil
+		return lit.Int(num.Num()), nil
 	}
 }
 

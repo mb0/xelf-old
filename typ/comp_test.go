@@ -1,11 +1,6 @@
-package typ_test
+package typ
 
-import (
-	"testing"
-
-	"github.com/mb0/xelf/exp"
-	. "github.com/mb0/xelf/typ"
-)
+import "testing"
 
 func TestComp(t *testing.T) {
 	tests := []struct {
@@ -47,11 +42,11 @@ func TestComp(t *testing.T) {
 		{CmpCheckDict, "dict", "(obj +x +y int)"},
 	}
 	for _, test := range tests {
-		s, err := exp.ParseTypeString(test.src)
+		s, err := ParseString(test.src)
 		if err != nil {
 			t.Errorf("parse src %s err: %v", test.src, err)
 		}
-		d, err := exp.ParseTypeString(test.dst)
+		d, err := ParseString(test.dst)
 		if err != nil {
 			t.Errorf("parse dst %s err: %v", test.dst, err)
 		}

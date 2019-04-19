@@ -26,21 +26,20 @@ func ParseString(s string) (Lit, error) {
 // Parse parses the syntax tree a and returns a literal or an error.
 func Parse(a *lex.Tree) (Lit, error) {
 	switch a.Tok {
-	case lex.Num:
-		n, err := strconv.ParseFloat(a.Val, 64)
+	case lex.Number:
+		n, err := strconv.ParseFloat(a.Raw, 64)
 		if err != nil {
 			return nil, err
 		}
 		return Num(n), nil
-	case lex.Str:
-		txt, err := lex.Unquote(a.Val)
+	case lex.String:
 		txt, err := cor.Unquote(a.Raw)
 		if err != nil {
 			return nil, err
 		}
 		return Char(txt), nil
-	case lex.Sym:
-		switch a.Val {
+	case lex.Symbol:
+		switch a.Raw {
 		case "null":
 			return Nil, nil
 		case "false":
@@ -79,14 +78,14 @@ func parseDict(tree *lex.Tree) (*Dict, error) {
 	for i := 0; i < len(tree.Seq); i++ {
 		var key string
 		switch a := tree.Seq[i]; a.Tok {
-		case lex.Sym:
-			if len(a.Val) == 0 || !cor.IsName(a.Val) {
+		case lex.Symbol:
+			if len(a.Raw) == 0 || !cor.IsName(a.Raw) {
 				return nil, a.Err(ErrKey)
 			}
-			key = a.Val
-		case lex.Str:
+			key = a.Raw
+		case lex.String:
 			var err error
-			key, err = lex.Unquote(a.Val)
+			key, err = cor.Unquote(a.Raw)
 			if err != nil {
 				return nil, err
 			}
@@ -94,14 +93,14 @@ func parseDict(tree *lex.Tree) (*Dict, error) {
 			return nil, a.Err(ErrKey)
 		}
 		if i+1 >= len(tree.Seq) {
-			return nil, lex.ErrorAt(*tree.End, ErrKeySep)
+			return nil, lex.ErrorAtPos(tree.End, ErrKeySep)
 		}
 		i++
 		if b := tree.Seq[i]; b.Tok != ':' {
 			return nil, b.Err(ErrKeySep)
 		}
 		if i+1 >= len(tree.Seq) {
-			return nil, lex.ErrorAt(*tree.End, ErrKeySep)
+			return nil, lex.ErrorAtPos(tree.End, ErrKeySep)
 		}
 		i++
 		el, err := Parse(tree.Seq[i])

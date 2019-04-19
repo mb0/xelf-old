@@ -3,6 +3,7 @@ package exp
 import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -17,11 +18,6 @@ type El interface {
 	Typ() Type
 }
 
-type Named = struct {
-	Name string
-	Args []El
-}
-
 // All language elements
 type (
 	// Type is a type as defined in package typ. It also implements Lit.
@@ -33,18 +29,23 @@ type (
 	// Sym is a unresolved symbol that refers to an element.
 	Sym struct {
 		Name string
+		lex.Pos
 		// Type is partially resolve result type
 		Type Type
 	}
 
+	// Raw is an scanned but unparsed token
+	Raw lex.Tree
+
 	// Dyn is a unresolved expression where a resolver has to be determined.
 	Dyn []El
 
-	// Tag is a tag element; its meaning is determined by the parent's resolver.
-	Tag Named
-
-	// Decl is a declaration element; its meaning is determined by the parent's resolver.
-	Decl Named
+	// Named is a tag or declaration; its meaning is determined by the parent's resolver.
+	Named struct {
+		Name string
+		lex.Pos
+		El
+	}
 
 	// Expr is unresolved expression with  resolver is known.
 	Expr struct {
@@ -56,10 +57,18 @@ type (
 )
 
 func (*Sym) Typ() Type    { return typ.Sym }
+func (*Raw) Typ() Type    { return typ.Dyn }
 func (Dyn) Typ() Type     { return typ.Dyn }
-func (Tag) Typ() Type     { return typ.Tag }
-func (Decl) Typ() Type    { return typ.Decl }
 func (x *Expr) Typ() Type { return x.Rslv.Typ() }
+func (x *Named) Typ() Type {
+	if x == nil {
+		return typ.Void
+	}
+	if x.Name == "" || x.Name[0] == ':' {
+		return typ.Tag
+	}
+	return typ.Decl
+}
 
 // Env is a scoped symbol environment used to define and lookup resolvers by symbol.
 type Env interface {
@@ -146,16 +155,28 @@ func (c Ctx) WithExec(val bool) *Ctx {
 	return &c
 }
 
-func (x *Sym) String() string  { return x.Name }
-func (x Dyn) String() string   { return bfr.String(x) }
-func (x Tag) String() string   { return bfr.String(x) }
-func (x Decl) String() string  { return bfr.String(x) }
-func (x *Expr) String() string { return bfr.String(x) }
+func (x *Sym) String() string   { return x.Name }
+func (x *Raw) String() string   { return bfr.String((*lex.Tree)(x)) }
+func (x Dyn) String() string    { return bfr.String(x) }
+func (x *Named) String() string { return bfr.String(x) }
+func (x *Expr) String() string  { return bfr.String(x) }
 
 func (x *Sym) WriteBfr(b *bfr.Ctx) error { return b.Fmt(x.Name) }
+func (x *Raw) WriteBfr(b *bfr.Ctx) error { return (*lex.Tree)(x).WriteBfr(b) }
 func (x Dyn) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, "", x) }
-func (x Tag) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, x.Name, x.Args) }
-func (x Decl) WriteBfr(b *bfr.Ctx) error { return writeExpr(b, x.Name, x.Args) }
+func (x *Named) WriteBfr(b *bfr.Ctx) error {
+	if x.El == nil {
+		return b.Fmt(x.Name)
+	}
+	if d := x.Dyn(); d != nil {
+		return writeExpr(b, x.Name, d)
+	}
+	if x.Name != "" {
+		b.WriteString(x.Name)
+		b.WriteByte(' ')
+	}
+	return x.El.WriteBfr(b)
+}
 func (x *Expr) WriteBfr(b *bfr.Ctx) error {
 	t := x.Rslv.Typ()
 	name := t.Key()
@@ -182,6 +203,38 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 	}
 	return b.WriteByte(')')
 }
-func (x *Sym) Key() string { return cor.Keyed(x.Name) }
-func (x Tag) Key() string  { return cor.Keyed(x.Name) }
-func (x Decl) Key() string { return cor.Keyed(x.Name) }
+func (x *Sym) Key() string   { return cor.Keyed(x.Name) }
+func (x *Named) Key() string { return cor.Keyed(x.Name) }
+
+func (x *Raw) Dyn() Dyn {
+	if x.Tok != '(' {
+		return nil
+	}
+	d := make(Dyn, 0, len(x.Seq))
+	for _, c := range x.Seq {
+		d = append(d, (*Raw)(c))
+	}
+	return d
+}
+
+func (x *Named) Args() []El {
+	if x.El == nil {
+		return nil
+	}
+	if d, ok := x.El.(Dyn); ok {
+		return d
+	}
+	return []El{x.El}
+}
+func (x *Named) Arg() El {
+	if d, ok := x.El.(Dyn); ok && len(d) != 0 {
+		return d[0]
+	}
+	return x.El
+}
+func (x *Named) Dyn() Dyn {
+	if d, ok := x.El.(Dyn); ok {
+		return d
+	}
+	return nil
+}

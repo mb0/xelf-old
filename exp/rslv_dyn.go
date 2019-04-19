@@ -1,6 +1,8 @@
 package exp
 
 import (
+	"log"
+
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -43,7 +45,16 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	case typ.ExpSym, typ.ExpForm, typ.ExpFunc:
 		fst, err = c.Resolve(env, fst, typ.Void)
 	case typ.ExpDyn:
-		v := fst.(Dyn)
+		v, ok := fst.(Dyn)
+		if !ok {
+			if r, ok := fst.(*Raw); ok {
+				if r.Tok != '(' {
+					fst, err = c.Resolve(env, r, typ.Void)
+					break
+				}
+				v = r.Dyn()
+			}
+		}
 		if len(v) == 0 {
 			return typ.Void, nil
 		}
@@ -148,10 +159,11 @@ func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	if t.Kind&typ.BaseDict != 0 {
 		res := deopt(lit.Zero(t)).(lit.Keyer)
 		for _, d := range decls {
-			el, ok := d.Args[0].(Lit)
+			el, ok := d.Arg().(Lit)
 			if !ok {
-				return nil, cor.Error("want literal in declaration argument")
+				return nil, cor.Errorf("want literal in declaration got %s", d.El)
 			}
+			log.Printf("got delc %s %s", d.Key(), el)
 			_, err = res.SetKey(d.Key(), el)
 			if err != nil {
 				return nil, err

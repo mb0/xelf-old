@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lex"
 )
 
 var (
@@ -13,6 +14,21 @@ var (
 	ErrRefName   = cor.StrError("expect ref name")
 	ErrParamType = cor.StrError("expect param type")
 )
+
+// ParseString scans and parses string s and returns a type or an error.
+func ParseString(s string) (Type, error) {
+	a, err := lex.Scan(s)
+	if err != nil {
+		return Void, err
+	}
+	return Parse(a)
+}
+
+// Parse parses the element as type and returns it or an error.
+func Parse(a *lex.Tree) (Type, error) {
+	t, err := parse(a, nil)
+	return t, err
+}
 
 // ParseSym returns the type represented by the symbol s or an error.
 func ParseSym(s string, hist []Type) (res Type, _ error) {
@@ -92,4 +108,85 @@ func NeedsInfo(t Type) (ref, params bool) {
 		}
 	}
 	return false, false
+}
+
+func parse(a *lex.Tree, hist []Type) (t Type, err error) {
+	switch a.Tok {
+	case lex.Symbol:
+		t, err = ParseSym(a.Raw, hist)
+	case '(':
+		if len(a.Seq) == 0 { // empty expression is void
+			return
+		}
+		t, err = parse(a.Seq[0], hist)
+		if err != nil {
+			return
+		}
+		t, err = ParseInfo(a.Seq[1:], t, hist)
+		if err != nil {
+			return
+		}
+	default:
+		return Void, ErrInvalid
+	}
+	return t, err
+}
+
+func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
+	needRef, needParams := NeedsInfo(t)
+	if !needRef && !needParams || len(args) == 0 {
+		return t, ErrArgCount
+	}
+	t.Info = &Info{}
+	if needRef {
+		ref := args[0]
+		if ref.Tok != lex.String {
+			return t, ErrRefName
+		}
+		name, err := cor.Unquote(ref.Raw)
+		if err != nil {
+			return t, err
+		}
+		t.Ref = name
+		args = args[1:]
+	}
+	if !needParams {
+		return t, nil
+	} else if len(args) == 0 {
+		return t, ErrArgCount
+	}
+	dt, _ := t.Deopt()
+	hist = append(hist, dt)
+	group := dt.Kind != ExpForm
+	res := make([]Param, 0, len(args))
+	var naked int
+	for len(args) > 0 {
+		a := args[0]
+		args = args[1:]
+		if !isDecl(a) {
+			return t, cor.Errorf("want param start got %s", a)
+		}
+		res = append(res, Param{Name: a.Raw[1:]})
+		if group {
+			naked++
+		} else {
+			naked = 1
+		}
+		if len(args) > 0 && !isDecl(args[0]) {
+			t, err := parse(args[0], hist)
+			args = args[1:]
+			if err != nil {
+				return t, err
+			}
+			for naked > 0 {
+				res[len(res)-naked].Type = t
+				naked--
+			}
+		}
+	}
+	t.Params = res
+	return t, nil
+}
+func isDecl(a *lex.Tree) bool {
+	return a.Tok == lex.Decl && strings.IndexByte("+-", a.Raw[0]) != -1
 }

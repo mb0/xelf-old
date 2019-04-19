@@ -99,7 +99,7 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		// construct sig from decls
 		fs := make([]typ.Param, 0, len(decls))
 		for _, d := range decls {
-			l, err := c.Resolve(env, d.Args[0], typ.Void)
+			l, err := c.Resolve(env, d.El, typ.Void)
 			if err != nil {
 				return e, err
 			}
@@ -114,17 +114,18 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return &Func{sig, &ExprBody{rest, env}}, nil
 }
 
-func letDecls(c *Ctx, env Env, decls []Decl) (El, error) {
-	var res El
+func letDecls(c *Ctx, env Env, decls []*Named) (res El, err error) {
 	for _, d := range decls {
 		if len(d.Name) < 2 {
 			return nil, cor.Error("unnamed declaration")
 		}
-		args, err := c.ResolveAll(env, d.Args, typ.Void)
+		if d.El == nil {
+			return nil, cor.Error("naked declaration")
+		}
+		res, err = c.Resolve(env, d.El, typ.Void)
 		if err != nil {
 			return nil, err
 		}
-		res = args[0]
 		switch l := res.(type) {
 		case Lit:
 			if r, ok := l.(Resolver); ok {

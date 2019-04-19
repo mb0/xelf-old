@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -18,45 +19,44 @@ func TestParse(t *testing.T) {
 		{`()`, typ.Void},
 		{`null`, lit.Nil},
 		{`1`, lit.Num(1)},
-		{`bool`, &Sym{Name: "bool"}},
-		{`name`, &Sym{Name: "name"}},
+		{`bool`, typ.Bool},
+		{`name`, &Sym{Name: "name", Pos: lex.Offset(0)}},
 		{`(false)`, Dyn{lit.False}},
-		{`(int 1)`, Dyn{&Sym{Name: "int"}, lit.Num(1)}},
-		{`(bool 1)`, Dyn{&Sym{Name: "bool"}, lit.Num(1)}},
-		{`(bool (() comment) 1)`, Dyn{&Sym{Name: "bool"}, lit.Num(1)}},
-		{`(obj +x +y int)`, Dyn{&Sym{Name: "obj"},
-			&Sym{Name: "+x"},
-			&Sym{Name: "+y"},
-			&Sym{Name: "int"},
-		}},
+		{`(int 1)`, Dyn{typ.Int, lit.Num(1)}},
+		{`(bool 1)`, Dyn{typ.Bool, lit.Num(1)}},
+		{`(bool (() comment) 1)`, Dyn{typ.Bool, lit.Num(1)}},
+		{`(obj +x +y int)`, typ.Obj([]typ.Param{
+			{"x", typ.Int},
+			{"y", typ.Int},
+		})},
 		{`('Hello ' $Name '!')`, Dyn{
 			lit.Char("Hello "),
-			&Sym{Name: "$Name"},
+			&Sym{Name: "$Name", Pos: lex.Offset(10)},
 			lit.Char("!"),
 		}},
 		{`(a :b +c d)`, Dyn{
-			&Sym{Name: "a"},
-			&Sym{Name: ":b"},
-			&Sym{Name: "+c"},
-			&Sym{Name: "d"},
+			&Sym{Name: "a", Pos: lex.Offset(1)},
+			&Named{Name: ":b", Pos: lex.Offset(3)},
+			&Named{Name: "+c", Pos: lex.Offset(6)},
+			&Sym{Name: "d", Pos: lex.Offset(9)},
 		}},
 		{`((1 2) 1 2)`, Dyn{
 			Dyn{lit.Num(1), lit.Num(2)},
 			lit.Num(1), lit.Num(2),
 		}},
 		{`(1 (+z 3 4))`, Dyn{lit.Num(1),
-			Dyn{&Sym{Name: "+z"},
+			&Named{Name: "+z", Pos: lex.Offset(4), El: Dyn{
 				lit.Num(3),
 				lit.Num(4),
-			},
+			}},
 		}},
 		{`(s (+m +a u :t))`, Dyn{
-			&Sym{Name: "s"},
-			Dyn{&Sym{Name: "+m"},
-				&Sym{Name: "+a"},
-				&Sym{Name: "u"},
-				&Sym{Name: ":t"},
-			},
+			&Sym{Name: "s", Pos: lex.Offset(1)},
+			&Named{Name: "+m", Pos: lex.Offset(4), El: Dyn{
+				&Named{Name: "+a", Pos: lex.Offset(7)},
+				&Sym{Name: "u", Pos: lex.Offset(10)},
+				&Named{Name: ":t", Pos: lex.Offset(12)},
+			}},
 		}},
 	}
 	for _, test := range tests {
@@ -66,7 +66,7 @@ func TestParse(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("%s want:\n%s\n\tgot:\n%s", test.raw, test.want, got)
+			t.Errorf("%s want:\n%s\n\tgot:\n%#v", test.raw, test.want, got)
 			continue
 		}
 	}

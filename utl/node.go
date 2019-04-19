@@ -87,7 +87,7 @@ func (r *NodeResolver) ResolveForm(c *exp.Ctx, env exp.Env, x *exp.Expr, h exp.T
 	if err != nil {
 		return nil, err
 	}
-	var decls []exp.Decl
+	var decls []*exp.Named
 	// associate to arguments using using rules
 	for i, fp := range fps {
 		switch fp.Name {
@@ -103,11 +103,12 @@ func (r *NodeResolver) ResolveForm(c *exp.Ctx, env exp.Env, x *exp.Expr, h exp.T
 		case "rest", "tail":
 			if r.Tail.KeySetter != nil {
 				tail := lo.Args(i)
-				l, err := r.Tail.prepper(KeyRule{})(c, env, "::", tail)
+				named := &exp.Named{Name: "::", El: exp.Dyn(tail)}
+				l, err := r.Tail.prepper(KeyRule{})(c, env, named)
 				if err != nil {
 					return nil, err
 				}
-				err = r.Tail.KeySetter(node, "::", l)
+				err = r.Tail.KeySetter(node, named.Key(), l)
 				if err != nil {
 					return nil, err
 				}
@@ -132,19 +133,19 @@ func (r *NodeResolver) ResolveForm(c *exp.Ctx, env exp.Env, x *exp.Expr, h exp.T
 				return nil, err
 			}
 		default:
-			t := exp.Tag{Name: fp.Name, Args: lo.Args(i)}
+			t := &exp.Named{Name: fp.Name, El: exp.Dyn(lo.Args(i))}
 			r.Tags.ResolveTag(c, env, t, i, node)
 		}
 	}
 	for _, d := range decls {
-		l, err := r.Decl.prepper(KeyRule{})(c, env, d.Name[1:], d.Args)
+		l, err := r.Decl.prepper(KeyRule{})(c, env, d)
 		if err != nil {
 			return nil, err
 		}
 		if r.Decl.KeySetter == nil {
 			return nil, cor.Errorf("unexpected decl %s", d)
 		}
-		err = r.Decl.KeySetter(node, d.Name[1:], l)
+		err = r.Decl.KeySetter(node, d.Key(), l)
 		if err != nil {
 			return nil, err
 		}

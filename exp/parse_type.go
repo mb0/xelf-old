@@ -5,20 +5,6 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// ParseTypeString scans and parses string s and returns a type or an error.
-func ParseTypeString(s string) (Type, error) {
-	el, err := ParseString(s)
-	if err != nil {
-		return typ.Void, err
-	}
-	return ParseType(el)
-}
-
-// ParseType parses the element as type and returns it or an error.
-func ParseType(el El) (Type, error) {
-	return parseType(el, nil)
-}
-
 func parseType(el El, hist []Type) (Type, error) {
 	switch v := el.(type) {
 	case Type:
@@ -87,8 +73,8 @@ func parseTypeParams(t Type, args []El, hist []Type) (typ.Type, error) {
 	ps := make([]typ.Param, 0, len(decls))
 	for _, d := range decls {
 		p := typ.Param{Name: d.Name[1:]}
-		if len(d.Args) != 0 {
-			p.Type, err = parseType(d.Args[0], hist)
+		if d.El != nil {
+			p.Type, err = parseType(d.El, hist)
 			if err != nil {
 				return t, err
 			}
@@ -103,7 +89,7 @@ func parseTypeParams(t Type, args []El, hist []Type) (typ.Type, error) {
 
 var layoutParams = []typ.Param{{Name: "unis"}}
 
-func layoutParamArgs(args []El, group bool) ([]Decl, error) {
+func layoutParamArgs(args []El, group bool) ([]*Named, error) {
 	lo, err := LayoutArgs(layoutParams, args)
 	if err != nil {
 		return nil, err

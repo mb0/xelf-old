@@ -61,12 +61,20 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 		return v, err
 	case *Sym:
 		return c.resolveSym(env, v, hint)
-	case Tag:
-		_, err = c.ResolveAll(env, v.Args, typ.Void)
-		return x, err
-	case Decl:
-		_, err = c.ResolveAll(env, v.Args, typ.Void)
-		return x, err
+	case *Named:
+		if v.El != nil {
+			el, err := c.Resolve(env, v.El, typ.Void)
+			if err != nil {
+				return nil, err
+			}
+			v.El = el
+		}
+		return v, nil
+	case *Raw:
+		if v.Tok == '(' {
+			return c.resolveDyn(env, v.Dyn(), hint)
+		}
+		return v, nil
 	case Dyn:
 		return c.resolveDyn(env, v, hint)
 	case *Expr:
@@ -139,9 +147,6 @@ func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
 	}
 	k := last.Kind
 	if last.Info == nil || last.Ref == "" {
-		if k != typ.FlagRef {
-			return t, cor.Errorf("unnamed %s not allowed", k)
-		}
 		// TODO infer type
 		return t, ErrUnres
 	}

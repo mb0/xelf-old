@@ -1,6 +1,7 @@
 package typ
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -10,7 +11,7 @@ import (
 
 // Type represents the full type details. It consists of a kind and additional information.
 type Type struct {
-	Kind Kind `json:"typ"`
+	Kind Kind
 	*Info
 }
 
@@ -63,7 +64,7 @@ func (a *Info) ParamByKey(key string) (*Param, int, error) {
 // Param represents an type parameter with a name and type.
 type Param struct {
 	Name string `json:"name,omitempty"`
-	Type
+	Type `json:"typ,omitempty"`
 }
 
 // Opt returns true if the param is optional, indicated by its name ending in a question mark.
@@ -128,12 +129,27 @@ func (a Param) equal(b Param, hist []infoPair) bool {
 
 func (a Type) String() string               { return bfr.String(a) }
 func (a Type) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
+func (a *Type) UnmarshalJSON(raw []byte) error {
+	var tmp struct{ Typ string }
+	err := json.Unmarshal(raw, &tmp)
+	if err != nil {
+		return err
+	}
+	t, err := ParseString(tmp.Typ)
+	if err != nil {
+		return err
+	}
+	*a = t
+	return nil
+}
 
 func (a Type) WriteBfr(b *bfr.Ctx) error {
 	if b.JSON {
-		b.WriteByte('{')
-		err := a.writeBfr(b, nil, nil)
-		b.WriteByte('}')
+		b.WriteString(`{"typ":"`)
+		bb := *b
+		bb.JSON = false
+		err := a.writeBfr(&bb, nil, nil)
+		b.WriteString(`"}`)
 		return err
 	}
 	return a.writeBfr(b, nil, nil)
@@ -169,28 +185,13 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		detail = true
 		fallthrough
 	case KindFlag, KindEnum, KindRec:
-		if b.JSON {
-			b.WriteString(`"typ":"`)
-		} else {
-			b.WriteByte('(')
-		}
+		b.WriteByte('(')
 		err := writePre(b, pre, a)
 		if err != nil {
 			return err
 		}
-		if b.JSON {
-			b.WriteByte('"')
-			err = a.Info.writeJSON(b, detail, append(hist, a.Info))
-		} else {
-			err = a.Info.writeXelf(b, detail, append(hist, a.Info))
-			b.WriteByte(')')
-		}
-		return err
-	}
-	if b.JSON {
-		b.WriteString(`"typ":"`)
-		err := writePre(b, pre, a)
-		b.WriteByte('"')
+		err = a.Info.writeXelf(b, detail, append(hist, a.Info))
+		b.WriteByte(')')
 		return err
 	}
 	return writePre(b, pre, a)
@@ -204,29 +205,13 @@ func writePre(b *bfr.Ctx, pre *strings.Builder, a Type) error {
 }
 
 func writeRef(b *bfr.Ctx, pre *strings.Builder, ref string, a Type) {
-	if b.JSON {
-		b.WriteString(`"typ":"`)
-		if pre != nil {
-			b.WriteString(pre.String())
-		}
-		b.WriteString("ref")
-		if a.Kind&FlagOpt != 0 {
-			b.WriteByte('?')
-		}
-		if ref != "" {
-			b.WriteString(`","ref":"`)
-			b.WriteString(ref)
-		}
-		b.WriteByte('"')
-	} else {
-		if pre != nil {
-			b.WriteString(pre.String())
-		}
-		b.WriteByte('@')
-		b.WriteString(ref)
-		if a.Kind&FlagOpt != 0 {
-			b.WriteByte('?')
-		}
+	if pre != nil {
+		b.WriteString(pre.String())
+	}
+	b.WriteByte('@')
+	b.WriteString(ref)
+	if a.Kind&FlagOpt != 0 {
+		b.WriteByte('?')
 	}
 }
 
@@ -259,38 +244,5 @@ func (a *Info) writeXelf(b *bfr.Ctx, detail bool, hist []*Info) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func (a *Info) writeJSON(b *bfr.Ctx, detail bool, hist []*Info) error {
-	if a == nil {
-		return nil
-	}
-	if a.Ref != "" {
-		b.WriteString(`,"ref":`)
-		b.Quote(a.Ref)
-	}
-	if !detail || len(a.Params) == 0 {
-		return nil
-	}
-	b.WriteString(`,"params":[`)
-	for i := 0; i < len(a.Params); i++ {
-		f := a.Params[i]
-		if i > 0 {
-			b.WriteByte(',')
-		}
-		b.WriteString(`{`)
-		if f.Name != "" {
-			b.WriteString(`"name":`)
-			b.Quote(f.Name)
-			b.WriteByte(',')
-		}
-		err := f.Type.writeBfr(b, nil, hist)
-		if err != nil {
-			return err
-		}
-		b.WriteByte('}')
-	}
-	b.WriteByte(']')
 	return nil
 }

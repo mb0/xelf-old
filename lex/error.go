@@ -19,10 +19,10 @@ var (
 
 // Error is a special lexer error with token information.
 type Error struct {
-	Token
-	Want  rune
-	err   error
-	frame xerrors.Frame
+	Pos
+	Tok, Want rune
+	err       error
+	frame     xerrors.Frame
 }
 
 // Error builds and returns an error string of e.
@@ -70,6 +70,10 @@ func ErrorWant(t Token, err error, want rune) error {
 	return ErrorSkip(t, err, want, 2)
 }
 
+func ErrorAtPos(p Pos, err error) error {
+	return &Error{p, 0, 0, err, xerrors.Caller(1)}
+}
+
 func ErrorSkip(t Token, err error, want rune, skip int) error {
-	return &Error{t, want, err, xerrors.Caller(skip)}
+	return &Error{t.Pos, t.Tok, want, err, xerrors.Caller(skip)}
 }

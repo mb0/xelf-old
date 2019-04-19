@@ -18,38 +18,74 @@ func ParseString(s string) (El, error) {
 // Parse parses the syntax tree a and returns an element or an error.
 func Parse(a *lex.Tree) (El, error) {
 	switch a.Tok {
-	case lex.Num, lex.Str, '[', '{':
+	case lex.Number, lex.String, '[', '{':
 		return lit.Parse(a)
-	case lex.Sym:
-		switch a.Val {
-		case "void":
-			return typ.Void, nil
-		case "null":
-			return lit.Nil, nil
-		case "false":
-			return lit.False, nil
-		case "true":
-			return lit.True, nil
+	case lex.Symbol:
+		switch a.Raw[0] {
+		case '~', '@':
+			return typ.Parse(a)
+		default:
+			switch a.Raw {
+			case "null":
+				return lit.Nil, nil
+			case "false":
+				return lit.False, nil
+			case "true":
+				return lit.True, nil
+			}
+			t, err := typ.Parse(a)
+			if err == nil {
+				return t, nil
+			}
 		}
-		return &Sym{Name: a.Val}, nil
+		return &Sym{Name: a.Raw, Pos: a.Pos}, nil
+	case lex.Tag, lex.Decl:
+		return &Named{Name: a.Raw, Pos: a.Pos}, nil
 	case '(':
 		if len(a.Seq) == 0 { // empty expression is void
 			return typ.Void, nil
 		}
-		dyn := make(Dyn, 0, len(a.Seq))
-		for i, t := range a.Seq {
-			e, err := Parse(t)
+		fst, err := Parse(a.Seq[0])
+		if err != nil {
+			return nil, err
+		}
+		switch t := fst.(type) {
+		case Type:
+			if t == typ.Void {
+				return t, nil
+			}
+			r, p := typ.NeedsInfo(t)
+			if r || p {
+				t, err = typ.ParseInfo(a.Seq[1:], t, nil)
+				if err != nil {
+					return nil, err
+				}
+				return t, nil
+			}
+		case *Named:
+			els := make([]El, 0, len(a.Seq)-1)
+			for _, b := range a.Seq[1:] {
+				el, err := Parse(b)
+				if err != nil {
+					return nil, err
+				}
+				els = append(els, el)
+			}
+			t.El = Dyn(els)
+			return t, nil
+		}
+		els := make([]El, 1, len(a.Seq))
+		els[0] = fst
+		for _, b := range a.Seq[1:] {
+			el, err := Parse(b)
 			if err != nil {
 				return nil, err
 			}
-			if i == 0 && e == typ.Void { // empty expression is void
-				return typ.Void, nil
-			}
-			if e != typ.Void {
-				dyn = append(dyn, e)
+			if el != typ.Void {
+				els = append(els, el)
 			}
 		}
-		return dyn, nil
+		return Dyn(els), nil
 	}
 	return nil, a.Err(lex.ErrUnexpected)
 }
