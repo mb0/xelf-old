@@ -60,7 +60,7 @@ func TestParse(t *testing.T) {
 		}},
 	}
 	for _, test := range tests {
-		got, err := ParseString(test.raw)
+		got, err := ParseString(Builtin{}, test.raw)
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue

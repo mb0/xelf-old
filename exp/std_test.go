@@ -9,7 +9,7 @@ import (
 )
 
 func TestStdFail(t *testing.T) {
-	x, err := ParseString(`(fail 'oops')`)
+	x, err := ParseString(StdEnv, `(fail 'oops')`)
 	if err != nil {
 		t.Fatalf("parse err: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestStdResolve(t *testing.T) {
 		))`, lit.True},
 	}
 	for _, test := range tests {
-		x, err := ParseString(test.raw)
+		x, err := ParseString(StdEnv, test.raw)
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
@@ -265,7 +265,7 @@ func TestStdResolvePart(t *testing.T) {
 		{`(bool (not (bool (not x))))`, `(bool x)`, "bool"},
 	}
 	for _, test := range tests {
-		x, err := ParseString(test.raw)
+		x, err := ParseString(StdEnv, test.raw)
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue

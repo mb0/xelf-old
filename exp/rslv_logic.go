@@ -17,7 +17,7 @@ func init() {
 	plainBool := []typ.Param{{Name: "plain", Type: typ.List}, {Type: typ.Bool}}
 	core.add("or", plainBool, rslvOr)
 	formAnd = core.add("and", plainBool, rslvAnd)
-	formBool = core.add("bool", plainBool, rslvBool)
+	formBool = core.add("(bool)", plainBool, rslvBool)
 	formNot = core.add("not", plainBool, rslvNot)
 	core.add("if", []typ.Param{
 		{Name: "cond", Type: typ.Any}, {Name: "act"}, {Name: "plain"}, {Type: typ.Infer},

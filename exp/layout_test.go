@@ -59,7 +59,7 @@ func TestLayout(t *testing.T) {
 			continue
 		}
 		ps := form.Params[:len(form.Params)-1]
-		el, err := ParseString(test.raw)
+		el, err := ParseString(Builtin{}, test.raw)
 		if err != nil {
 			t.Errorf("parse raw %s err: %v", test.raw, err)
 			continue

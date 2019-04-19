@@ -7,16 +7,16 @@ import (
 )
 
 // ParseString scans and parses string s and returns an element or an error.
-func ParseString(s string) (El, error) {
+func ParseString(env Env, s string) (El, error) {
 	a, err := lex.Scan(s)
 	if err != nil {
 		return nil, err
 	}
-	return Parse(a)
+	return Parse(env, a)
 }
 
 // Parse parses the syntax tree a and returns an element or an error.
-func Parse(a *lex.Tree) (El, error) {
+func Parse(env Env, a *lex.Tree) (El, error) {
 	switch a.Tok {
 	case lex.Number, lex.String, '[', '{':
 		return lit.Parse(a)
@@ -24,15 +24,21 @@ func Parse(a *lex.Tree) (El, error) {
 		switch a.Raw[0] {
 		case '~', '@':
 			return typ.Parse(a)
-		default:
-			switch a.Raw {
-			case "null":
-				return lit.Nil, nil
-			case "false":
-				return lit.False, nil
-			case "true":
-				return lit.True, nil
-			}
+		case '.', '$', '/': // paths
+			return &Sym{Name: a.Raw, Pos: a.Pos}, nil
+		}
+		switch a.Raw {
+		case "void":
+			return typ.Void, nil
+		case "null":
+			return lit.Nil, nil
+		case "false":
+			return lit.False, nil
+		case "true":
+			return lit.True, nil
+		}
+		resl := Lookup(env, a.Raw)
+		if resl == nil {
 			t, err := typ.Parse(a)
 			if err == nil {
 				return t, nil
@@ -45,7 +51,7 @@ func Parse(a *lex.Tree) (El, error) {
 		if len(a.Seq) == 0 { // empty expression is void
 			return typ.Void, nil
 		}
-		fst, err := Parse(a.Seq[0])
+		fst, err := Parse(env, a.Seq[0])
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +71,7 @@ func Parse(a *lex.Tree) (El, error) {
 		case *Named:
 			els := make([]El, 0, len(a.Seq)-1)
 			for _, b := range a.Seq[1:] {
-				el, err := Parse(b)
+				el, err := Parse(env, b)
 				if err != nil {
 					return nil, err
 				}
@@ -77,7 +83,7 @@ func Parse(a *lex.Tree) (El, error) {
 		els := make([]El, 1, len(a.Seq))
 		els[0] = fst
 		for _, b := range a.Seq[1:] {
-			el, err := Parse(b)
+			el, err := Parse(env, b)
 			if err != nil {
 				return nil, err
 			}
