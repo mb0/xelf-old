@@ -34,6 +34,7 @@ func Parse(a *lex.Tree) (Lit, error) {
 		return Num(n), nil
 	case lex.Str:
 		txt, err := lex.Unquote(a.Val)
+		txt, err := cor.Unquote(a.Raw)
 		if err != nil {
 			return nil, err
 		}

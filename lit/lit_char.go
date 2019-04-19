@@ -3,7 +3,6 @@ package lit
 import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
-	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -98,5 +97,5 @@ func (v *UUID) Assign(l Lit) error {
 	return cor.Errorf("%q not assignable to %q", l.Typ(), v.Typ())
 }
 
-func sglQuoteString(v string) string         { s, _ := lex.Quote(v, '\''); return s }
-func dblQuoteBytes(v string) ([]byte, error) { s, err := lex.Quote(v, '"'); return []byte(s), err }
+func sglQuoteString(v string) string         { s, _ := cor.Quote(v, '\''); return s }
+func dblQuoteBytes(v string) ([]byte, error) { s, err := cor.Quote(v, '"'); return []byte(s), err }

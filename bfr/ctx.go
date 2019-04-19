@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mb0/xelf/lex"
+	"github.com/mb0/xelf/cor"
 )
 
 // Ctx is serialization context with output configuration flags
@@ -50,9 +50,9 @@ func (c *Ctx) Break() bool {
 // The quote used is depending on the json context flag.
 func (c *Ctx) Quote(v string) (err error) {
 	if c.JSON {
-		v, err = lex.Quote(v, '"')
+		v, err = cor.Quote(v, '"')
 	} else {
-		v, err = lex.Quote(v, '\'')
+		v, err = cor.Quote(v, '\'')
 	}
 	if err != nil {
 		return err

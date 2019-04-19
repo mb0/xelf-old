@@ -3,7 +3,6 @@ package lit
 import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
-	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -125,9 +124,9 @@ func writeKey(b *bfr.Ctx, key string) (err error) {
 		return b.WriteByte(':')
 	}
 	if b.JSON {
-		key, err = lex.Quote(key, '"')
+		key, err = cor.Quote(key, '"')
 	} else {
-		key, err = lex.Quote(key, '\'')
+		key, err = cor.Quote(key, '\'')
 	}
 	if err != nil {
 		return err

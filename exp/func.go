@@ -3,7 +3,6 @@ package exp
 import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
-	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -40,7 +39,7 @@ func (f *Func) WriteBfr(b *bfr.Ctx) error {
 }
 
 func (f *Func) MarshalJSON() ([]byte, error) {
-	v, err := lex.Quote(f.String(), '"')
+	v, err := cor.Quote(f.String(), '"')
 	if err != nil {
 		return nil, err
 	}
