@@ -210,7 +210,7 @@ func TestStdResolve(t *testing.T) {
 		c := &Ctx{Exec: true}
 		r, err := c.Resolve(NewScope(StdEnv), x, typ.Void)
 		if err != nil {
-			t.Errorf("%s resolve err: %v\n%v", test.raw, err, c.Unres)
+			t.Errorf("%s resolve err: %+v\n%v", test.raw, err, c.Unres)
 			continue
 		}
 		if !reflect.DeepEqual(r, test.want) {

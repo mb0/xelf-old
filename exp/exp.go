@@ -29,13 +29,9 @@ type (
 	// Sym is a unresolved symbol that refers to an element.
 	Sym struct {
 		Name string
+		Def  *Def
 		lex.Pos
-		// Type is partially resolve result type
-		Type Type
 	}
-
-	// Raw is an scanned but unparsed token
-	Raw lex.Tree
 
 	// Dyn is a unresolved expression where a resolver has to be determined.
 	Dyn []El
@@ -43,23 +39,21 @@ type (
 	// Named is a tag or declaration; its meaning is determined by the parent's resolver.
 	Named struct {
 		Name string
-		lex.Pos
 		El
+		lex.Pos
 	}
 
-	// Expr is unresolved expression with  resolver is known.
-	Expr struct {
-		Rslv ExprResolver
+	// Call is unresolved expression with  resolver is known.
+	Call struct {
+		*Def
 		Args []El
-		// Type is partially resolve result type
-		Type Type
+		lex.Src
 	}
 )
 
 func (*Sym) Typ() Type    { return typ.Sym }
-func (*Raw) Typ() Type    { return typ.Dyn }
 func (Dyn) Typ() Type     { return typ.Dyn }
-func (x *Expr) Typ() Type { return x.Rslv.Typ() }
+func (x *Call) Typ() Type { return x.Spec.Typ() }
 func (x *Named) Typ() Type {
 	if x == nil {
 		return typ.Void
@@ -70,23 +64,12 @@ func (x *Named) Typ() Type {
 	return typ.Decl
 }
 
-// ExprResolver is the common interface for both function and form resolvers.
-type ExprResolver interface {
-	Lit
-	Resolver
-	Key() string
-	Arg() []typ.Param
-	Res() Type
-}
-
 func (x *Sym) String() string   { return x.Name }
-func (x *Raw) String() string   { return bfr.String((*lex.Tree)(x)) }
 func (x Dyn) String() string    { return bfr.String(x) }
 func (x *Named) String() string { return bfr.String(x) }
-func (x *Expr) String() string  { return bfr.String(x) }
+func (x *Call) String() string  { return bfr.String(x) }
 
 func (x *Sym) WriteBfr(b *bfr.Ctx) error { return b.Fmt(x.Name) }
-func (x *Raw) WriteBfr(b *bfr.Ctx) error { return (*lex.Tree)(x).WriteBfr(b) }
 func (x Dyn) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, "", x) }
 func (x *Named) WriteBfr(b *bfr.Ctx) error {
 	if x.El == nil {
@@ -101,11 +84,10 @@ func (x *Named) WriteBfr(b *bfr.Ctx) error {
 	}
 	return x.El.WriteBfr(b)
 }
-func (x *Expr) WriteBfr(b *bfr.Ctx) error {
-	t := x.Rslv.Typ()
-	name := t.Key()
+func (x *Call) WriteBfr(b *bfr.Ctx) error {
+	name := x.Spec.Key()
 	if name == "" {
-		name = t.String()
+		name = x.Spec.String()
 	}
 	return writeExpr(b, name, x.Args)
 }
@@ -129,17 +111,6 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 }
 func (x *Sym) Key() string   { return cor.Keyed(x.Name) }
 func (x *Named) Key() string { return cor.Keyed(x.Name) }
-
-func (x *Raw) Dyn() Dyn {
-	if x.Tok != '(' {
-		return nil
-	}
-	d := make(Dyn, 0, len(x.Seq))
-	for _, c := range x.Seq {
-		d = append(d, (*Raw)(c))
-	}
-	return d
-}
 
 func (x *Named) Args() []El {
 	if x.El == nil {

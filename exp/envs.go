@@ -11,8 +11,8 @@ var (
 	ErrRedefine = cor.StrError("redefined symbol")
 )
 
-// LookupFunc is a simple resolver lookup function used by builtins and libraries.
-type LookupFunc = func(sym string) Resolver
+// LookupFunc is a simple spec lookup function used by builtins and libraries.
+type LookupFunc = func(sym string) *Spec
 
 // Builtin is an environment based on a slice of simple resolver lookup functions.
 //
@@ -27,21 +27,21 @@ func (Builtin) Parent() Env { return nil }
 func (Builtin) Supports(x byte) bool { return x == '~' }
 
 // Get returns a resolver for the given sym
-func (b Builtin) Get(sym string) Resolver {
+func (b Builtin) Get(sym string) *Def {
 	// check schema prefix
 	schema := sym[0] == '~'
 	if schema {
 		sym = sym[1:]
 		t, err := typ.ParseSym(sym, nil)
 		if err == nil {
-			return LitResolver{t}
+			return DefLit(t)
 		}
 	}
 	// lookup type
 	for _, f := range b {
 		r := f(sym)
 		if r != nil {
-			return r
+			return DefSpec(r)
 		}
 	}
 	return nil
@@ -50,7 +50,7 @@ func (b Builtin) Get(sym string) Resolver {
 // Scope is a child environment based on a map of resolvers.
 type Scope struct {
 	parent Env
-	decl   map[string]Resolver
+	decl   map[string]*Def
 }
 
 // NewScope returns a child scope with the given parent environment.
@@ -64,9 +64,9 @@ func (c *Scope) Parent() Env { return c.parent }
 func (*Scope) Supports(byte) bool { return false }
 
 // Def defines a symbol resolver binding for s and d or returns an error.
-func (c *Scope) Def(s string, d Resolver) error {
+func (c *Scope) Def(s string, d *Def) error {
 	if c.decl == nil {
-		c.decl = make(map[string]Resolver, 8)
+		c.decl = make(map[string]*Def, 8)
 	} else if _, ok := c.decl[s]; ok {
 		return ErrRedefine
 	}
@@ -75,7 +75,7 @@ func (c *Scope) Def(s string, d Resolver) error {
 }
 
 // Get returns a resolver with symbol s defined in this scope or nil.
-func (c *Scope) Get(s string) Resolver {
+func (c *Scope) Get(s string) *Def {
 	d, ok := c.decl[s]
 	if ok {
 		return d
@@ -100,13 +100,13 @@ func (c *DataScope) Parent() Env { return c.Par }
 func (*DataScope) Supports(x byte) bool { return x == '.' }
 
 // Get returns a literal resolver for the relative path s or nil.
-func (c *DataScope) Get(s string) Resolver {
+func (c *DataScope) Get(s string) *Def {
 	if s[0] == '.' {
 		l, err := lit.Select(c.Dot, s[1:])
 		if err != nil {
 			return nil
 		}
-		return LitResolver{l}
+		return DefLit(l)
 	}
 	return nil
 }
@@ -120,13 +120,13 @@ type ParamScope struct {
 
 func (*ParamScope) Supports(x byte) bool { return x == '$' }
 
-func (p *ParamScope) Get(s string) Resolver {
+func (p *ParamScope) Get(s string) *Def {
 	if s[0] == '$' {
 		l, err := lit.Select(p.Param, s[1:])
 		if err != nil {
 			return nil
 		}
-		return LitResolver{l}
+		return DefLit(l)
 	}
 	return p.Scope.Get(s)
 }
@@ -139,13 +139,13 @@ type ProgScope struct {
 
 func (*ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
 
-func (p *ProgScope) Get(s string) Resolver {
+func (p *ProgScope) Get(s string) *Def {
 	if s[0] == '/' {
 		l, err := lit.Select(p.Result, s[1:])
 		if err != nil {
 			return nil
 		}
-		return LitResolver{l}
+		return DefLit(l)
 	}
 	return p.ParamScope.Get(s)
 }

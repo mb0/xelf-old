@@ -34,10 +34,13 @@ func Arr(t Type) Type     { return Type{KindArr, &Info{Params: []Param{{Type: t}
 func Map(t Type) Type     { return Type{KindMap, &Info{Params: []Param{{Type: t}}}} }
 func Obj(fs []Param) Type { return Type{KindObj, &Info{Params: fs}} }
 
-func Ref(name string) Type  { return Type{KindRef, &Info{Ref: name}} }
-func Flag(name string) Type { return Type{KindFlag, &Info{Ref: name}} }
-func Enum(name string) Type { return Type{KindEnum, &Info{Ref: name}} }
-func Rec(n string) Type     { return Type{KindRec, &Info{Ref: n}} }
+func Ref(n string) Type  { return Type{KindRef, &Info{Ref: n}} }
+func Flag(n string) Type { return Type{KindFlag, &Info{Ref: n}} }
+func Enum(n string) Type { return Type{KindEnum, &Info{Ref: n}} }
+func Rec(n string) Type  { return Type{KindRec, &Info{Ref: n}} }
+
+func Func(n string, ps []Param) Type { return Type{ExpFunc, &Info{Ref: n, Params: ps}} }
+func Form(n string, ps []Param) Type { return Type{ExpForm, &Info{Ref: n, Params: ps}} }
 
 func Var(id uint64, opts ...Type) Type {
 	t := Type{Kind: Kind(id<<SlotSize) | KindVar}

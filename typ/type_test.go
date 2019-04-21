@@ -14,6 +14,7 @@ func TestString(t *testing.T) {
 		{Int, `int`},
 		{Opt(Str), `str?`},
 		{Ref("a"), `@a`},
+		{Ref("a.b"), `@a.b`},
 		{Var(1), `~1`},
 		{Opt(Ref("b")), `@b?`},
 		{Opt(Enum("kind")), `(enum? 'kind')`},

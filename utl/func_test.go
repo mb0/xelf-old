@@ -16,24 +16,24 @@ func TestReflectFunc(t *testing.T) {
 		fun   interface{}
 		name  string
 		names []string
-		typ   exp.Sig
+		typ   typ.Type
 		err   bool
 	}{
-		{strings.ToLower, "lower", nil, exp.FuncSig("lower", []typ.Param{
+		{strings.ToLower, "lower", nil, typ.Func("lower", []typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 		}), false},
-		{strings.Split, "", nil, exp.AnonSig([]typ.Param{
+		{strings.Split, "", nil, typ.Func("", []typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 			{Type: typ.Arr(typ.Str)},
 		}), false},
-		{time.Parse, "", nil, exp.AnonSig([]typ.Param{
+		{time.Parse, "", nil, typ.Func("", []typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
 			{Type: typ.Time},
 		}), true},
-		{time.Time.Format, "", []string{"t", "format"}, exp.AnonSig([]typ.Param{
+		{time.Time.Format, "", []string{"t", "format"}, typ.Func("", []typ.Param{
 			{Name: "t", Type: typ.Time},
 			{Name: "format", Type: typ.Str},
 			{Type: typ.Str},
@@ -45,10 +45,10 @@ func TestReflectFunc(t *testing.T) {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
 		}
-		if !test.typ.Equal(r.Sig.Info) {
-			t.Errorf("for %T want param %s got %s", test.fun, test.typ, r.Sig)
+		if !test.typ.Equal(r.Type) {
+			t.Errorf("for %T want param %s got %s", test.fun, test.typ, r.Type)
 		}
-		b := r.Body.(*ReflectBody)
+		b := r.Resl.(*ReflectBody)
 		if test.err != b.err {
 			t.Errorf("for %T want err %v got %v", test.fun, test.err, b.err)
 		}
@@ -82,8 +82,9 @@ func TestFuncResolver(t *testing.T) {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
 		}
-		c := &exp.Ctx{Exec: true}
-		res, err := r.Resolve(c, exp.StdEnv, &exp.Expr{r, test.args, r.Res()}, typ.Void)
+		ctx := &exp.Ctx{Exec: true}
+		call := &exp.Call{Def: exp.DefSpec(r), Args: test.args}
+		res, err := r.ResolveCall(ctx, exp.StdEnv, call, typ.Void)
 		if err != nil {
 			if test.err == nil || test.err.Error() != err.Error() {
 				t.Errorf("for %T want err %v got %v", test.fun, test.err, err)

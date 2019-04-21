@@ -20,7 +20,7 @@ func MustReflectFmap(m Fmap) exp.LookupFunc {
 
 // ReflectFmap reflects m and returns a lookup function or an error.
 func ReflectFmap(m Fmap) (exp.LookupFunc, error) {
-	res := make(map[string]exp.Resolver, len(m))
+	res := make(map[string]*exp.Spec, len(m))
 	for key, val := range m {
 		f, err := ReflectFunc(key, val)
 		if err != nil {
@@ -28,7 +28,7 @@ func ReflectFmap(m Fmap) (exp.LookupFunc, error) {
 		}
 		res[key] = f
 	}
-	return func(sym string) exp.Resolver {
+	return func(sym string) *exp.Spec {
 		return res[sym]
 	}, nil
 }

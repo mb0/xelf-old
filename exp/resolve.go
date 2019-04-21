@@ -70,15 +70,10 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 			v.El = el
 		}
 		return v, nil
-	case *Raw:
-		if v.Tok == '(' {
-			return c.resolveDyn(env, v.Dyn(), hint)
-		}
-		return v, nil
 	case Dyn:
 		return c.resolveDyn(env, v, hint)
-	case *Expr:
-		return v.Rslv.Resolve(c, env, v, hint)
+	case *Call:
+		return v.Spec.ResolveCall(c, env, v, hint)
 	case Lit:
 		return x, nil
 	}
@@ -93,27 +88,7 @@ func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
 }
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
-	n := ref.Name
-	if n != "" && n[0] == '@' {
-		n = n[1:]
-		if n == "" {
-			return typ.Infer, nil
-		}
-		if n[len(n)-1] == '?' {
-			t := typ.Ref(n[:len(n)-1])
-			return c.resolveType(env, typ.Opt(t), t)
-		}
-		t := typ.Ref(n)
-		return c.resolveType(env, t, t)
-	}
-	if strings.HasPrefix(n, "arr|") || strings.HasPrefix(n, "map|") {
-		t, err := typ.ParseSym(n, nil)
-		if err != nil {
-			return nil, err
-		}
-		return c.resolveType(env, t, t.Last())
-	}
-	r, name, path, err := findResolver(env, n)
+	r, name, path, err := findResolver(env, ref.Name)
 	if r == nil || err == ErrUnres {
 		c.Unres = append(c.Unres, ref)
 		return ref, ErrUnres
@@ -122,20 +97,21 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 		return nil, err
 	}
 	tmp := ref
-	if n != name {
+	if ref.Name != name {
 		tmp = &Sym{Name: name}
 	}
-	res, err := r.Resolve(c, env, tmp, typ.Void)
+	el, err := r.Resolve(c, env, tmp, typ.Void)
 	if err != nil {
 		if err == ErrUnres {
 			c.Unres = append(c.Unres, ref)
 		}
 		return ref, err
 	}
+	res := el.(Lit)
 	if path == "" {
 		return res, nil
 	}
-	return lit.Select(res.(Lit), path)
+	return lit.Select(res, path)
 }
 
 func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
@@ -150,7 +126,7 @@ func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
 		// TODO infer type
 		return t, ErrUnres
 	}
-	key := last.Key()
+	key := last.Ref
 	switch k {
 	case typ.KindFlag, typ.KindEnum, typ.KindRec:
 		// return already resolved schema types, otherwise add schema prefix '~'
@@ -171,7 +147,7 @@ func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
 	return t, nil
 }
 
-func findResolver(env Env, sym string) (r Resolver, name, path string, err error) {
+func findResolver(env Env, sym string) (r *Def, name, path string, err error) {
 	if sym == "" {
 		return nil, "", "", cor.Error("empty symbol")
 	}
@@ -248,15 +224,12 @@ func elType(el El) (Type, error) {
 		return el.(Type), nil
 	case typ.ExpSym:
 		s := el.(*Sym)
-		if t := s.Type; t != typ.Void {
-			return t, nil
+		if s.Def != nil && s.Def.Type != typ.Void {
+			return s.Def.Type, nil
 		}
 	case typ.ExpForm, typ.ExpFunc:
-		x := el.(*Expr)
-		if x.Type != typ.Void {
-			return x.Type, nil
-		}
-		if t := x.Rslv.Res(); t != typ.Void {
+		x := el.(*Call)
+		if t := x.Spec.Res(); t != typ.Void {
 			return t, nil
 		}
 	default:

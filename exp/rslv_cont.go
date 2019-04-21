@@ -106,7 +106,7 @@ type litLener interface {
 	Len() int
 }
 
-func rslvLen(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvLen(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
@@ -117,21 +117,21 @@ func rslvLen(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 }
-func rslvFst(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvFst(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
 	}
 	return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), 0)
 }
-func rslvLst(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvLst(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
 	}
 	return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), -1)
 }
-func rslvNth(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvNth(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
@@ -142,7 +142,7 @@ func rslvNth(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	return nth(c, env, e, hint, lo.Arg(0), lo.Arg(2), int(l.Num()))
 }
-func nth(c *Ctx, env Env, e *Expr, hint Type, cont El, pred El, idx int) (_ El, err error) {
+func nth(c *Ctx, env Env, e *Call, hint Type, cont El, pred El, idx int) (_ El, err error) {
 	if pred != nil {
 		iter, err := getIter(c, env, pred, cont.Typ(), false)
 		if err != nil {
@@ -181,7 +181,7 @@ func checkIdx(idx, l int) (int, error) {
 }
 
 type fIter struct {
-	ExprResolver
+	*Spec
 	n, a, v, i, k int
 	args          []El
 	ator          bool
@@ -193,10 +193,8 @@ func getIter(c *Ctx, env Env, e El, ct Type, ator bool) (r *fIter, _ error) {
 		return nil, err
 	}
 	switch t := e.Typ(); t.Kind {
-	case typ.ExpFunc:
-		r = &fIter{ExprResolver: e.(*Func)}
-	case typ.ExpForm:
-		r = &fIter{ExprResolver: e.(*Form)}
+	case typ.ExpFunc, typ.ExpForm:
+		r = &fIter{Spec: e.(*Spec)}
 	}
 	if r == nil {
 		return nil, cor.Errorf("iter not a func or form %s", e.Typ())
@@ -255,7 +253,8 @@ func (r *fIter) resolve(c *Ctx, env Env, el El, idx int, key string) (Lit, error
 	if r.k > 0 {
 		r.args[r.k] = lit.Str(key)
 	}
-	res, err := r.Resolve(c, env, &Expr{Rslv: r.ExprResolver, Args: r.args}, typ.Void)
+	call := &Call{Def: DefSpec(r.Spec), Args: r.args}
+	res, err := r.ResolveCall(c, env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +271,8 @@ func (r *fIter) accumulate(c *Ctx, env Env, acc, el El, idx int, key string) (Li
 	if r.k > 0 {
 		r.args[r.k] = lit.Str(key)
 	}
-	res, err := r.Resolve(c, env, &Expr{Rslv: r.ExprResolver, Args: r.args}, typ.Void)
+	call := &Call{Def: DefSpec(r.Spec), Args: r.args}
+	res, err := r.ResolveCall(c, env, call, typ.Void)
 	if err != nil {
 		return nil, cor.Errorf("accumulate: %w", err)
 	}
@@ -325,7 +325,7 @@ func (r *fIter) filter(c *Ctx, env Env, cont El) (Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
-func rslvFilter(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvFilter(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
@@ -342,7 +342,7 @@ func rslvFilter(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return res, nil
 }
 
-func rslvMap(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvMap(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
@@ -420,7 +420,7 @@ func rslvMap(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
 }
-func rslvFold(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvFold(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
@@ -464,7 +464,7 @@ func rslvFold(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	}
 	return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
 }
-func rslvFoldr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvFoldr(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err

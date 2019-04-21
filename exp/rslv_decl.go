@@ -22,8 +22,8 @@ func init() {
 // rslvLet declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
 // (form 'let' +a? any +unis +rest - @)
-func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+func rslvLet(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+	lo, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +62,8 @@ func rslvLet(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 
 // rslvFn declares a function literal from its arguments.
 // (form 'fn' +unis +rest - @)
-func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+func rslvFn(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+	lo, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 		return nil, err
 	}
 	rest := lo.Args(1)
-	var sig Sig
+	var sig typ.Type
 	if len(decls) == 0 {
 		// TODO infer signature
 		return nil, cor.Errorf("inferred fn expressions not implemented")
@@ -90,9 +90,9 @@ func rslvFn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 			}
 			fs = append(fs, typ.Param{Name: d.Name[1:], Type: dt})
 		}
-		sig = Sig{Kind: typ.ExpFunc, Info: &typ.Info{Params: fs}}
+		sig = typ.Type{Kind: typ.ExpFunc, Info: &typ.Info{Params: fs}}
 	}
-	return &Func{sig, &ExprBody{rest, env}}, nil
+	return &Spec{sig, &ExprBody{rest, env}}, nil
 }
 
 func letDecls(c *Ctx, env *Scope, decls []*Named) (res El, err error) {
@@ -109,10 +109,10 @@ func letDecls(c *Ctx, env *Scope, decls []*Named) (res El, err error) {
 		}
 		switch l := res.(type) {
 		case Lit:
-			if r, ok := l.(Resolver); ok {
-				err = env.Def(d.Key(), r)
+			if r, ok := l.(*Spec); ok {
+				err = env.Def(d.Key(), DefSpec(r))
 			} else {
-				err = env.Def(d.Key(), LitResolver{l})
+				err = env.Def(d.Key(), DefLit(l))
 			}
 		default:
 			return nil, cor.Errorf("unexpected element as declaration value %v", res)

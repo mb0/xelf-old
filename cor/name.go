@@ -107,10 +107,17 @@ func LastKey(s string) string {
 func Keyed(s string) string {
 	for i, c := range s {
 		if NameStart(c) {
-			return strings.ToLower(s[i:])
+			s = s[i:]
+			break
 		}
 	}
-	return ""
+	for i, c := range s {
+		if !NamePart(c) && c != '.' {
+			s = s[:i]
+			break
+		}
+	}
+	return strings.ToLower(s)
 }
 
 func Cased(n string) (s string) {

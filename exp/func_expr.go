@@ -30,21 +30,21 @@ type FuncScope struct {
 	DataScope
 }
 
-func (f *FuncScope) Get(s string) Resolver {
+func (f *FuncScope) Get(s string) *Def {
 	if s == "_" {
 		s = ".0"
 	}
 	return f.DataScope.Get(s)
 }
 
-func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) {
+func (f *ExprBody) ResolveCall(c *Ctx, env Env, x *Call, hint Type) (El, error) {
 	// build a parameter object from all arguments
 	lo, err := ResolveFuncArgs(c, env, x)
 	if err != nil {
 		return x, err
 	}
 	// use the calling env to resolve parameters
-	ps := x.Rslv.Arg()
+	ps := x.Spec.Arg()
 	keyed := make([]lit.Keyed, 0, len(ps))
 	for i, p := range ps {
 		a := lo.args[i]
@@ -75,7 +75,7 @@ func (f *ExprBody) ResolveFunc(c *Ctx, env Env, x *Expr, hint Type) (El, error) 
 			return x, err
 		}
 	}
-	rt := x.Rslv.Res()
+	rt := x.Spec.Res()
 	if rt == typ.Void {
 		return rt, nil
 	}

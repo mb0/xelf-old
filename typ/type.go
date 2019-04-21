@@ -29,7 +29,7 @@ type Info struct {
 // Key returns the lowercase ref key.
 func (a *Info) Key() string {
 	if a != nil {
-		return cor.LastKey(a.Ref)
+		return cor.Keyed(a.Ref)
 	}
 	return ""
 }

@@ -34,11 +34,11 @@ func init() {
 // rslvEq returns a bool whether the arguments are equivalent literals.
 // The result is negated, if the expression symbol is 'ne'.
 // (form +a +b any +rest? list - bool)
-func rslvEq(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvEq(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, true, lit.Equiv)
 }
 
-func rslvNe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvNe(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	res, err := resolveBinaryComp(c, env, e, true, lit.Equiv)
 	if err != nil {
 		return res, err
@@ -48,17 +48,17 @@ func rslvNe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 
 // rslvEqual returns a bool whether the arguments are same types or same literals.
 // (form +a +b any +rest? list - bool)
-func rslvEqual(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvEqual(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, true, lit.Equal)
 }
-func rslvIn(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvIn(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return inOrNi(c, env, e, false)
 }
-func rslvNi(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvNi(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return inOrNi(c, env, e, true)
 }
 
-func inOrNi(c *Ctx, env Env, e *Expr, neg bool) (El, error) {
+func inOrNi(c *Ctx, env Env, e *Call, neg bool) (El, error) {
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {
 		return e, err
@@ -87,14 +87,14 @@ func inOrNi(c *Ctx, env Env, e *Expr, neg bool) (El, error) {
 // rslvLt returns a bool whether the arguments are monotonic increasing literals.
 // Or the inverse, if the expression symbol is 'ge'.
 // (form +a +b any +rest? list - bool)
-func rslvLt(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvLt(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, false, func(a, b Lit) bool {
 		res, ok := lit.Less(a, b)
 		return ok && res
 	})
 }
 
-func rslvGe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvGe(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, false, func(a, b Lit) bool {
 		res, ok := lit.Less(a, b)
 		return ok && !res
@@ -104,13 +104,13 @@ func rslvGe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // rslvGt returns a bool whether the arguments are monotonic decreasing literals.
 // Or the inverse, if the expression symbol is 'le'.
 // (form +a +b any +rest? list - bool)
-func rslvGt(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvGt(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, false, func(a, b Lit) bool {
 		res, ok := lit.Less(b, a)
 		return ok && res
 	})
 }
-func rslvLe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvLe(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return resolveBinaryComp(c, env, e, false, func(a, b Lit) bool {
 		res, ok := lit.Less(b, a)
 		return ok && !res
@@ -119,8 +119,8 @@ func rslvLe(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 
 type cmpf = func(a, b Lit) bool
 
-func resolveBinaryComp(c *Ctx, env Env, e *Expr, sym bool, cmp cmpf) (El, error) {
-	_, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+func resolveBinaryComp(c *Ctx, env Env, e *Call, sym bool, cmp cmpf) (El, error) {
+	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,6 @@ func resolveBinaryComp(c *Ctx, env Env, e *Expr, sym bool, cmp cmpf) (El, error)
 	for _, arg := range e.Args {
 		arg, err = c.Resolve(env, arg, typ.Void)
 		if err == ErrUnres {
-			e.Type = typ.Bool
 			if !c.Part {
 				return e, err
 			}

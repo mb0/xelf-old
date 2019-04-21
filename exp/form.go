@@ -2,79 +2,56 @@ package exp
 
 import (
 	"github.com/mb0/xelf/bfr"
-	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
-type Sig Type
-
-func AnonSig(args []typ.Param) Sig { return FuncSig("", args) }
-func FuncSig(name string, args []typ.Param) Sig {
-	return Sig{typ.ExpFunc, &typ.Info{Ref: name, Params: args}}
-}
-func FormSig(name string, args []typ.Param) Sig {
-	return Sig{typ.ExpForm, &typ.Info{Ref: name, Params: args}}
+type Spec struct {
+	typ.Type
+	Resl
 }
 
-func (s Sig) Typ() typ.Type { return typ.Type(s) }
-func (s Sig) IsZero() bool  { return s.Info == nil || len(s.Params) == 0 }
-
-func (s Sig) Key() string {
-	if s.Info != nil {
-		return s.Ref
-	}
-	return ""
+type Resl interface {
+	ResolveCall(c *Ctx, env Env, e *Call, hint Type) (El, error)
 }
 
 // Arg returns the argument parameters or nil.
-func (s Sig) Arg() []typ.Param {
-	if s.IsZero() {
+func (f *Spec) Arg() []typ.Param {
+	if f.IsZero() {
 		return nil
 	}
-	return s.Params[:len(s.Params)-1]
+	return f.Params[:len(f.Params)-1]
 }
 
 // Res returns the result type or void.
-func (s Sig) Res() Type {
-	if s.IsZero() {
+func (f *Spec) Res() Type {
+	if f.IsZero() {
 		return typ.Void
 	}
-	return s.Params[len(s.Params)-1].Type
+	return f.Params[len(f.Params)-1].Type
 }
 
-func (s Sig) String() string { return bfr.String(s) }
-func (s Sig) WriteBfr(b *bfr.Ctx) error {
-	key := s.Key()
-	if key != "" {
-		return b.Fmt(key)
-	}
-	return typ.Type(s).WriteBfr(b)
+func (f *Spec) Typ() typ.Type { return f.Type }
+func (f *Spec) IsZero() bool {
+	return f == nil || f.Resl == nil || f.Info == nil || len(f.Params) == 0
 }
-
-// Form represents a from resolver and implements both literal and resolver interface.
-type Form struct {
-	Sig
-	Body FormResolver
-}
-
-type FormResolver interface {
-	ResolveForm(c *Ctx, env Env, e *Expr, hint Type) (El, error)
-}
-
-func (f *Form) MarshalJSON() ([]byte, error) {
-	v, err := cor.Quote(f.String(), '"')
+func (f *Spec) String() string { return bfr.String(f) }
+func (f *Spec) WriteBfr(b *bfr.Ctx) error {
+	b.WriteByte('(')
+	err := f.Type.WriteBfr(b)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return []byte(v), nil
-}
-
-func (f *Form) Resolve(c *Ctx, env Env, e El, hint Type) (El, error) {
-	switch t := e.Typ(); t.Kind {
-	case typ.ExpSym:
-		return f, nil
-	case typ.ExpForm:
-		return f.Body.ResolveForm(c, env, e.(*Expr), hint)
+	if f.Resl == nil {
+		b.WriteString("()")
+	} else {
+		if v, ok := f.Resl.(bfr.Writer); ok {
+			b.WriteByte(' ')
+			if err = v.WriteBfr(b); err != nil {
+				return err
+			}
+		} else {
+			b.WriteString(" _")
+		}
 	}
-	return nil, cor.Errorf("unexpected element %s for %s", e.Typ(), f.Sig.Ref)
+	return b.WriteByte(')')
 }

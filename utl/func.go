@@ -17,7 +17,7 @@ type ReflectBody struct {
 	err   bool
 }
 
-func (f *ReflectBody) ResolveFunc(c *exp.Ctx, env exp.Env, x *exp.Expr, h typ.Type) (exp.El, error) {
+func (f *ReflectBody) ResolveCall(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
 	lo, err := exp.ResolveFuncArgs(c, env, x)
 	if err != nil {
 		return x, err
@@ -65,7 +65,7 @@ var refErr = reflect.TypeOf((*error)(nil)).Elem()
 
 // ReflectFunc reflects val and returns a function literal or an error.
 // The names are optionally and associated to the arguments by index.
-func ReflectFunc(name string, val interface{}, names ...string) (*exp.Func, error) {
+func ReflectFunc(name string, val interface{}, names ...string) (*exp.Spec, error) {
 	v := reflect.ValueOf(val)
 	if v.Kind() != reflect.Func {
 		return nil, cor.Errorf("expect function argument got %T", val)
@@ -109,5 +109,5 @@ func ReflectFunc(name string, val interface{}, names ...string) (*exp.Func, erro
 		res = xt
 	}
 	fs = append(fs, typ.Param{Type: res})
-	return &exp.Func{exp.FuncSig(name, fs), &f}, nil
+	return &exp.Spec{typ.Func(name, fs), &f}, nil
 }

@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	formAnd  *Form
-	formBool *Form
-	formNot  *Form
+	formAnd  *Spec
+	formBool *Spec
+	formNot  *Spec
 )
 
 func init() {
@@ -27,7 +27,7 @@ func init() {
 // rslvFail returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
 // (form 'fail' +plain - any)
-func rslvFail(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvFail(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	if c.Exec {
 		return nil, cor.Errorf("%s", e)
 	}
@@ -38,8 +38,8 @@ func rslvFail(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
 // (form 'or' +plain list - bool)
-func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+func rslvOr(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+	lo, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -47,14 +47,13 @@ func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	for i, arg := range args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
-			e.Type = typ.Bool
 			if c.Part {
 				e.Args, err = c.WithExec(false).ResolveAll(env, args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{formBool, e.Args, typ.Bool}
+					e = &Call{Def: DefSpec(formBool), Args: e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -73,8 +72,8 @@ func rslvOr(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'and' expression resolves to true.
 // (form 'and' +plain - bool)
-func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+func rslvAnd(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+	lo, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +81,13 @@ func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	for i, arg := range args {
 		el, err := c.Resolve(env, arg, typ.Any)
 		if err == ErrUnres {
-			e.Type = typ.Bool
 			if c.Part {
 				e.Args, err = c.WithExec(false).ResolveAll(env, args[i:], typ.Any)
 				if err != nil && err != ErrUnres {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Expr{formBool, e.Args, typ.Bool}
+					e = &Call{Def: DefSpec(formBool), Args: e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -108,11 +106,11 @@ func rslvAnd(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'bool' expression resolves to false.
 // (form 'bool' +plain - bool)
-func rslvBool(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvBool(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	res, err := rslvAnd(c, env, e, hint)
 	if err == ErrUnres {
 		if c.Part {
-			e = simplifyBool(e, res.(*Expr).Args)
+			e = simplifyBool(e, res.(*Call).Args)
 		}
 		return e, err
 	}
@@ -129,11 +127,11 @@ func rslvBool(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 // The arguments must be plain literals and are considered true if a zero value.
 // An empty 'not' expression resolves to true.
 // (form 'not' +plain - bool)
-func rslvNot(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvNot(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	res, err := rslvAnd(c, env, e, hint)
 	if err == ErrUnres {
 		if c.Part {
-			e = simplifyBool(e, res.(*Expr).Args)
+			e = simplifyBool(e, res.(*Call).Args)
 		}
 		return e, err
 	}
@@ -146,38 +144,38 @@ func rslvNot(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
 	return lit.Bool(res.(Lit).IsZero()), nil
 }
 
-func simplifyBool(e *Expr, args []El) *Expr {
+func simplifyBool(e *Call, args []El) *Call {
 	e.Args = args
 	if len(args) != 1 {
 		return e
 	}
-	fst, ok := args[0].(*Expr)
+	fst, ok := args[0].(*Call)
 	if !ok {
 		return e
 	}
-	var f *Form
-	switch fst.Rslv {
+	var f *Spec
+	switch fst.Spec {
 	case formBool:
-		if e.Rslv == formBool {
+		if e.Spec == formBool {
 			return fst
 		}
 		f = formNot
 	case formNot:
-		if e.Rslv == formBool {
+		if e.Spec == formBool {
 			return fst
 		}
 		f = formBool
 	default:
 		return e
 	}
-	return &Expr{f, fst.Args, typ.Bool}
+	return &Call{Def: DefSpec(f), Args: fst.Args}
 }
 
 // rslvIf resolves the arguments as condition, action pairs as part of an if-else condition.
 // The odd end is the else action otherwise a zero value of the first action's type is used.
 // (form +cond any +act any +tail? list - @)
-func rslvIf(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
-	_, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+func rslvIf(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 
 var errAsType = cor.StrError("the 'as' expression must start with a type")
 
-var formAs *Form
+var formAs *Spec
 
 func init() {
 	core.add("dyn", []typ.Param{
@@ -30,7 +30,7 @@ func init() {
 // resolves as the 'as' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
 // (form +args +decls - @)
-func rslvDyn(c *Ctx, env Env, e *Expr, hint Type) (_ El, err error) {
+func rslvDyn(c *Ctx, env Env, e *Call, hint Type) (_ El, err error) {
 	if len(e.Args) == 0 {
 		return typ.Void, nil
 	}
@@ -45,16 +45,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	case typ.ExpSym, typ.ExpForm, typ.ExpFunc:
 		fst, err = c.Resolve(env, fst, typ.Void)
 	case typ.ExpDyn:
-		v, ok := fst.(Dyn)
-		if !ok {
-			if r, ok := fst.(*Raw); ok {
-				if r.Tok != '(' {
-					fst, err = c.Resolve(env, r, typ.Void)
-					break
-				}
-				v = r.Dyn()
-			}
-		}
+		v, _ := fst.(Dyn)
 		if len(v) == 0 {
 			return typ.Void, nil
 		}
@@ -63,7 +54,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	if err != nil {
 		return d, err
 	}
-	var xr ExprResolver
+	var def *Def
 	var sym string
 	args := d
 	switch t := fst.Typ(); t.Kind & typ.MaskElem {
@@ -73,14 +64,14 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 			return fst, nil
 		}
 		if tt == typ.Bool {
-			xr, args = formBool, args[1:]
+			def, args = DefSpec(formBool), args[1:]
 		} else {
 			sym = "as"
 		}
 	case typ.KindExp:
-		r, ok := fst.(ExprResolver)
+		r, ok := fst.(*Spec)
 		if ok {
-			xr, args = r, args[1:]
+			def, args = DefSpec(r), args[1:]
 		}
 	default:
 		if len(d) == 1 && t.Kind&typ.MaskBase != 0 {
@@ -100,13 +91,10 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if sym != "" {
-		r, ok := LookupSupports(env, sym, '~').(ExprResolver)
-		if ok {
-			xr = r
-		}
+		def = LookupSupports(env, sym, '~')
 	}
-	if xr != nil {
-		return xr.Resolve(c, env, &Expr{xr, args, typ.Void}, hint)
+	if def != nil {
+		return def.Resolve(c, env, &Call{Def: def, Args: args}, hint)
 	}
 	return nil, cor.Errorf("unexpected first argument %[1]T %[1]s in dynamic expression\n%s %s",
 		fst, sym, fst.Typ())
@@ -118,7 +106,7 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
 // (form +t typ +args list +unis dict - @t)
-func rslvAs(c *Ctx, env Env, e *Expr, hint Type) (El, error) {
+func rslvAs(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	// resolve all arguments
 	lo, err := ResolveArgs(c, env, e)
 	if err != nil {

@@ -219,8 +219,8 @@ Loop:
 	return &Layout{params, res}, nil
 }
 
-func ResolveArgs(c *Ctx, env Env, e *Expr) (*Layout, error) {
-	lo, err := LayoutArgs(e.Rslv.Arg(), e.Args)
+func ResolveArgs(c *Ctx, env Env, e *Call) (*Layout, error) {
+	lo, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
 		return lo, err
 	}
@@ -355,12 +355,6 @@ func isSpecial(e El, pre string) (t Type, s string, a []El, ok bool) {
 				s, ok = isSpecialSym(d[0], pre)
 				a = d[1:]
 			}
-		case *Raw:
-			if d.Tok == '(' {
-				d = (*Raw)(d.Seq[0])
-				a = d.Dyn()[1:]
-			}
-			s, ok = isSpecialSym(d, pre)
 		}
 	case typ.Tag, typ.Decl:
 		v := e.(*Named)
@@ -378,8 +372,6 @@ func isSpecialSym(e El, pre string) (string, bool) {
 	switch v := e.(type) {
 	case *Sym:
 		return isSpecialName(v.Name, pre)
-	case *Raw:
-		return isSpecialName(v.Raw, pre)
 	}
 	return "", false
 }

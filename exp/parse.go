@@ -16,6 +16,7 @@ func ParseString(env Env, s string) (El, error) {
 }
 
 // Parse parses the syntax tree a and returns an element or an error.
+// It needs a static environment to distinguish elements.
 func Parse(env Env, a *lex.Tree) (El, error) {
 	switch a.Tok {
 	case lex.Number, lex.String, '[', '{':
@@ -37,14 +38,14 @@ func Parse(env Env, a *lex.Tree) (El, error) {
 		case "true":
 			return lit.True, nil
 		}
-		resl := Lookup(env, a.Raw)
-		if resl == nil {
+		def := Lookup(env, a.Raw)
+		if def == nil {
 			t, err := typ.Parse(a)
 			if err == nil {
 				return t, nil
 			}
 		}
-		return &Sym{Name: a.Raw, Pos: a.Pos}, nil
+		return &Sym{Name: a.Raw, Pos: a.Pos, Def: def}, nil
 	case lex.Tag, lex.Decl:
 		return &Named{Name: a.Raw, Pos: a.Pos}, nil
 	case '(':
@@ -69,29 +70,39 @@ func Parse(env Env, a *lex.Tree) (El, error) {
 				return t, nil
 			}
 		case *Named:
-			els := make([]El, 0, len(a.Seq)-1)
-			for _, b := range a.Seq[1:] {
-				el, err := Parse(env, b)
-				if err != nil {
-					return nil, err
-				}
-				els = append(els, el)
-			}
-			t.El = Dyn(els)
-			return t, nil
-		}
-		els := make([]El, 1, len(a.Seq))
-		els[0] = fst
-		for _, b := range a.Seq[1:] {
-			el, err := Parse(env, b)
+			els, err := parseArgs(env, a.Seq[1:], nil)
 			if err != nil {
 				return nil, err
 			}
-			if el != typ.Void {
-				els = append(els, el)
+			t.El = Dyn(els)
+			return t, nil
+		case *Sym:
+			if t.Def != nil && t.Def.Spec != nil {
+				els, err := parseArgs(env, a.Seq[1:], nil)
+				if err != nil {
+					return nil, err
+				}
+				return &Call{Def: t.Def, Args: els, Src: a.Src}, nil
 			}
 		}
-		return Dyn(els), nil
+		return parseArgs(env, a.Seq[1:], fst)
 	}
 	return nil, a.Err(lex.ErrUnexpected)
+}
+
+func parseArgs(env Env, seq []*lex.Tree, el El) (args Dyn, err error) {
+	args = make(Dyn, 0, len(seq)+1)
+	if el != nil {
+		args = append(args, el)
+	}
+	for _, t := range seq {
+		el, err = Parse(env, t)
+		if err != nil {
+			return nil, err
+		}
+		if el != typ.Void {
+			args = append(args, el)
+		}
+	}
+	return args, nil
 }
