@@ -120,19 +120,20 @@ func (c Cmp) Mirror() (m Cmp) {
 
 func compare(src, dst Type) Cmp {
 	s, d := src.Kind, dst.Kind
-	if s == d && s != KindRef {
+	if s == d && s != KindRef && s != KindVar {
 		if src.Info.equal(dst.Info, s&FlagRef != 0, nil) {
 			return CmpSame
 		}
 	}
-	if s == KindRef {
+	s, d = s&SlotMask, d&SlotMask
+	if d == KindVar {
+		// infer dst type from src
+		return CmpInfer
+	}
+	if s == KindVar || s == KindRef {
 		return CmpCheckRef
 	}
 	if d == KindRef {
-		if dst.Info == nil || dst.Info.Ref == "" {
-			// infer dst type from src
-			return CmpInfer
-		}
 		// ref needs to be resolved first
 		return CmpCheckRef
 	}

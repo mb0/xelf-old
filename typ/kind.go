@@ -212,7 +212,11 @@ func simpleStr(k Kind) string {
 			return "decl"
 		}
 	case KindVar:
-		return fmt.Sprintf("~%d", k>>SlotSize)
+		id := k >> SlotSize
+		if id == 0 {
+			return "@"
+		}
+		return fmt.Sprintf("@%d", k>>SlotSize)
 	case KindArr:
 		return "arr|"
 	case KindMap:

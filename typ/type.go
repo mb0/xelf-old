@@ -162,7 +162,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		for i := 0; i < len(hist); i++ {
 			h := hist[len(hist)-1-i]
 			if a.Info.Equal(h) {
-				writeRef(b, pre, strconv.Itoa(i), a)
+				writeRef(b, pre, '~', strconv.Itoa(i), a)
 				return nil
 			}
 		}
@@ -179,7 +179,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		if a.Info != nil {
 			ref = a.Ref
 		}
-		writeRef(b, pre, ref, a)
+		writeRef(b, pre, '@', ref, a)
 		return nil
 	case KindObj, KindExp:
 		detail = true
@@ -204,11 +204,11 @@ func writePre(b *bfr.Ctx, pre *strings.Builder, a Type) error {
 	return a.Kind.WriteBfr(b)
 }
 
-func writeRef(b *bfr.Ctx, pre *strings.Builder, ref string, a Type) {
+func writeRef(b *bfr.Ctx, pre *strings.Builder, x byte, ref string, a Type) {
 	if pre != nil {
 		b.WriteString(pre.String())
 	}
-	b.WriteByte('@')
+	b.WriteByte(x)
 	b.WriteString(ref)
 	if a.Kind&FlagOpt != 0 {
 		b.WriteByte('?')

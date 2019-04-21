@@ -15,7 +15,7 @@ func TestString(t *testing.T) {
 		{Opt(Str), `str?`},
 		{Ref("a"), `@a`},
 		{Ref("a.b"), `@a.b`},
-		{Var(1), `~1`},
+		{Var(1), `@1`},
 		{Opt(Ref("b")), `@b?`},
 		{Opt(Enum("kind")), `(enum? 'kind')`},
 		{Opt(Obj([]Param{
@@ -85,10 +85,10 @@ func TestTypeSelfRef(t *testing.T) {
 		typ Type
 		raw string
 	}{
-		{a, "(obj +Ref @0?)"},
-		{Opt(a), "(obj? +Ref @0?)"},
-		{b, "(obj +C (obj +Ref arr|@1))"},
-		{Opt(b), "(obj? +C (obj +Ref arr|@1))"},
+		{a, "(obj +Ref ~0?)"},
+		{Opt(a), "(obj? +Ref ~0?)"},
+		{b, "(obj +C (obj +Ref arr|~1))"},
+		{Opt(b), "(obj? +C (obj +Ref arr|~1))"},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()

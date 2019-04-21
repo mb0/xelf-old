@@ -31,7 +31,7 @@ func Parse(a *lex.Tree) (Type, error) {
 }
 
 // ParseSym returns the type represented by the symbol s or an error.
-func ParseSym(s string, hist []Type) (res Type, _ error) {
+func ParseSym(s string, hist []Type) (res Type, err error) {
 	if len(s) == 0 {
 		return Void, ErrInvalid
 	}
@@ -39,38 +39,46 @@ func ParseSym(s string, hist []Type) (res Type, _ error) {
 	switch s[0] {
 	case '~':
 		ref := s[1:]
-		if c := ref[0]; c >= '0' && c <= '9' {
-			id, err := strconv.ParseUint(ref, 10, 64)
-			if err != nil {
-				return Void, cor.Errorf("invalid id: %w", err)
-			}
-			return Var(id), nil
-		}
-		i := strings.IndexByte(ref, '.')
-		if i == 0 { // explicit type
-			return ParseSym(ref, hist)
-		} // else schema reference
 		if opt {
-			return Opt(Ref(ref[:len(ref)-1])), nil
+			ref = ref[:len(ref)-1]
 		}
-		return Ref(ref), nil
+		if cor.Digit(rune(ref[0])) {
+			// self reference by index
+			idx, err := strconv.Atoi(ref)
+			if err != nil {
+				return Void, cor.Errorf("self ref index must be a number: %w", err)
+			}
+			if idx < 0 || idx >= len(hist) {
+				return Void, cor.Error("self ref index out of bounds")
+			}
+			res = hist[len(hist)-1-idx]
+		} else if strings.IndexByte(ref, '.') == -1 { // explicit type
+			res, err = ParseSym(ref, hist)
+			if err != nil {
+				return Void, err
+			}
+		} else { // schema type
+			res = Ref(ref)
+		}
+		if opt {
+			return Opt(res), nil
+		}
+		return res, nil
 	case '@':
 		ref := s[1:]
 		if opt {
 			ref = ref[:len(ref)-1]
 		}
-		res = Ref(ref)
-		if len(ref) > 0 {
-			if c := ref[0]; c >= '0' && c <= '9' { // self reference by index
-				idx, err := strconv.Atoi(ref)
-				if err != nil {
-					return Void, cor.Errorf("self ref index must be a number: %w", err)
-				}
-				if idx < 0 || idx >= len(hist) {
-					return Void, cor.Error("self ref index out of bounds")
-				}
-				res = hist[len(hist)-1-idx]
+		if len(ref) == 0 {
+			res = Var(0)
+		} else if cor.Digit(rune(ref[0])) {
+			id, err := strconv.ParseUint(ref, 10, 64)
+			if err != nil {
+				return Void, cor.Errorf("invalid type var %s", s)
 			}
+			res = Var(id)
+		} else {
+			res = Ref(ref)
 		}
 		if opt {
 			res = Opt(res)

@@ -21,7 +21,7 @@ var (
 	List = Type{Kind: BaseList}
 	Dict = Type{Kind: BaseDict}
 
-	Infer = Type{Kind: KindRef}
+	Infer = Type{Kind: KindVar}
 
 	Sym  = Type{Kind: ExpSym}
 	Dyn  = Type{Kind: ExpDyn}
@@ -42,8 +42,9 @@ func Rec(n string) Type  { return Type{KindRec, &Info{Ref: n}} }
 func Func(n string, ps []Param) Type { return Type{ExpFunc, &Info{Ref: n, Params: ps}} }
 func Form(n string, ps []Param) Type { return Type{ExpForm, &Info{Ref: n, Params: ps}} }
 
+func VarKind(id uint64) Kind { return KindVar | Kind(id<<SlotSize) }
 func Var(id uint64, opts ...Type) Type {
-	t := Type{Kind: Kind(id<<SlotSize) | KindVar}
+	t := Type{Kind: VarKind(id)}
 	if len(opts) > 0 {
 		ps := make([]Param, 0, len(opts))
 		for _, p := range opts {
