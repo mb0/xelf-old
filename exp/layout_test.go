@@ -64,14 +64,14 @@ func TestLayout(t *testing.T) {
 			t.Errorf("parse raw %s err: %v", test.raw, err)
 			continue
 		}
-		l, err := LayoutArgs(ps, el.(Dyn)[1:])
+		l, err := LayoutArgs(ps, el.(*Dyn).Els[1:])
 		if err != nil {
 			t.Errorf("layout %s %s %s err: %v", test.sig, test.raw, ps, err)
 			continue
 		}
 		res := make([]string, 0, len(l.args))
 		for _, args := range l.args {
-			res = append(res, Dyn(args).String())
+			res = append(res, (&Dyn{Els: args}).String())
 		}
 		if !reflect.DeepEqual(res, test.args) {
 			t.Errorf("want %s got %s", test.args, res)

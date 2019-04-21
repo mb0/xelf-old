@@ -126,7 +126,7 @@ func DynPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (_ lit.Lit, err error) {
 	if len(args) == 1 {
 		x, err = c.Resolve(env, args[0], typ.Void)
 	} else {
-		x, err = c.Resolve(env, exp.Dyn(args), typ.Void)
+		x, err = c.Resolve(env, &exp.Dyn{Els: args}, typ.Void)
 	}
 	if err != nil {
 		return nil, err

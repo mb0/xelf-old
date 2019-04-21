@@ -2,7 +2,7 @@ package exp
 
 // DynResolver is a special resolver for dynamic expressions.
 type DynResolver interface {
-	ResolveDyn(c *Ctx, env Env, d Dyn, hint Type) (El, error)
+	ResolveDyn(c *Ctx, env Env, d *Dyn, hint Type) (El, error)
 }
 
 // Ctx is the resolution context that defines the resolution level and collects information.

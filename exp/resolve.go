@@ -50,6 +50,9 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	if x == nil {
 		return typ.Void, nil
 	}
+	if a, ok := x.(*Atom); ok {
+		x = a.Lit
+	}
 	switch v := x.(type) {
 	case Type: // resolve type references
 		last := v.Last()
@@ -70,7 +73,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 			v.El = el
 		}
 		return v, nil
-	case Dyn:
+	case *Dyn:
 		return c.resolveDyn(env, v, hint)
 	case *Call:
 		return v.Spec.ResolveCall(c, env, v, hint)
@@ -80,7 +83,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
 }
 
-func (c *Ctx) resolveDyn(env Env, d Dyn, hint Type) (El, error) {
+func (c *Ctx) resolveDyn(env Env, d *Dyn, hint Type) (El, error) {
 	if c.Dyn != nil {
 		return c.Dyn.ResolveDyn(c, env, d, hint)
 	}

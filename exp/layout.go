@@ -249,7 +249,7 @@ func consumeTag(es []El) (El, []El) {
 				els, a := consumePlain(a, nil)
 				els, a = consumeTags(a, els)
 				els, a = consumeDecls(a, els)
-				tag.El = Dyn(els)
+				tag.El = &Dyn{Els: els}
 			} else {
 				tag.El, es = consumeArg(es)
 			}
@@ -276,7 +276,7 @@ func consumeDecl(es []El, uni bool) (El, []El) {
 			els, a = consumeTags(a, els)
 			els, a = consumeDecls(a, els)
 			if t == typ.Dyn {
-				d.El = Dyn(els)
+				d.El = &Dyn{Els: els}
 				return d, es
 			}
 		} else if uni {
@@ -290,7 +290,7 @@ func consumeDecl(es []El, uni bool) (El, []El) {
 		case 1:
 			d.El = els[0]
 		default:
-			d.El = Dyn(els)
+			d.El = &Dyn{Els: els}
 		}
 		return d, es
 	}
@@ -350,10 +350,10 @@ func isSpecial(e El, pre string) (t Type, s string, a []El, ok bool) {
 	switch t = e.Typ(); t {
 	case typ.Dyn:
 		switch d := e.(type) {
-		case Dyn:
-			if len(d) != 0 {
-				s, ok = isSpecialSym(d[0], pre)
-				a = d[1:]
+		case *Dyn:
+			if len(d.Els) != 0 {
+				s, ok = isSpecialSym(d.Els[0], pre)
+				a = d.Els[1:]
 			}
 		}
 	case typ.Tag, typ.Decl:
@@ -361,7 +361,7 @@ func isSpecial(e El, pre string) (t Type, s string, a []El, ok bool) {
 		d := v.Dyn()
 		s, ok = v.Name, true
 		if d != nil {
-			t, a = typ.Dyn, d
+			t, a = typ.Dyn, d.Els
 		} else {
 			a = v.Args()
 		}

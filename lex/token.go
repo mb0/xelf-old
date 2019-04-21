@@ -43,10 +43,6 @@ type Pos struct {
 	Col  uint16
 }
 
-func Offset(o int) Pos {
-	return Pos{uint32(o), 1, uint16(o)}
-}
-
 func (p Pos) String() string {
 	if p.Line > 0 {
 		return fmt.Sprintf("%d:%d", p.Line, p.Col)
@@ -64,6 +60,8 @@ type Src struct {
 	Pos
 	End Pos
 }
+
+func (s Src) Source() Src { return s }
 
 // Token represent a token recognized by the lexer with start offset and line position.
 // The tok field hold either the special rune Number, String or Symbol or is itself the input rune.

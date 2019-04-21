@@ -110,7 +110,7 @@ func (l *Lexer) tok(r rune) Token {
 
 // tokval returns a new value token at the current offset.
 func (l *Lexer) val(t Token, val string) (Token, error) {
-	t.Raw, t.End = val, l.pos()
+	t.Raw, t.End = val, l.pos().add(1)
 	return t, nil
 }
 
@@ -236,7 +236,7 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 			return res, err
 		}
 	}
-	res.End = t.Pos
+	res.End = t.End
 	if t.Tok != end {
 		return res, ErrorWant(t, ErrUnterminated, end)
 	}

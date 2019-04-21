@@ -18,32 +18,47 @@ type El interface {
 	Typ() Type
 }
 
-// All language elements
-type (
-	// Type is a type as defined in package typ. It also implements Lit.
-	Type = typ.Type
+// Expr is a language element with source offset information.
+type Expr interface {
+	El
+	Source() lex.Src
+}
 
+// All the language elements
+type (
 	// Lit is a literal as defined in package lit.
 	Lit = lit.Lit
 
-	// Sym is a unresolved symbol that refers to an element.
+	// Type is a type as defined in package typ. Types also implement literal.
+	Type = typ.Type
+
+	// Atom is a literal or type with source source offsets as returned by the parser.
+	Atom struct {
+		Lit
+		lex.Src
+	}
+
+	// Sym is an identifier, that refers to a definition.
 	Sym struct {
 		Name string
 		Def  *Def
-		lex.Pos
+		lex.Src
 	}
 
-	// Dyn is a unresolved expression where a resolver has to be determined.
-	Dyn []El
+	// Dyn is an expression with an undefined specification, that has to be determined.
+	Dyn struct {
+		Els []El
+		lex.Src
+	}
 
-	// Named is a tag or declaration; its meaning is determined by the parent's resolver.
+	// Named is a tag or declaration; its meaning is determined by the parent's specification.
 	Named struct {
 		Name string
 		El
-		lex.Pos
+		lex.Src
 	}
 
-	// Call is unresolved expression with  resolver is known.
+	// Call is an expression with a defined specification.
 	Call struct {
 		*Def
 		Args []El
@@ -65,18 +80,18 @@ func (x *Named) Typ() Type {
 }
 
 func (x *Sym) String() string   { return x.Name }
-func (x Dyn) String() string    { return bfr.String(x) }
+func (x *Dyn) String() string   { return bfr.String(x) }
 func (x *Named) String() string { return bfr.String(x) }
 func (x *Call) String() string  { return bfr.String(x) }
 
 func (x *Sym) WriteBfr(b *bfr.Ctx) error { return b.Fmt(x.Name) }
-func (x Dyn) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, "", x) }
+func (x *Dyn) WriteBfr(b *bfr.Ctx) error { return writeExpr(b, "", x.Els) }
 func (x *Named) WriteBfr(b *bfr.Ctx) error {
 	if x.El == nil {
 		return b.Fmt(x.Name)
 	}
 	if d := x.Dyn(); d != nil {
-		return writeExpr(b, x.Name, d)
+		return writeExpr(b, x.Name, d.Els)
 	}
 	if x.Name != "" {
 		b.WriteString(x.Name)
@@ -116,19 +131,19 @@ func (x *Named) Args() []El {
 	if x.El == nil {
 		return nil
 	}
-	if d, ok := x.El.(Dyn); ok {
-		return d
+	if d, ok := x.El.(*Dyn); ok {
+		return d.Els
 	}
 	return []El{x.El}
 }
 func (x *Named) Arg() El {
-	if d, ok := x.El.(Dyn); ok && len(d) != 0 {
-		return d[0]
+	if d, ok := x.El.(*Dyn); ok && len(d.Els) != 0 {
+		return d.Els[0]
 	}
 	return x.El
 }
-func (x *Named) Dyn() Dyn {
-	if d, ok := x.El.(Dyn); ok {
+func (x *Named) Dyn() *Dyn {
+	if d, ok := x.El.(*Dyn); ok {
 		return d
 	}
 	return nil

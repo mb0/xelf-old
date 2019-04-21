@@ -7,7 +7,7 @@ import (
 )
 
 // ParseString scans and parses string s and returns an element or an error.
-func ParseString(env Env, s string) (El, error) {
+func ParseString(env Env, s string) (Expr, error) {
 	a, err := lex.Scan(s)
 	if err != nil {
 		return nil, err
@@ -17,92 +17,123 @@ func ParseString(env Env, s string) (El, error) {
 
 // Parse parses the syntax tree a and returns an element or an error.
 // It needs a static environment to distinguish elements.
-func Parse(env Env, a *lex.Tree) (El, error) {
+func Parse(env Env, a *lex.Tree) (Expr, error) {
 	switch a.Tok {
 	case lex.Number, lex.String, '[', '{':
-		return lit.Parse(a)
+		l, err := lit.Parse(a)
+		if err != nil {
+			return nil, err
+		}
+		return &Atom{Lit: l, Src: a.Src}, nil
 	case lex.Symbol:
 		switch a.Raw[0] {
 		case '~', '@':
-			return typ.Parse(a)
+			t, err := typ.Parse(a)
+			if err != nil {
+				return nil, err
+			}
+			return &Atom{Lit: t, Src: a.Src}, nil
 		case '.', '$', '/': // paths
-			return &Sym{Name: a.Raw, Pos: a.Pos}, nil
+			return &Sym{Name: a.Raw, Src: a.Src}, nil
 		}
 		switch a.Raw {
 		case "void":
-			return typ.Void, nil
+			return &Atom{Lit: typ.Void, Src: a.Src}, nil
 		case "null":
-			return lit.Nil, nil
+			return &Atom{Lit: lit.Nil, Src: a.Src}, nil
 		case "false":
-			return lit.False, nil
+			return &Atom{Lit: lit.False, Src: a.Src}, nil
 		case "true":
-			return lit.True, nil
+			return &Atom{Lit: lit.True, Src: a.Src}, nil
 		}
 		def := Lookup(env, a.Raw)
 		if def == nil {
 			t, err := typ.Parse(a)
 			if err == nil {
-				return t, nil
+				return &Atom{Lit: t, Src: a.Src}, nil
 			}
 		}
-		return &Sym{Name: a.Raw, Pos: a.Pos, Def: def}, nil
+		return &Sym{Name: a.Raw, Src: a.Src, Def: def}, nil
 	case lex.Tag, lex.Decl:
-		return &Named{Name: a.Raw, Pos: a.Pos}, nil
+		return &Named{Name: a.Raw, Src: a.Src}, nil
 	case '(':
 		if len(a.Seq) == 0 { // empty expression is void
-			return typ.Void, nil
+			return nil, nil
 		}
 		fst, err := Parse(env, a.Seq[0])
-		if err != nil {
+		if err != nil || fst == nil {
 			return nil, err
 		}
 		switch t := fst.(type) {
-		case Type:
-			if t == typ.Void {
-				return t, nil
+		case *Atom:
+			if t.Typ() != typ.Typ {
+				break
 			}
-			r, p := typ.NeedsInfo(t)
+			tt := t.Lit.(Type)
+			if tt == typ.Void {
+				return nil, nil
+			}
+			r, p := typ.NeedsInfo(tt)
 			if r || p {
-				t, err = typ.ParseInfo(a.Seq[1:], t, nil)
+				tt, err = typ.ParseInfo(a.Seq[1:], tt, nil)
 				if err != nil {
 					return nil, err
 				}
-				return t, nil
+				return &Atom{tt, a.Src}, nil
 			}
 		case *Named:
-			els, err := parseArgs(env, a.Seq[1:], nil)
+			dyn, err := parseDyn(env, a.Seq[1:], nil)
 			if err != nil {
 				return nil, err
 			}
-			t.El = Dyn(els)
+			t.El = dyn
+			t.Src = a.Src
 			return t, nil
 		case *Sym:
 			if t.Def != nil && t.Def.Spec != nil {
-				els, err := parseArgs(env, a.Seq[1:], nil)
+				els, _, err := parseArgs(env, a.Seq[1:], nil)
 				if err != nil {
 					return nil, err
 				}
 				return &Call{Def: t.Def, Args: els, Src: a.Src}, nil
 			}
 		}
-		return parseArgs(env, a.Seq[1:], fst)
+		d, err := parseDyn(env, a.Seq[1:], fst)
+		if err != nil {
+			return nil, err
+		}
+		d.Src = a.Src
+		return d, nil
 	}
 	return nil, a.Err(lex.ErrUnexpected)
 }
 
-func parseArgs(env Env, seq []*lex.Tree, el El) (args Dyn, err error) {
-	args = make(Dyn, 0, len(seq)+1)
+func parseDyn(env Env, seq []*lex.Tree, el Expr) (_ *Dyn, err error) {
+	args, src, err := parseArgs(env, seq, el)
+	if err != nil {
+		return nil, err
+	}
+	return &Dyn{Els: args, Src: src}, nil
+}
+
+func parseArgs(env Env, seq []*lex.Tree, el Expr) (args []El, src lex.Src, err error) {
+	args = make([]El, 0, len(seq)+1)
 	if el != nil {
 		args = append(args, el)
+		src.Pos = el.Source().Pos
 	}
-	for _, t := range seq {
+	for i, t := range seq {
+		if i == 0 && el == nil {
+			src.Pos = t.Pos
+		}
 		el, err = Parse(env, t)
 		if err != nil {
-			return nil, err
+			return nil, src, err
 		}
-		if el != typ.Void {
+		if el != nil {
 			args = append(args, el)
+			src.End = t.End
 		}
 	}
-	return args, nil
+	return args, src, nil
 }

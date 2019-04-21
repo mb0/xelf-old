@@ -34,19 +34,19 @@ func rslvDyn(c *Ctx, env Env, e *Call, hint Type) (_ El, err error) {
 	if len(e.Args) == 0 {
 		return typ.Void, nil
 	}
-	return defaultDyn(c, env, e.Args, hint)
+	return defaultDyn(c, env, &Dyn{Els: e.Args}, hint)
 }
-func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
-	if len(d) == 0 {
+func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
+	if len(d.Els) == 0 {
 		return typ.Void, nil
 	}
-	fst := d[0]
+	fst := d.Els[0]
 	switch t := fst.Typ(); t.Kind {
 	case typ.ExpSym, typ.ExpForm, typ.ExpFunc:
 		fst, err = c.Resolve(env, fst, typ.Void)
 	case typ.ExpDyn:
-		v, _ := fst.(Dyn)
-		if len(v) == 0 {
+		v, _ := fst.(*Dyn)
+		if len(v.Els) == 0 {
 			return typ.Void, nil
 		}
 		fst, err = defaultDyn(c, env, v, typ.Void)
@@ -56,9 +56,12 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 	}
 	var def *Def
 	var sym string
-	args := d
+	args := d.Els
 	switch t := fst.Typ(); t.Kind & typ.MaskElem {
 	case typ.KindTyp:
+		if a, ok := fst.(*Atom); ok {
+			fst = a.Lit
+		}
 		tt := fst.(Type)
 		if tt == typ.Void {
 			return fst, nil
@@ -74,7 +77,10 @@ func defaultDyn(c *Ctx, env Env, d Dyn, hint Type) (_ El, err error) {
 			def, args = DefSpec(r), args[1:]
 		}
 	default:
-		if len(d) == 1 && t.Kind&typ.MaskBase != 0 {
+		if len(d.Els) == 1 && t.Kind&typ.MaskBase != 0 {
+			if a, ok := fst.(*Atom); ok {
+				fst = a.Lit
+			}
 			return fst, nil
 		}
 		switch t.Kind & typ.MaskElem {
