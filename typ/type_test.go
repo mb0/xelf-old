@@ -16,6 +16,7 @@ func TestString(t *testing.T) {
 		{Ref("a"), `@a`},
 		{Ref("a.b"), `@a.b`},
 		{Var(1), `@1`},
+		{Alt(Num, Str), `(alt + num + str)`},
 		{Opt(Ref("b")), `@b?`},
 		{Opt(Enum("kind")), `(enum? 'kind')`},
 		{Opt(Obj([]Param{

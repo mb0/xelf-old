@@ -104,7 +104,7 @@ func NeedsInfo(t Type) (ref, params bool) {
 	case KindFlag, KindEnum, KindRec:
 		ref = t.Info == nil || len(t.Ref) == 0
 		return ref, false
-	case KindObj:
+	case KindObj, KindAlt:
 		return false, t.Info == nil || len(t.Params) == 0
 	case KindExp:
 		switch t.Kind {

@@ -43,17 +43,7 @@ func Func(n string, ps []Param) Type { return Type{ExpFunc, &Info{Ref: n, Params
 func Form(n string, ps []Param) Type { return Type{ExpForm, &Info{Ref: n, Params: ps}} }
 
 func VarKind(id uint64) Kind { return KindVar | Kind(id<<SlotSize) }
-func Var(id uint64, opts ...Type) Type {
-	t := Type{Kind: VarKind(id)}
-	if len(opts) > 0 {
-		ps := make([]Param, 0, len(opts))
-		for _, p := range opts {
-			ps = append(ps, Param{Type: p})
-		}
-		t.Info = &Info{Params: ps}
-	}
-	return t
-}
+func Var(id uint64) Type     { return Type{Kind: VarKind(id)} }
 
 // IsOpt returns whether t is an optional type and not any.
 func (t Type) IsOpt() bool {

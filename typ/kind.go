@@ -47,6 +47,9 @@ const (
 	KindTyp  = Spec1
 	KindExp  = Spec2
 
+	KindVar = FlagRef | Spec1
+	KindAlt = FlagRef | Spec2
+
 	KindBool = BaseNum | Spec1
 	KindInt  = BaseNum | Spec2
 	KindReal = BaseNum | Spec3
@@ -62,7 +65,6 @@ const (
 	KindMap = BaseDict | Spec1
 	KindObj = BaseDict | BaseList | Spec1
 
-	KindVar  = FlagRef | Spec1
 	KindFlag = FlagRef | KindInt
 	KindEnum = FlagRef | KindStr
 	KindRec  = FlagRef | KindObj
@@ -111,6 +113,8 @@ func ParseKind(str string) (Kind, error) {
 		return ExpTag, nil
 	case "decl":
 		return ExpDecl, nil
+	case "alt":
+		return KindAlt, nil
 	}
 	var kk Kind
 	if str[len(str)-1] == '?' {
@@ -217,6 +221,8 @@ func simpleStr(k Kind) string {
 			return "@"
 		}
 		return fmt.Sprintf("@%d", k>>SlotSize)
+	case KindAlt:
+		return "alt"
 	case KindArr:
 		return "arr|"
 	case KindMap:
@@ -224,7 +230,7 @@ func simpleStr(k Kind) string {
 	}
 	switch k & MaskRef {
 	case KindRef:
-		return "ref"
+		return "@"
 	case BaseNum:
 		return "num"
 	case BaseChar:

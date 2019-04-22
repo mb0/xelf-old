@@ -181,7 +181,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		}
 		writeRef(b, pre, '@', ref, a)
 		return nil
-	case KindObj, KindExp:
+	case KindObj, KindExp, KindAlt:
 		detail = true
 		fallthrough
 	case KindFlag, KindEnum, KindRec:
