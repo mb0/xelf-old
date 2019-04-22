@@ -10,7 +10,7 @@ import (
 
 // Node is an interface for assignable object literals.
 type Node interface {
-	lit.Obj
+	lit.Record
 	Ptr() interface{}
 	Assign(lit.Lit) error
 }

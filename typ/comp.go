@@ -7,7 +7,8 @@ type Cmp uint64
 // These level bits are the most significant in the set and allow simple compatibility tests.
 //     res < LvlConv
 const (
-	LvlCheck Cmp = 1 << (iota + 24)
+	LvlAbstr Cmp = 1 << (iota + 24)
+	LvlCheck
 	LvlConv
 	LvlComp
 	LvlEqual
@@ -46,8 +47,8 @@ const (
 	CmpConvArr = LvlConv | (1 << iota)
 	// convert from map to another map
 	CmpConvMap
-	// convert from obj to another obj
-	CmpConvObj
+	// convert from rec to another rec
+	CmpConvRec
 )
 
 const (
@@ -57,16 +58,20 @@ const (
 	CmpCheckAny
 	// parse base to spec type
 	CmpCheckSpec
-	// compare list element value types to dst arr or obj
+	// compare list element value types to dst arr or rec
 	CmpCheckList
-	// compare dict element value types to dst map or obj
+	// compare dict element value types to dst map or rec
 	CmpCheckDict
 	// try to convert arr to another arr
 	CmpCheckArr
 	// try to convert map to another map
 	CmpCheckMap
-	// try to convert obj to another obj
-	CmpCheckObj
+	// try to convert rec to another rec
+	CmpCheckRec
+)
+const (
+	CmpAbstrPrim = LvlAbstr | (1 << iota)
+	CmpAbstrCont
 )
 
 // Compare returns compatibility details for a source and destination type.
@@ -138,10 +143,10 @@ func compare(src, dst Type) Cmp {
 		return CmpCheckRef
 	}
 	// we can work with flags and enums as is but rec must be resolved
-	if d == KindRec && (dst.Info == nil || len(dst.Params) == 0) {
+	if d == KindObj && (dst.Info == nil || len(dst.Params) == 0) {
 		return CmpCheckRef
 	}
-	if s == KindRec && (src.Info == nil || len(src.Params) == 0) {
+	if s == KindObj && (src.Info == nil || len(src.Params) == 0) {
 		return CmpCheckRef
 	}
 	// rule out special types, which have strict equality
@@ -175,29 +180,29 @@ func compare(src, dst Type) Cmp {
 		return CmpCompSpec
 	}
 	// handle container base type list and dict
-	if d == BaseList {
-		if s&BaseList == 0 {
+	if d == BaseIdxr {
+		if s&BaseIdxr == 0 {
 			return CmpNone
 		}
 		return CmpCompList
 	}
-	if d == BaseDict {
-		if s&BaseDict == 0 {
+	if d == BaseKeyr {
+		if s&BaseKeyr == 0 {
 			return CmpNone
 		}
 		return CmpCompDict
 	}
-	if s == BaseList {
+	if s == BaseIdxr {
 		switch d & MaskElem {
-		case KindArr, KindObj:
+		case KindList, KindRec:
 		default:
 			return CmpNone
 		}
 		return CmpCheckList
 	}
-	if s == BaseDict {
+	if s == BaseKeyr {
 		switch d & MaskElem {
-		case KindMap, KindObj:
+		case KindDict, KindRec:
 		default:
 			return CmpNone
 		}
@@ -205,8 +210,8 @@ func compare(src, dst Type) Cmp {
 	}
 	// handle specific container src type
 	switch s & MaskElem {
-	case KindArr:
-		if s&MaskElem == KindArr {
+	case KindList:
+		if s&MaskElem == KindList {
 			sub := Compare(src.Elem(), dst.Elem())
 			if sub > LvlConv {
 				return CmpConvArr
@@ -215,8 +220,8 @@ func compare(src, dst Type) Cmp {
 				return CmpCheckArr
 			}
 		}
-	case KindMap:
-		if s&MaskElem == KindMap {
+	case KindDict:
+		if s&MaskElem == KindDict {
 			sub := Compare(src.Elem(), dst.Elem())
 			if sub > LvlConv {
 				return CmpConvMap
@@ -225,14 +230,14 @@ func compare(src, dst Type) Cmp {
 				return CmpCheckArr
 			}
 		}
-	case KindObj:
-		if s&MaskElem == KindObj {
+	case KindRec:
+		if s&MaskElem == KindRec {
 			sub := compareInfo(src.Info, dst.Info)
 			if sub > LvlConv {
-				return CmpConvObj
+				return CmpConvRec
 			}
 			if sub > LvlCheck {
-				return CmpCheckObj
+				return CmpCheckRec
 			}
 		}
 	}
@@ -251,7 +256,7 @@ func compareInfo(src, dst *Info) Cmp {
 	}
 	res := CmpSame
 	if src.Key() != dst.Key() {
-		res = CmpConvObj
+		res = CmpConvRec
 	}
 	if len(src.Params) == 0 {
 		if len(dst.Params) == 0 {

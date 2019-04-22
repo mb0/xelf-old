@@ -42,8 +42,8 @@ type Assignable interface {
 	Assign(Lit) error
 }
 
-// Numer is the common interface for numeric literals.
-type Numer interface {
+// Numeric is the common interface for numeric literals.
+type Numeric interface {
 	Lit
 	// Num returns the numeric value of the literal as float64.
 	Num() float64
@@ -52,8 +52,8 @@ type Numer interface {
 	Val() interface{}
 }
 
-// Charer is the common interface for character literals.
-type Charer interface {
+// Character is the common interface for character literals.
+type Character interface {
 	Lit
 	// Char returns the character format of the literal as string.
 	Char() string
@@ -62,15 +62,15 @@ type Charer interface {
 	Val() interface{}
 }
 
-// Idxer is the common interface for container literals with elements accessible by index.
-type Idxer interface {
+// Indexer is the common interface for container literals with elements accessible by index.
+type Indexer interface {
 	Lit
 	// Len returns the number of contained elements.
 	Len() int
 	// Idx returns the literal of the element at idx or an error.
 	Idx(idx int) (Lit, error)
 	// SetIdx sets the element value at idx to l and returns the indexer or an error.
-	SetIdx(idx int, l Lit) (Idxer, error)
+	SetIdx(idx int, l Lit) (Indexer, error)
 	// IterIdx iterates over elements, calling iter with the elements index and literal value.
 	// If iter returns an error the iteration is aborted.
 	IterIdx(iter func(int, Lit) error) error
@@ -85,36 +85,31 @@ type Keyer interface {
 	Keys() []string
 	// Key returns the literal of the element with key key or an error.
 	Key(key string) (Lit, error)
-	// SetKey sets the elements value with key key to l and returns the keyer or an error.
+	// SetKey sets the elements value with key to l and returns the keyer or an error.
 	SetKey(key string, l Lit) (Keyer, error)
 	// IterKey iterates over elements, calling iter with the elements key and literal value.
 	// If iter returns an error the iteration is aborted.
 	IterKey(iter func(string, Lit) error) error
 }
 
-// Appender is the common interface for both list and arr literals.
+// Appender is the common interface for list literals.
 type Appender interface {
-	Idxer
+	Indexer
 	// Append appends the given literals and returns a new appender or an error
 	Append(...Lit) (Appender, error)
-}
-
-// Arr is the interface for arr literals.
-type Arr interface {
-	Appender
-	// Element returns the arr element type.
+	// Element returns the list element type.
 	Element() typ.Type
 }
 
-// Map is the interface for map literals.
-type Map interface {
+// Dictionary is the interface for dict literals.
+type Dictionary interface {
 	Keyer
-	// Element returns the map element type.
+	// Element returns the dict element type.
 	Element() typ.Type
 }
 
-// Obj is the interface for obj literals.
-type Obj interface {
+// Record is the interface for record literals.
+type Record interface {
 	Lit
 	// Len returns the number of fields.
 	Len() int
@@ -122,12 +117,12 @@ type Obj interface {
 	Keys() []string
 	// Key returns the literal of the field with key key or an error.
 	Key(key string) (Lit, error)
-	// SetKey sets the fields value with key key to l and returns the obj as keyer or an error.
+	// SetKey sets the fields value with key to l and returns the record as keyer or an error.
 	SetKey(key string, l Lit) (Keyer, error)
 	// Idx returns the literal of the field at idx or an error.
 	Idx(idx int) (Lit, error)
-	// SetIdx sets the field value at idx to l and returns the obj as indexer or an error.
-	SetIdx(idx int, l Lit) (Idxer, error)
+	// SetIdx sets the field value at idx to l and returns the record as indexer or an error.
+	SetIdx(idx int, l Lit) (Indexer, error)
 	// IterKey iterates over fields, calling iter with the fields key and literal value.
 	// If iter returns an error the iteration is aborted
 	IterKey(iter func(string, Lit) error) error

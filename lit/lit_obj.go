@@ -8,41 +8,41 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeObj return a new abstract obj literal with the given type or an error.
-func MakeObj(t typ.Type) (*DictObj, error) {
-	if t.Kind&typ.MaskElem != typ.KindObj || t.Info == nil || len(t.Params) == 0 {
+// MakeRec return a new abstract record literal with the given type or an error.
+func MakeRec(t typ.Type) (*Rec, error) {
+	if t.Kind&typ.MaskElem != typ.KindRec || t.Info == nil || len(t.Params) == 0 {
 		return nil, typ.ErrInvalid
 	}
 	list := make([]Keyed, 0, len(t.Params))
 	for _, f := range t.Params {
 		list = append(list, Keyed{f.Key(), ZeroProxy(f.Type)})
 	}
-	return &DictObj{t, Dict{list}}, nil
+	return &Rec{t, Keyr{list}}, nil
 }
 
-// ObjFromKeyed creates a new abstract obj literal from the given list of keyed literals.
-func ObjFromKeyed(list []Keyed) *DictObj {
+// RecFromKeyed creates a new abstract record literal from the given list of keyed literals.
+func RecFromKeyed(list []Keyed) *Rec {
 	fs := make([]typ.Param, 0, len(list))
 	for _, d := range list {
 		fs = append(fs, typ.Param{d.Key, d.Lit.Typ()})
 	}
-	return &DictObj{typ.Obj(fs), Dict{list}}
+	return &Rec{typ.Rec(fs), Keyr{list}}
 }
 
 type (
-	DictObj struct {
+	Rec struct {
 		Type typ.Type
-		Dict
+		Keyr
 	}
-	proxyObj struct {
+	proxyRec struct {
 		proxy
 		idx [][]int
 	}
 )
 
-func (a *DictObj) Typ() typ.Type { return a.Type }
-func (a *DictObj) IsZero() bool {
-	if a.Dict.IsZero() {
+func (a *Rec) Typ() typ.Type { return a.Type }
+func (a *Rec) IsZero() bool {
+	if a.Keyr.IsZero() {
 		return true
 	}
 	for _, k := range a.List {
@@ -52,21 +52,21 @@ func (a *DictObj) IsZero() bool {
 	}
 	return true
 }
-func (a *DictObj) Idx(i int) (Lit, error) {
+func (a *Rec) Idx(i int) (Lit, error) {
 	_, err := a.Type.ParamByIdx(i)
 	if err != nil {
 		return nil, err
 	}
-	return a.Dict.List[i].Lit, nil
+	return a.Keyr.List[i].Lit, nil
 }
-func (a *DictObj) Key(key string) (Lit, error) {
+func (a *Rec) Key(key string) (Lit, error) {
 	_, _, err := a.Type.ParamByKey(key)
 	if err != nil {
 		return nil, err
 	}
-	return a.Dict.Key(key)
+	return a.Keyr.Key(key)
 }
-func (a *DictObj) SetIdx(i int, el Lit) (Idxer, error) {
+func (a *Rec) SetIdx(i int, el Lit) (Indexer, error) {
 	f, err := a.Type.ParamByIdx(i)
 	if err != nil {
 		return a, err
@@ -79,10 +79,10 @@ func (a *DictObj) SetIdx(i int, el Lit) (Idxer, error) {
 			return a, err
 		}
 	}
-	a.Dict.List[i].Lit = el
+	a.Keyr.List[i].Lit = el
 	return a, nil
 }
-func (a *DictObj) SetKey(key string, el Lit) (Keyer, error) {
+func (a *Rec) SetKey(key string, el Lit) (Keyer, error) {
 	f, _, err := a.Type.ParamByKey(key)
 	if err != nil {
 		return a, err
@@ -95,15 +95,15 @@ func (a *DictObj) SetKey(key string, el Lit) (Keyer, error) {
 			return a, err
 		}
 	}
-	res, err := a.Dict.SetKey(key, el)
+	res, err := a.Keyr.SetKey(key, el)
 	if err != nil {
 		return a, err
 	}
-	a.Dict = *res.(*Dict)
+	a.Keyr = *res.(*Keyr)
 	return a, nil
 }
-func (a *DictObj) IterIdx(it func(int, Lit) error) error {
-	for i, el := range a.Dict.List {
+func (a *Rec) IterIdx(it func(int, Lit) error) error {
+	for i, el := range a.Keyr.List {
 		if err := it(i, el.Lit); err != nil {
 			if err == BreakIter {
 				return nil
@@ -113,9 +113,9 @@ func (a *DictObj) IterIdx(it func(int, Lit) error) error {
 	}
 	return nil
 }
-func (a *DictObj) String() string               { return bfr.String(a) }
-func (a *DictObj) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
-func (a *DictObj) WriteBfr(b *bfr.Ctx) error {
+func (a *Rec) String() string               { return bfr.String(a) }
+func (a *Rec) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
+func (a *Rec) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	n := 0
 	for i, f := range a.Type.Params {
@@ -138,12 +138,12 @@ func (a *DictObj) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
-func (p *proxyObj) Assign(l Lit) error {
+func (p *proxyRec) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
 	b, ok := Deopt(l).(Keyer)
-	if !ok || b.IsZero() { // a nil obj?
+	if !ok || b.IsZero() { // a nil rec?
 		v := p.val.Elem()
 		v.Set(reflect.New(v.Type().Elem()))
 		return nil
@@ -170,17 +170,17 @@ func (p *proxyObj) Assign(l Lit) error {
 	})
 }
 
-func (p *proxyObj) Len() int {
+func (p *proxyRec) Len() int {
 	if p.typ.Info != nil {
 		return len(p.typ.Params)
 	}
 	return 0
 }
-func (p *proxyObj) IsZero() bool {
+func (p *proxyRec) IsZero() bool {
 	v := p.el()
 	return !v.IsValid() || v.Kind() == reflect.Ptr && v.IsNil() || p.typ.Info.IsZero()
 }
-func (p *proxyObj) Keys() []string {
+func (p *proxyRec) Keys() []string {
 	if p.typ.Info != nil {
 		res := make([]string, 0, len(p.typ.Params))
 		for _, f := range p.typ.Params {
@@ -190,7 +190,7 @@ func (p *proxyObj) Keys() []string {
 	}
 	return nil
 }
-func (p *proxyObj) Idx(i int) (Lit, error) {
+func (p *proxyRec) Idx(i int) (Lit, error) {
 	f, err := p.typ.ParamByIdx(i)
 	if err != nil {
 		return nil, err
@@ -204,7 +204,7 @@ func (p *proxyObj) Idx(i int) (Lit, error) {
 	}
 	return Null(f.Type), nil
 }
-func (p *proxyObj) Key(k string) (Lit, error) {
+func (p *proxyRec) Key(k string) (Lit, error) {
 	f, i, err := p.typ.ParamByKey(k)
 	if err != nil {
 		return nil, err
@@ -219,7 +219,7 @@ func (p *proxyObj) Key(k string) (Lit, error) {
 	}
 	return Null(f.Type), nil
 }
-func (p *proxyObj) SetIdx(i int, l Lit) (Idxer, error) {
+func (p *proxyRec) SetIdx(i int, l Lit) (Indexer, error) {
 	_, err := p.typ.ParamByIdx(i)
 	if err != nil {
 		return p, err
@@ -229,7 +229,7 @@ func (p *proxyObj) SetIdx(i int, l Lit) (Idxer, error) {
 	}
 	return p, ErrNotStruct
 }
-func (p *proxyObj) SetKey(k string, l Lit) (Keyer, error) {
+func (p *proxyRec) SetKey(k string, l Lit) (Keyer, error) {
 	_, i, err := p.typ.ParamByKey(k)
 	if err != nil {
 		return p, err
@@ -252,7 +252,7 @@ func fieldByIndex(v reflect.Value, idx []int) reflect.Value {
 	}
 	return v
 }
-func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
+func (p *proxyRec) IterIdx(it func(int, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
 		for i, f := range p.typ.Params {
 			var el Lit
@@ -275,7 +275,7 @@ func (p *proxyObj) IterIdx(it func(int, Lit) error) (err error) {
 	}
 	return nil
 }
-func (p *proxyObj) IterKey(it func(string, Lit) error) (err error) {
+func (p *proxyRec) IterKey(it func(string, Lit) error) (err error) {
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {
 		for i, f := range p.typ.Params {
 			var el Lit
@@ -298,9 +298,9 @@ func (p *proxyObj) IterKey(it func(string, Lit) error) (err error) {
 	}
 	return nil
 }
-func (p *proxyObj) String() string               { return bfr.String(p) }
-func (p *proxyObj) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
-func (p *proxyObj) WriteBfr(b *bfr.Ctx) error {
+func (p *proxyRec) String() string               { return bfr.String(p) }
+func (p *proxyRec) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
+func (p *proxyRec) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	n := 0
 	if v, ok := p.elem(reflect.Struct); ok && p.typ.Info != nil {

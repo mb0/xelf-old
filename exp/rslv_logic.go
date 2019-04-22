@@ -14,7 +14,7 @@ var (
 
 func init() {
 	core.add("fail", []typ.Param{{Name: "plain"}, {Type: typ.Any}}, rslvFail)
-	plainBool := []typ.Param{{Name: "plain", Type: typ.List}, {Type: typ.Bool}}
+	plainBool := []typ.Param{{Name: "plain", Type: typ.Idxer}, {Type: typ.Bool}}
 	core.add("or", plainBool, rslvOr)
 	formAnd = core.add("and", plainBool, rslvAnd)
 	formBool = core.add("(bool)", plainBool, rslvBool)

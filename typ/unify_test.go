@@ -19,10 +19,10 @@ func TestUnify(t *testing.T) {
 		{Alt(Num, Int), Real, Num},
 		{Int, Alt(Num, Int), Int},
 		{Real, Alt(Num, Int), Num},
-		{Arr(Int), List, Arr(Int)},
-		{List, Arr(Int), Arr(Int)},
-		{Arr(Int), Arr(Int), Arr(Int)},
-		{Arr(Real), Arr(Int), Arr(Num)},
+		{List(Int), Idxer, List(Int)},
+		{Idxer, List(Int), List(Int)},
+		{List(Int), List(Int), List(Int)},
+		{List(Real), List(Int), List(Num)},
 		{Alt(Char, Str, Raw), UUID, Char},
 		{Alt(Char, Str), Time, Char},
 		{Alt(Num, Int), Time, Num},
@@ -57,7 +57,7 @@ func TestUnifyError(t *testing.T) {
 	}{
 		{Num, Char},
 		{Alt(Num, Int), Char},
-		{Arr(Alt(Num)), Arr(Char)},
+		{List(Alt(Num)), List(Char)},
 	}
 	for _, test := range tests {
 		c := new(Ctx)

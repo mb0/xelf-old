@@ -117,19 +117,19 @@ func TestStdResolve(t *testing.T) {
 		{`(max 3 2 1)`, lit.Num(3)},
 		{`(cat 'a' 'b' 'c')`, lit.Str("abc")},
 		{`(cat (raw 'a') 'b' 'c')`, lit.Raw("abc")},
-		{`(cat [1] [2] [3])`, lit.List{lit.Num(1), lit.Num(2), lit.Num(3)}},
-		{`(apd [] 1 2 3)`, lit.List{lit.Num(1), lit.Num(2), lit.Num(3)}},
-		{`([] 1 2 3)`, lit.List{lit.Num(1), lit.Num(2), lit.Num(3)}},
-		{`(list (arr|int 1 2 3))`, lit.List{lit.Int(1), lit.Int(2), lit.Int(3)}},
-		{`(set {} +x +y 3)`, &lit.Dict{List: []lit.Keyed{
+		{`(cat [1] [2] [3])`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
+		{`(apd [] 1 2 3)`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
+		{`([] 1 2 3)`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
+		{`(list (list|int 1 2 3))`, lit.Idxr{lit.Int(1), lit.Int(2), lit.Int(3)}},
+		{`(set {} +x +y 3)`, &lit.Keyr{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
 		}}},
-		{`({} +x +y 3)`, &lit.Dict{List: []lit.Keyed{
+		{`({} +x +y 3)`, &lit.Keyr{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
 		}}},
-		{`(dict (map|int +x +y 3))`, &lit.Dict{List: []lit.Keyed{
+		{`(dict (dict|int +x +y 3))`, &lit.Keyr{List: []lit.Keyed{
 			{"x", lit.Int(3)},
 			{"y", lit.Int(3)},
 		}}},
@@ -157,14 +157,14 @@ func TestStdResolve(t *testing.T) {
 		{`(nth [1 2 3 4 5] -3)`, lit.Num(3)},
 		{`(fst [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Num(2)},
 		{`(lst [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Num(4)},
-		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.List{
+		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Idxr{
 			lit.Num(2), lit.Num(4),
 		}},
-		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 1)))`, lit.List{
+		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 1)))`, lit.Idxr{
 			lit.Num(1), lit.Num(3), lit.Num(5),
 		}},
-		{`(map [1 2 3 4] (fn +a num - num (mul _ _)))`, lit.ListArr{Elem: typ.Num,
-			List: lit.List{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
+		{`(map [1 2 3 4] (fn +a num - num (mul _ _)))`, lit.List{Elem: typ.Num,
+			Idxr: lit.Idxr{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
 		}},
 		{`(fold ['alice' 'bob' 'calvin'] 'hello'` +
 			`(fn +a +v str +i int - str (cat _ (if .i ',') ' ' .v)))`,
@@ -174,17 +174,17 @@ func TestStdResolve(t *testing.T) {
 			lit.Str("hello calvin, bob, alice"),
 		},
 		{`(let +a int @a)`, typ.Int},
-		{`(let +a (obj +b int) @a.b)`, typ.Int},
-		{`(let +a int +b arr|@a @b)`, typ.Arr(typ.Int)},
+		{`(let +a (rec +b int) @a.b)`, typ.Int},
+		{`(let +a int +b list|@a @b)`, typ.List(typ.Int)},
 		{`(let +f (fn - int 1) (f))`, lit.Int(1)},
 		{`(let +f (fn +a - int (add .a 1)) (f 1))`, lit.Int(2)},
 		{`(let +f (fn +a - int (mul _ _)) (f 3))`, lit.Int(9)},
-		{`(let +sum (fn +n arr|int - int
+		{`(let +sum (fn +n list|int - int
 				(fold .n 0 (fn +a +b - int (add .a .b))))
 			(sum 1 2 3)
 		)`, lit.Int(6)},
 		{`(let 'test' .)`, lit.Char("test")},
-		{`(let ((obj +a int) [1]) .a)`, lit.Int(1)},
+		{`(let ((rec +a int) [1]) .a)`, lit.Int(1)},
 		{`(let [1 2 3 4 5] +even (fn +a num - bool (eq (rem _ 2) 0)) (and
 			(eq (len "test") 4)
 			(eq (len .) 5)

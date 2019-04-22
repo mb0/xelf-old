@@ -26,7 +26,7 @@ func TestReflectFunc(t *testing.T) {
 		{strings.Split, "", nil, typ.Func("", []typ.Param{
 			{Type: typ.Str},
 			{Type: typ.Str},
-			{Type: typ.Arr(typ.Str)},
+			{Type: typ.List(typ.Str)},
 		}), false},
 		{time.Parse, "", nil, typ.Func("", []typ.Param{
 			{Type: typ.Str},

@@ -44,9 +44,9 @@ func Unify(c *Ctx, a, b Type) error {
 	case CmpCheckList, CmpCheckDict, CmpCompSpec, CmpCheckAny:
 		return bindAlts(c, av, bv, a, b, x, y, v, w, x)
 	case CmpConvArr, CmpCheckArr:
-		return bindAlts(c, av, bv, a, b, x, y, v, w, Type{KindArr, nfo})
+		return bindAlts(c, av, bv, a, b, x, y, v, w, Type{KindList, nfo})
 	case CmpConvMap, CmpCheckMap:
-		return bindAlts(c, av, bv, a, b, x, y, v, w, Type{KindMap, nfo})
+		return bindAlts(c, av, bv, a, b, x, y, v, w, Type{KindDict, nfo})
 	default:
 		if prim := v.Kind & MaskBase; prim != 0 && w.Kind&prim != 0 {
 			if elem := v.Kind & MaskElem; elem == w.Kind&MaskElem {

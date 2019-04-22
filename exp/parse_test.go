@@ -39,7 +39,7 @@ func TestParse(t *testing.T) {
 			&Atom{typ.Bool, src(1, 5)},
 			&Atom{lit.Num(1), src(19, 20)},
 		}}},
-		{`(obj +x +y int)`, &Atom{typ.Obj([]typ.Param{
+		{`(rec +x +y int)`, &Atom{typ.Rec([]typ.Param{
 			{"x", typ.Int},
 			{"y", typ.Int},
 		}), src(0, 15)}},

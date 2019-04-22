@@ -44,18 +44,18 @@ func Zero(t typ.Type) Lit {
 		return ZeroTime
 	case typ.KindSpan:
 		return ZeroSpan
-	case typ.BaseList:
-		return (List)(nil)
-	case typ.BaseDict:
-		return &Dict{}
-	case typ.KindArr:
-		a, _ := MakeArr(t, 0)
+	case typ.BaseIdxr:
+		return (Idxr)(nil)
+	case typ.BaseKeyr:
+		return &Keyr{}
+	case typ.KindList:
+		a, _ := MakeList(t, 0)
 		return a
-	case typ.KindMap:
-		a, _ := MakeMap(t)
+	case typ.KindDict:
+		a, _ := MakeDict(t)
 		return a
-	case typ.KindObj, typ.KindRec:
-		a, _ := MakeObj(t)
+	case typ.KindRec, typ.KindObj:
+		a, _ := MakeRec(t)
 		return a
 	}
 	return Null(t)
@@ -83,16 +83,16 @@ func ZeroProxy(tt typ.Type) (res Assignable) {
 		res = new(Time)
 	case typ.KindSpan:
 		res = new(Span)
-	case typ.BaseList:
-		res = new(List)
-	case typ.BaseDict:
-		res = &Dict{}
-	case typ.KindArr:
-		res, _ = MakeArr(t, 0)
-	case typ.KindMap:
-		res, _ = MakeMap(t)
-	case typ.KindObj, typ.KindRec:
-		res, _ = MakeObj(t)
+	case typ.BaseIdxr:
+		res = new(Idxr)
+	case typ.BaseKeyr:
+		res = &Keyr{}
+	case typ.KindList:
+		res, _ = MakeList(t, 0)
+	case typ.KindDict:
+		res, _ = MakeDict(t)
+	case typ.KindRec, typ.KindObj:
+		res, _ = MakeRec(t)
 	}
 	if res == nil {
 		return &anyProxy{reflect.ValueOf(new(interface{})), Nil}

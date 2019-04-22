@@ -99,13 +99,13 @@ func AdaptValue(val reflect.Value) (Lit, error) {
 	return l, nil
 }
 
-func adaptArr(v reflect.Value) (Arr, error) {
+func adaptArr(v reflect.Value) (Appender, error) {
 	et, err := ReflectType(v.Type().Elem())
 	if err != nil {
 		return nil, err
 	}
 	n := v.Len()
-	res, err := MakeArr(typ.Arr(et), n)
+	res, err := MakeList(typ.List(et), n)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +122,13 @@ func adaptArr(v reflect.Value) (Arr, error) {
 	return res, nil
 }
 
-func adaptMap(v reflect.Value) (Map, error) {
+func adaptMap(v reflect.Value) (Dictionary, error) {
 	mt, err := ReflectType(v.Type())
 	if err != nil {
 		return nil, err
 	}
 	keys := v.MapKeys()
-	res, err := MakeMapCap(mt, len(keys))
+	res, err := MakeDictCap(mt, len(keys))
 	if err != nil {
 		return nil, err
 	}
@@ -145,12 +145,12 @@ func adaptMap(v reflect.Value) (Map, error) {
 	return res, nil
 }
 
-func adaptObj(v reflect.Value) (Obj, error) {
+func adaptObj(v reflect.Value) (Record, error) {
 	nfo, idx, err := reflectFields(v.Type(), make(infoMap))
 	if err != nil {
 		return nil, err
 	}
-	res, err := MakeObj(typ.Obj(nfo.Params))
+	res, err := MakeRec(typ.Rec(nfo.Params))
 	if err != nil {
 		return nil, err
 	}

@@ -18,15 +18,15 @@ var (
 func init() {
 	plainInfer := []typ.Param{
 		{Name: "a", Type: typ.Any},
-		{Name: "plain", Type: typ.List},
+		{Name: "plain", Type: typ.Idxer},
 		{Type: typ.Infer},
 	}
 	core.add("cat", plainInfer, rslvCat)
 	core.add("apd", plainInfer, rslvApd)
 	core.add("set", []typ.Param{
-		{Name: "a", Type: typ.Dict},
-		{Name: "plain", Type: typ.List},
-		{Name: "unis", Type: typ.Dict},
+		{Name: "a", Type: typ.Keyer},
+		{Name: "plain", Type: typ.Idxer},
+		{Name: "unis", Type: typ.Keyer},
 		{Type: typ.Infer},
 	}, rslvSet)
 }
@@ -65,7 +65,7 @@ func rslvCat(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 			break
 		}
 		for _, arg := range lo.Args(1) {
-			idxr, ok := arg.(lit.Idxer)
+			idxr, ok := arg.(lit.Indexer)
 			if !ok {
 				return nil, errCatLit
 			}
@@ -173,7 +173,7 @@ func catChar(b bfr.B, raw bool, fst Lit, args []El) error {
 }
 func writeChar(b bfr.B, l Lit) (err error) {
 	l = deopt(l)
-	c, ok := l.(lit.Charer)
+	c, ok := l.(lit.Character)
 	if ok {
 		switch v := c.Val().(type) {
 		case []byte:

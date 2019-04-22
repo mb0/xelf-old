@@ -83,12 +83,12 @@ func FuncArgs(x *Call) (*Layout, error) {
 	return &Layout{x.Spec.Arg(), args}, nil
 }
 
-func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.ListArr, error) {
+func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.List, error) {
 	els, err := c.ResolveAll(env, args, et)
 	if err != nil {
 		return nil, err
 	}
-	res := make(lit.List, 0, len(els))
+	res := make(lit.Idxr, 0, len(els))
 	for _, el := range els {
 		l := el.(Lit)
 		if et != typ.Any {
@@ -99,7 +99,7 @@ func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.ListArr, erro
 		}
 		res = append(res, l)
 	}
-	return &lit.ListArr{et, res}, nil
+	return &lit.List{et, res}, nil
 }
 
 func ResolveFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
@@ -161,7 +161,7 @@ func ResolveFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
 func isVariadic(ps []typ.Param) bool {
 	if len(ps) != 0 {
 		switch ps[len(ps)-1].Type.Kind & typ.SlotMask {
-		case typ.BaseList, typ.KindArr:
+		case typ.BaseIdxr, typ.KindList:
 			return true
 		}
 	}

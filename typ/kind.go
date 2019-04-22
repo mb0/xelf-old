@@ -7,17 +7,17 @@ import (
 )
 
 // Kind is a bit-set describing a type. It represents all type information except reference names
-// and object fields. It is a handy implementation detail, but not part of the xelf specification.
+// and record fields. It is a handy implementation detail, but not part of the xelf specification.
 type Kind uint64
 
 func (Kind) Flags() map[string]int64 { return kindConsts }
 
-// A Kind consists of up to seven slots each eight bits wide. The first slot uses the least
-// significant byte. The following slots are only used for arr and map type slots.
+// A Kind consists of one slot that uses the least significant byte and stores the kind bits.
+// The rest of the bytes is used by expression types to store extended bits and by type variables
+// to store a unique type id.
 const (
-	SlotCount = 7
-	SlotSize  = 8
-	SlotMask  = 0xff
+	SlotSize = 8
+	SlotMask = 0xff
 )
 
 // Each bit in a slot has a certain meaning. The first four bits specify a base type, next two bits
@@ -25,8 +25,8 @@ const (
 const (
 	BaseNum  Kind = 1 << iota // 0000 0001
 	BaseChar                  // 0000 0010
-	BaseList                  // 0000 0100
-	BaseDict                  // 0000 1000
+	BaseIdxr                  // 0000 0100
+	BaseKeyr                  // 0000 1000
 	Spec1                     // 0001 0000
 	Spec2                     // 0010 0000
 	FlagRef                   // 0100 0000
@@ -34,7 +34,7 @@ const (
 
 	Spec3    = Spec1 | Spec2       // 0011 0000
 	MaskPrim = BaseNum | BaseChar  // 0000 0011
-	MaskCont = BaseList | BaseDict // 0000 1100
+	MaskCont = BaseIdxr | BaseKeyr // 0000 1100
 	MaskBase = MaskPrim | MaskCont // 0000 1111
 	MaskElem = MaskBase | Spec3    // 0011 1111
 	MaskRef  = MaskElem | FlagRef  // 0111 1111
@@ -61,18 +61,18 @@ const (
 	KindTime = BaseChar | BaseNum | Spec1
 	KindSpan = BaseChar | BaseNum | Spec2
 
-	KindArr = BaseList | Spec1
-	KindMap = BaseDict | Spec1
-	KindObj = BaseDict | BaseList | Spec1
+	KindList = BaseIdxr | Spec1
+	KindDict = BaseKeyr | Spec1
+	KindRec  = BaseKeyr | BaseIdxr | Spec1
 
 	KindFlag = FlagRef | KindInt
 	KindEnum = FlagRef | KindStr
-	KindRec  = FlagRef | KindObj
+	KindObj  = FlagRef | KindRec
 )
 const (
-	ExpDyn  = KindExp | BaseList<<SlotSize
-	ExpForm = KindExp | BaseDict<<SlotSize
-	ExpFunc = KindExp | KindObj<<SlotSize
+	ExpDyn  = KindExp | BaseIdxr<<SlotSize
+	ExpForm = KindExp | BaseKeyr<<SlotSize
+	ExpFunc = KindExp | KindRec<<SlotSize
 	ExpSym  = KindExp | KindAny<<SlotSize
 	ExpTag  = KindExp | KindStr<<SlotSize
 	ExpDecl = KindExp | KindRaw<<SlotSize
@@ -82,12 +82,12 @@ func ParseKind(str string) (Kind, error) {
 	if len(str) == 0 {
 		return KindVoid, ErrInvalid
 	}
-	if len(str) > 4 && str[3] == '|' {
-		switch str[:3] {
-		case "arr":
-			return KindArr, nil
-		case "map":
-			return KindMap, nil
+	if len(str) > 5 && str[4] == '|' {
+		switch str[:4] {
+		case "list":
+			return KindList, nil
+		case "dict":
+			return KindDict, nil
 		}
 	}
 	switch str {
@@ -98,9 +98,9 @@ func ParseKind(str string) (Kind, error) {
 	case "typ":
 		return KindTyp, nil
 	case "list":
-		return BaseList, nil
+		return BaseIdxr, nil
 	case "dict":
-		return BaseDict, nil
+		return BaseKeyr, nil
 	case "sym":
 		return ExpSym, nil
 	case "dyn":
@@ -147,14 +147,14 @@ func ParseKind(str string) (Kind, error) {
 		return kk | KindTime, nil
 	case "span":
 		return kk | KindSpan, nil
-	case "obj":
-		return kk | KindObj, nil
+	case "rec":
+		return kk | KindRec, nil
 	case "flag":
 		return kk | KindFlag, nil
 	case "enum":
 		return kk | KindEnum, nil
-	case "rec":
-		return kk | KindRec, nil
+	case "obj":
+		return kk | KindObj, nil
 	}
 	return KindVoid, ErrInvalid
 }
@@ -223,10 +223,10 @@ func simpleStr(k Kind) string {
 		return fmt.Sprintf("@%d", k>>SlotSize)
 	case KindAlt:
 		return "alt"
-	case KindArr:
-		return "arr|"
-	case KindMap:
-		return "map|"
+	case KindList:
+		return "list|"
+	case KindDict:
+		return "dict|"
 	}
 	switch k & MaskRef {
 	case KindRef:
@@ -235,9 +235,9 @@ func simpleStr(k Kind) string {
 		return "num"
 	case BaseChar:
 		return "char"
-	case BaseList:
+	case BaseIdxr:
 		return "list"
-	case BaseDict:
+	case BaseKeyr:
 		return "dict"
 	case KindBool:
 		return "bool"
@@ -255,14 +255,14 @@ func simpleStr(k Kind) string {
 		return "time"
 	case KindSpan:
 		return "span"
-	case KindObj:
-		return "obj"
+	case KindRec:
+		return "rec"
 	case KindFlag:
 		return "flag"
 	case KindEnum:
 		return "enum"
-	case KindRec:
-		return "rec"
+	case KindObj:
+		return "obj"
 	}
 	return ""
 }
@@ -280,10 +280,10 @@ var kindConsts = map[string]int64{
 	"UUID": int64(KindUUID),
 	"Time": int64(KindTime),
 	"Span": int64(KindSpan),
-	"Arr":  int64(KindArr),
-	"Map":  int64(KindMap),
-	"Obj":  int64(KindObj),
+	"List": int64(KindList),
+	"Dict": int64(KindDict),
+	"Rec":  int64(KindRec),
 	"Flag": int64(KindFlag),
 	"Enum": int64(KindEnum),
-	"Rec":  int64(KindRec),
+	"Obj":  int64(KindObj),
 }

@@ -58,7 +58,7 @@ func Proxy(ptr interface{}) (Assignable, error) {
 // ProxyValue returns an assignable literal for the reflect value v or an error.
 // Types convertible to the following types use an assignable adapter type:
 //     bool, int64, float64, string, [16]byte, []byte, time.Time, List and *Dict
-// The numeric types int, int32, uint, uint32, float32 all arr, map and obj types
+// The numeric types int, int32, uint, uint32, float32 all list, dict and record types
 // use a proxy variant using reflection.
 func ProxyValue(ptr reflect.Value) (Assignable, error) {
 	if ptr.Kind() != reflect.Ptr {
@@ -93,7 +93,7 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 			return (*Raw)(v.Interface().(*[]byte)), nil
 		}
 		if v, ok := ptrRef(et, refList, ptr); ok {
-			return v.Interface().(*List), nil
+			return v.Interface().(*Idxr), nil
 		}
 	case reflect.Array:
 		if v, ok := ptrRef(et, refUUID, ptr); ok {
@@ -107,13 +107,13 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 			return typProxy{v.Interface().(*typ.Type)}, nil
 		}
 		if v, ok := toRef(ptr.Type(), refDict, ptr); ok {
-			return v.Interface().(*Dict), nil
+			return v.Interface().(*Keyr), nil
 		}
 	case reflect.Ptr:
 		if v, ok := ptrRef(et, refDict, ptr); ok {
-			dptr := v.Interface().(**Dict)
+			dptr := v.Interface().(**Keyr)
 			if *dptr == nil {
-				*dptr = &Dict{}
+				*dptr = &Keyr{}
 			}
 			return *dptr, nil
 		}
@@ -130,10 +130,10 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 	switch t.Kind & typ.MaskBase {
 	case typ.BaseNum:
 		return &proxyNum{p}, nil
-	case typ.BaseList:
-		return &proxyArr{p}, nil
-	case typ.BaseDict:
-		return &proxyMap{p}, nil
+	case typ.BaseIdxr:
+		return &proxyList{p}, nil
+	case typ.BaseKeyr:
+		return &proxyDict{p}, nil
 	case typ.MaskCont:
 		if et.Kind() == reflect.Ptr {
 			et = et.Elem()
@@ -142,7 +142,7 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &proxyObj{p, idx}, nil
+		return &proxyRec{p, idx}, nil
 	}
 	return nil, cor.Errorf("cannot proxy type %s as %s", ptr.Type(), t)
 }
@@ -218,9 +218,9 @@ func (p *anyProxy) Assign(l Lit) error {
 	p.Lit = l
 	var v interface{}
 	switch x := l.(type) {
-	case Charer:
+	case Character:
 		v = x.Val()
-	case Numer:
+	case Numeric:
 		v = x.Val()
 	case Assignable:
 		v = x.Ptr()

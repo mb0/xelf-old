@@ -18,8 +18,8 @@ var (
 	Time = Type{Kind: KindTime}
 	Span = Type{Kind: KindSpan}
 
-	List = Type{Kind: BaseList}
-	Dict = Type{Kind: BaseDict}
+	Idxer = Type{Kind: BaseIdxr}
+	Keyer = Type{Kind: BaseKeyr}
 
 	Infer = Type{Kind: KindVar}
 
@@ -30,14 +30,14 @@ var (
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | FlagOpt, t.Info} }
-func Arr(t Type) Type     { return Type{KindArr, &Info{Params: []Param{{Type: t}}}} }
-func Map(t Type) Type     { return Type{KindMap, &Info{Params: []Param{{Type: t}}}} }
-func Obj(fs []Param) Type { return Type{KindObj, &Info{Params: fs}} }
+func List(t Type) Type    { return Type{KindList, &Info{Params: []Param{{Type: t}}}} }
+func Dict(t Type) Type    { return Type{KindDict, &Info{Params: []Param{{Type: t}}}} }
+func Rec(fs []Param) Type { return Type{KindRec, &Info{Params: fs}} }
 
 func Ref(n string) Type  { return Type{KindRef, &Info{Ref: n}} }
 func Flag(n string) Type { return Type{KindFlag, &Info{Ref: n}} }
 func Enum(n string) Type { return Type{KindEnum, &Info{Ref: n}} }
-func Rec(n string) Type  { return Type{KindRec, &Info{Ref: n}} }
+func Obj(n string) Type  { return Type{KindObj, &Info{Ref: n}} }
 
 func Func(n string, ps []Param) Type { return Type{ExpFunc, &Info{Ref: n, Params: ps}} }
 func Form(n string, ps []Param) Type { return Type{ExpForm, &Info{Ref: n, Params: ps}} }
@@ -62,21 +62,21 @@ func (t Type) Deopt() (_ Type, ok bool) {
 // Elem returns a generalized element type for container types and void otherwise.
 func (t Type) Elem() Type {
 	switch t.Kind & MaskElem {
-	case KindArr, KindMap:
+	case KindList, KindDict:
 		if t.Info == nil || len(t.Params) == 0 {
 			return Any
 		}
 		return t.Params[0].Type
-	case BaseList, BaseDict:
+	case BaseIdxr, BaseKeyr:
 		return Any
-	case KindObj:
+	case KindRec:
 		// TODO consider an attempt to unify field types
 		return Any
 	}
 	return Void
 }
 
-// Last returns the last element type if t is a arr or map type otherwise t is returned as is.
+// Last returns the last element type if t is a list or dict type otherwise t is returned as is.
 func (t Type) Last() Type {
 	el := t.Elem()
 	for el != Void && el != Any {

@@ -8,32 +8,32 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeMap returns a new abstract map literal with the given type or an error.
-func MakeMap(t typ.Type) (*DictMap, error) {
-	return MakeMapCap(t, 0)
+// MakeDict returns a new abstract dict literal with the given type or an error.
+func MakeDict(t typ.Type) (*Dict, error) {
+	return MakeDictCap(t, 0)
 }
 
-// MakeMapCap returns a new abstract map literal with the given type and cap or an error.
-func MakeMapCap(t typ.Type, cap int) (*DictMap, error) {
-	if t.Kind&typ.MaskElem != typ.KindMap {
+// MakeDictCap returns a new abstract dict literal with the given type and cap or an error.
+func MakeDictCap(t typ.Type, cap int) (*Dict, error) {
+	if t.Kind&typ.MaskElem != typ.KindDict {
 		return nil, typ.ErrInvalid
 	}
 	list := make([]Keyed, 0, cap)
-	return &DictMap{t.Elem(), Dict{list}}, nil
+	return &Dict{t.Elem(), Keyr{list}}, nil
 }
 
 type (
-	DictMap struct {
+	Dict struct {
 		Elem typ.Type
-		Dict
+		Keyr
 	}
-	proxyMap struct{ proxy }
+	proxyDict struct{ proxy }
 )
 
-func (a *DictMap) Typ() typ.Type     { return typ.Map(a.Elem) }
-func (a *DictMap) Element() typ.Type { return a.Elem }
-func (a *DictMap) Key(k string) (Lit, error) {
-	l, err := a.Dict.Key(k)
+func (a *Dict) Typ() typ.Type     { return typ.Dict(a.Elem) }
+func (a *Dict) Element() typ.Type { return a.Elem }
+func (a *Dict) Key(k string) (Lit, error) {
+	l, err := a.Keyr.Key(k)
 	if err != nil {
 		return nil, err
 	}
@@ -42,22 +42,22 @@ func (a *DictMap) Key(k string) (Lit, error) {
 	}
 	return l, nil
 }
-func (a *DictMap) SetKey(key string, el Lit) (res Keyer, err error) {
+func (a *Dict) SetKey(key string, el Lit) (res Keyer, err error) {
 	if el != nil {
 		el, err = Convert(el, a.Elem, 0)
 		if err != nil {
 			return a, err
 		}
 	}
-	res, err = a.Dict.SetKey(key, el)
+	res, err = a.Keyr.SetKey(key, el)
 	if err != nil {
 		return a, err
 	}
-	a.Dict = *res.(*Dict)
+	a.Keyr = *res.(*Keyr)
 	return a, nil
 }
 
-func (p *proxyMap) Assign(l Lit) error {
+func (p *proxyDict) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
@@ -87,21 +87,21 @@ func (p *proxyMap) Assign(l Lit) error {
 		return nil
 	})
 }
-func (p *proxyMap) Element() typ.Type { return p.typ.Elem() }
-func (p *proxyMap) Len() int {
+func (p *proxyDict) Element() typ.Type { return p.typ.Elem() }
+func (p *proxyDict) Len() int {
 	if v, ok := p.elem(reflect.Map); ok {
 		return v.Len()
 	}
 	return 0
 }
-func (p *proxyMap) IsZero() bool { return p.Len() == 0 }
-func (p *proxyMap) Key(k string) (Lit, error) {
+func (p *proxyDict) IsZero() bool { return p.Len() == 0 }
+func (p *proxyDict) Key(k string) (Lit, error) {
 	if v, ok := p.elem(reflect.Map); ok {
 		return AdaptValue(v.MapIndex(reflect.ValueOf(k)))
 	}
 	return Null(p.typ.Elem()), nil
 }
-func (p *proxyMap) SetKey(k string, l Lit) (Keyer, error) {
+func (p *proxyDict) SetKey(k string, l Lit) (Keyer, error) {
 	if v, ok := p.elem(reflect.Map); ok {
 		ev := reflect.New(v.Type().Elem())
 		err := AssignToValue(l, ev)
@@ -118,7 +118,7 @@ func (p *proxyMap) SetKey(k string, l Lit) (Keyer, error) {
 	return p, cor.Errorf("nil keyer")
 }
 
-func (p *proxyMap) Keys() []string {
+func (p *proxyDict) Keys() []string {
 	if v, ok := p.elem(reflect.Map); ok {
 		keys := v.MapKeys()
 		res := make([]string, 0, len(keys))
@@ -129,7 +129,7 @@ func (p *proxyMap) Keys() []string {
 	return nil
 }
 
-func (p *proxyMap) IterKey(it func(string, Lit) error) error {
+func (p *proxyDict) IterKey(it func(string, Lit) error) error {
 	if v, ok := p.elem(reflect.Map); ok {
 		keys := v.MapKeys()
 		for _, k := range keys {
@@ -149,9 +149,9 @@ func (p *proxyMap) IterKey(it func(string, Lit) error) error {
 	return nil
 }
 
-func (p *proxyMap) String() string               { return bfr.String(p) }
-func (p *proxyMap) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
-func (p *proxyMap) WriteBfr(b *bfr.Ctx) error {
+func (p *proxyDict) String() string               { return bfr.String(p) }
+func (p *proxyDict) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
+func (p *proxyDict) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	i := 0
 	err := p.IterKey(func(k string, el Lit) error {
@@ -168,4 +168,4 @@ func (p *proxyMap) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
-var _, _ Map = &DictMap{}, &proxyMap{}
+var _, _ Dictionary = &Dict{}, &proxyDict{}

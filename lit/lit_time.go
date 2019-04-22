@@ -44,7 +44,7 @@ func (v Span) Seconds() float64 {
 func (v *Time) Ptr() interface{} { return v }
 func (v *Time) Assign(l Lit) error {
 	l = Deopt(l)
-	if b, ok := l.(Charer); ok {
+	if b, ok := l.(Character); ok {
 		if e, ok := b.Val().(time.Time); ok {
 			*v = Time(e)
 			return nil
@@ -59,7 +59,7 @@ func (v *Time) Assign(l Lit) error {
 func (v *Span) Ptr() interface{} { return v }
 func (v *Span) Assign(l Lit) error {
 	l = Deopt(l)
-	if b, ok := l.(Charer); ok {
+	if b, ok := l.(Character); ok {
 		if e, ok := b.Val().(time.Duration); ok {
 			*v = Span(e)
 			return nil

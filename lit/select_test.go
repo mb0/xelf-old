@@ -12,8 +12,8 @@ func TestSetPath(t *testing.T) {
 		el   Lit
 		res  Lit
 	}{
-		{&Dict{}, "a.1.b", True, &Dict{List: []Keyed{
-			{"a", &List{Nil, &Dict{List: []Keyed{
+		{&Keyr{}, "a.1.b", True, &Keyr{List: []Keyed{
+			{"a", &Idxr{Nil, &Keyr{List: []Keyed{
 				{"b", True},
 			}}}},
 		}}},

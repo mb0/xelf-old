@@ -20,8 +20,8 @@ var (
 	refUUID = reflect.TypeOf([16]byte{})
 	refSpan = reflect.TypeOf(time.Second)
 	refTime = reflect.TypeOf(time.Time{})
-	refList = reflect.TypeOf(List(nil))
-	refDict = reflect.TypeOf((*Dict)(nil))
+	refList = reflect.TypeOf(Idxr(nil))
+	refDict = reflect.TypeOf((*Keyr)(nil))
 	refSecs = reflect.TypeOf((*MarkSpan)(nil))
 	refFlag = reflect.TypeOf((*MarkFlag)(nil))
 	refEnum = reflect.TypeOf((*MarkEnum)(nil))
@@ -109,16 +109,16 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 			if !ptr {
 				return typ.Void, typ.ErrInvalid
 			}
-			return typ.Dict, nil
+			return typ.Keyer, nil
 		}
 		nfo, _, err := reflectFields(t, nfos)
 		if err != nil {
 			return typ.Void, err
 		}
-		k := typ.KindObj
+		k := typ.KindRec
 		if tn := t.Name(); tn != "" {
 			if c := tn[0]; c >= 'A' && c <= 'Z' {
-				k = typ.KindRec
+				k = typ.KindObj
 				nfo.Ref = t.String()
 			}
 		}
@@ -129,20 +129,20 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		}
 	case reflect.Map:
 		if !isRef(t.Key(), refStr) {
-			return typ.Void, cor.Error("map key must by string type")
+			return typ.Void, cor.Error("dict key must be string type")
 		}
 		et, err := reflectType(t.Elem(), nfos)
 		if err != nil {
 			return typ.Void, err
 		}
-		res = typ.Map(et)
+		res = typ.Dict(et)
 	case reflect.Slice:
 		if isRef(t, refRaw) {
 			res = typ.Raw
 			break
 		}
 		if isRef(t, refList) {
-			return typ.List, nil
+			return typ.Idxer, nil
 		}
 		if t.Name() == "Dyn" && isRef(t, refEl) {
 			res = typ.Dyn
@@ -152,7 +152,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		if err != nil {
 			return typ.Void, err
 		}
-		res = typ.Arr(et)
+		res = typ.List(et)
 	case reflect.Interface:
 		return typ.Any, nil
 	}
@@ -262,7 +262,7 @@ func collectFields(t reflect.Type, idx []int, col fieldCollector) error {
 		name := f.Name
 		// use simple capitalization if key does not match the lowercase name
 		if key != "" && key != cor.LastKey(name) {
-			name = strings.ToUpper(key[:1]) + key[1:]
+			name = cor.Cased(key)
 		}
 		if key == "" {
 			key = cor.LastKey(name)

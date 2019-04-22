@@ -131,7 +131,7 @@ func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
 	}
 	key := last.Ref
 	switch k {
-	case typ.KindFlag, typ.KindEnum, typ.KindRec:
+	case typ.KindFlag, typ.KindEnum, typ.KindObj:
 		// return already resolved schema types, otherwise add schema prefix '~'
 		if len(last.Params) > 0 || len(last.Consts) > 0 {
 			return t, nil
@@ -243,13 +243,13 @@ func elType(el El) (Type, error) {
 
 func replaceRef(t, el Type) (Type, bool) {
 	switch k := t.Kind & typ.MaskRef; k {
-	case typ.KindArr, typ.KindMap:
+	case typ.KindList, typ.KindDict:
 		n, ok := replaceRef(t.Elem(), el)
 		if ok {
-			if k == typ.KindArr {
-				return typ.Arr(n), true
+			if k == typ.KindList {
+				return typ.List(n), true
 			}
-			return typ.Map(n), true
+			return typ.Dict(n), true
 		}
 	case typ.KindRef, typ.KindVar:
 		return el, true

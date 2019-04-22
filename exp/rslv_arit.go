@@ -17,7 +17,7 @@ func init() {
 	nums2 := []typ.Param{
 		{Name: "a", Type: typ.Num},
 		{Name: "b", Type: typ.Num},
-		{Name: "plain", Type: typ.Arr(typ.Num)},
+		{Name: "plain", Type: typ.List(typ.Num)},
 		{Type: typ.Num},
 	}
 	nums0 := nums2[2:]
@@ -42,7 +42,7 @@ func opAdd(r, n float64) (float64, error) { return r + n, nil }
 func opMul(r, n float64) (float64, error) { return r * n, nil }
 
 // rslvAdd adds up all arguments and converts the sum to the first argument's type.
-// (form 'add' +rest arr|num - num)
+// (form 'add' +rest list|num - num)
 func rslvAdd(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
@@ -52,7 +52,7 @@ func rslvAdd(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 }
 
 // rslvMul multiplies all arguments and converts the product to the first argument's type.
-// (form 'mul' +rest arr|num - num)
+// (form 'mul' +rest list|num - num)
 func rslvMul(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
@@ -63,7 +63,7 @@ func rslvMul(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 
 // rslvSub subtracts the sum of the rest from the first argument and
 // converts to the first argument's type.
-// (form 'sub' +a num +b num +rest arr|num - num)
+// (form 'sub' +a num +b num +rest list|num - num)
 func rslvSub(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
@@ -99,7 +99,7 @@ func rslvSub(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 // rslvDiv divides the product of the rest from the first argument.
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
-// (form 'div' +a num +b num +rest arr|num - num)
+// (form 'div' +a num +b num +rest list|num - num)
 func rslvDiv(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
@@ -150,8 +150,8 @@ func rslvRem(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	if err != nil {
 		return e, err
 	}
-	res := lo.Arg(0).(lit.Numer).Num()
-	mod := lo.Arg(1).(lit.Numer).Num()
+	res := lo.Arg(0).(lit.Numeric).Num()
+	mod := lo.Arg(1).(lit.Numeric).Num()
 	return lit.Int(res) % lit.Int(mod), nil
 }
 
@@ -176,7 +176,7 @@ func rslvAbs(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 		if v < 0 {
 			fst = -v
 		}
-	case lit.Numer:
+	case lit.Numeric:
 		n := v.Num()
 		if n >= 0 {
 			break
@@ -200,7 +200,7 @@ func rslvAbs(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 }
 
 // rslvMin returns the argument with the smalles numeric value or an error.
-// (form 'min' +a num +rest arr|num - num)
+// (form 'min' +a num +rest list|num - num)
 func rslvMin(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
@@ -216,7 +216,7 @@ func rslvMin(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 }
 
 // rslvMax returns the argument with the greatest numeric value or an error.
-// (form 'max' +a num +rest arr|num - num)
+// (form 'max' +a num +rest list|num - num)
 func rslvMax(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
 	if err != nil {
@@ -231,7 +231,7 @@ func rslvMax(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	})
 }
 
-func convNumerType(e El, r lit.Numer) (El, error) {
+func convNumerType(e El, r lit.Numeric) (El, error) {
 	l, ok := e.(Lit)
 	if ok {
 		n, err := lit.Convert(r, l.Typ(), 0)
@@ -243,8 +243,8 @@ func convNumerType(e El, r lit.Numer) (El, error) {
 	return nil, cor.Errorf("%v got %T", ErrExpectNumer, e)
 }
 
-func getNumer(e El) lit.Numer {
-	v, _ := deopt(e).(lit.Numer)
+func getNumer(e El) lit.Numeric {
+	v, _ := deopt(e).(lit.Numeric)
 	return v
 }
 

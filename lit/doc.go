@@ -24,14 +24,14 @@ type. For example:
     (int 1e6)
     (time "2018-11-16T23:52:20")
     (span "7:07:40")
-    ((obj +id uuid +name str?) ["68986386-46ac-47f5-bf47-198ab20e594b" "foo"])
+    ((rec +id uuid +name str?) ["68986386-46ac-47f5-bf47-198ab20e594b" "foo"])
 
 The type usually applies to the whole literal and defines all nested fields types. Which works for
 all fields except any typed fields, those can not fully be represented in the JSON literal format
 and need explicit conversion.
 
-    (arr|@prod {})
-    (arr|any (float 23) (span '7h'))
+    (list|@prod {})
+    (list|any (float 23) (span '7h'))
 
 */
 package lit

@@ -8,34 +8,34 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeArr returns a new abstract arr literal with the given type and len or an error.
-func MakeArr(t typ.Type, len int) (*ListArr, error) {
-	return MakeArrCap(t, len, len)
+// MakeList returns a new abstract list literal with the given type and len or an error.
+func MakeList(t typ.Type, len int) (*List, error) {
+	return MakeListCap(t, len, len)
 }
 
-// MakeArrCap returns a new abstract arr literal with the given type, len and cap or an error.
-func MakeArrCap(t typ.Type, len, cap int) (*ListArr, error) {
-	if t.Kind&typ.MaskElem != typ.KindArr {
+// MakeListCap returns a new abstract list literal with the given type, len and cap or an error.
+func MakeListCap(t typ.Type, len, cap int) (*List, error) {
+	if t.Kind&typ.MaskElem != typ.KindList {
 		return nil, typ.ErrInvalid
 	}
-	res := ListArr{t.Elem(), make(List, len, cap)}
-	for i := range res.List {
-		res.List[i] = Null(res.Elem)
+	res := List{t.Elem(), make(Idxr, len, cap)}
+	for i := range res.Idxr {
+		res.Idxr[i] = Null(res.Elem)
 	}
 	return &res, nil
 }
 
 type (
-	ListArr struct {
+	List struct {
 		Elem typ.Type
-		List
+		Idxr
 	}
-	proxyArr struct{ proxy }
+	proxyList struct{ proxy }
 )
 
-func (a ListArr) Typ() typ.Type     { return typ.Arr(a.Elem) }
-func (a ListArr) Element() typ.Type { return a.Elem }
-func (a ListArr) SetIdx(i int, el Lit) (_ Idxer, err error) {
+func (a List) Typ() typ.Type     { return typ.List(a.Elem) }
+func (a List) Element() typ.Type { return a.Elem }
+func (a List) SetIdx(i int, el Lit) (_ Indexer, err error) {
 	if el == nil {
 		el = Null(a.Elem)
 	} else {
@@ -44,27 +44,27 @@ func (a ListArr) SetIdx(i int, el Lit) (_ Idxer, err error) {
 			return a, err
 		}
 	}
-	_, err = a.List.SetIdx(i, el)
+	_, err = a.Idxr.SetIdx(i, el)
 	return a, err
 }
 
-func (a ListArr) Append(ls ...Lit) (Appender, error) {
+func (a List) Append(ls ...Lit) (Appender, error) {
 	for _, e := range ls {
 		e, err := Convert(e, a.Elem, 0)
 		if err != nil {
 			return nil, err
 		}
-		a.List = append(a.List, e)
+		a.Idxr = append(a.Idxr, e)
 	}
 	return a, nil
 }
 
-func (p *proxyArr) Assign(l Lit) error {
+func (p *proxyList) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
-	b, ok := l.(Idxer)
-	if !ok || b.IsZero() { // a nil arr?
+	b, ok := l.(Indexer)
+	if !ok || b.IsZero() { // a nil list?
 		if p.val.CanAddr() {
 			p.val.Set(reflect.Zero(p.val.Type()))
 		} else {
@@ -101,7 +101,7 @@ func (p *proxyArr) Assign(l Lit) error {
 	return nil
 }
 
-func (p *proxyArr) Append(ls ...Lit) (Appender, error) {
+func (p *proxyList) Append(ls ...Lit) (Appender, error) {
 	v, ok := p.elem(reflect.Slice)
 	if !ok {
 		return nil, ErrNotSlice
@@ -121,15 +121,15 @@ func (p *proxyArr) Append(ls ...Lit) (Appender, error) {
 	return &res, nil
 }
 
-func (p *proxyArr) Element() typ.Type { return p.typ.Elem() }
-func (p *proxyArr) Len() int {
+func (p *proxyList) Element() typ.Type { return p.typ.Elem() }
+func (p *proxyList) Len() int {
 	if v, ok := p.elem(reflect.Slice); ok {
 		return v.Len()
 	}
 	return 0
 }
-func (p *proxyArr) IsZero() bool { return p.Len() == 0 }
-func (p *proxyArr) Idx(i int) (Lit, error) {
+func (p *proxyList) IsZero() bool { return p.Len() == 0 }
+func (p *proxyList) Idx(i int) (Lit, error) {
 	if v, ok := p.elem(reflect.Slice); ok {
 		if i >= 0 && i < v.Len() {
 			return ProxyValue(v.Index(i).Addr())
@@ -137,7 +137,7 @@ func (p *proxyArr) Idx(i int) (Lit, error) {
 	}
 	return nil, ErrIdxBounds
 }
-func (p *proxyArr) SetIdx(i int, l Lit) (Idxer, error) {
+func (p *proxyList) SetIdx(i int, l Lit) (Indexer, error) {
 	if v, ok := p.elem(reflect.Slice); ok {
 		if i >= 0 && i < v.Len() {
 			return p, AssignToValue(l, v.Index(i).Addr())
@@ -145,7 +145,7 @@ func (p *proxyArr) SetIdx(i int, l Lit) (Idxer, error) {
 	}
 	return p, ErrIdxBounds
 }
-func (p *proxyArr) IterIdx(it func(int, Lit) error) error {
+func (p *proxyList) IterIdx(it func(int, Lit) error) error {
 	if v, ok := p.elem(reflect.Slice); ok {
 		for i, n := 0, v.Len(); i < n; i++ {
 			el, err := ProxyValue(v.Index(i).Addr())
@@ -164,9 +164,9 @@ func (p *proxyArr) IterIdx(it func(int, Lit) error) error {
 	return nil
 }
 
-func (p *proxyArr) String() string               { return bfr.String(p) }
-func (p *proxyArr) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
-func (p *proxyArr) WriteBfr(b *bfr.Ctx) error {
+func (p *proxyList) String() string               { return bfr.String(p) }
+func (p *proxyList) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
+func (p *proxyList) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('[')
 	err := p.IterIdx(func(i int, el Lit) error {
 		if i > 0 {
@@ -180,4 +180,4 @@ func (p *proxyArr) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte(']')
 }
 
-var _, _ Arr = &ListArr{}, &proxyArr{}
+var _, _ Appender = &List{}, &proxyList{}

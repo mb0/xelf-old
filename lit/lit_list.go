@@ -8,27 +8,27 @@ import (
 
 var ErrIdxBounds = cor.StrError("idx out of bounds")
 
-// List is a generic container implementing Idxer.
-type List []Lit
+// Idxr is a generic container implementing the indexer type.
+type Idxr []Lit
 
-func (List) Typ() typ.Type  { return typ.List }
-func (l List) IsZero() bool { return len(l) == 0 }
+func (Idxr) Typ() typ.Type  { return typ.Idxer }
+func (l Idxr) IsZero() bool { return len(l) == 0 }
 
-func (l List) Len() int { return len(l) }
-func (l List) Idx(i int) (Lit, error) {
+func (l Idxr) Len() int { return len(l) }
+func (l Idxr) Idx(i int) (Lit, error) {
 	if i < 0 || i >= len(l) {
 		return nil, ErrIdxBounds
 	}
 	return l[i], nil
 }
-func (l List) SetIdx(i int, el Lit) (Idxer, error) {
+func (l Idxr) SetIdx(i int, el Lit) (Indexer, error) {
 	if i < 0 || i >= len(l) {
 		return l, ErrIdxBounds
 	}
 	l[i] = el
 	return l, nil
 }
-func (l List) IterIdx(it func(int, Lit) error) error {
+func (l Idxr) IterIdx(it func(int, Lit) error) error {
 	for i, el := range l {
 		if err := it(i, el); err != nil {
 			if err == BreakIter {
@@ -40,9 +40,9 @@ func (l List) IterIdx(it func(int, Lit) error) error {
 	return nil
 }
 
-func (l List) String() string               { return bfr.String(l) }
-func (l List) MarshalJSON() ([]byte, error) { return bfr.JSON(l) }
-func (l List) WriteBfr(b *bfr.Ctx) error {
+func (l Idxr) String() string               { return bfr.String(l) }
+func (l Idxr) MarshalJSON() ([]byte, error) { return bfr.JSON(l) }
+func (l Idxr) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('[')
 	for i, e := range l {
 		if i > 0 {
@@ -53,14 +53,14 @@ func (l List) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte(']')
 }
 
-func (v *List) Ptr() interface{} { return v }
-func (l *List) Assign(val Lit) error {
+func (v *Idxr) Ptr() interface{} { return v }
+func (l *Idxr) Assign(val Lit) error {
 	switch v := Deopt(val).(type) {
-	case *List:
+	case *Idxr:
 		*l = *v
-	case List:
+	case Idxr:
 		*l = v
-	case Idxer:
+	case Indexer:
 		res := (*l)[:0]
 		err := v.IterIdx(func(i int, e Lit) error {
 			res = append(res, e)
@@ -76,9 +76,10 @@ func (l *List) Assign(val Lit) error {
 	return nil
 }
 
-func (l List) Append(vals ...Lit) (Appender, error) {
+func (l Idxr) Append(vals ...Lit) (Appender, error) {
 	return append(l, vals...), nil
 }
+func (l Idxr) Element() typ.Type { return typ.Any }
 
 func writeSep(b *bfr.Ctx) error {
 	if b.JSON {

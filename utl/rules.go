@@ -108,7 +108,7 @@ func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := make(lit.List, 0, len(args))
+	res := make(lit.Idxr, 0, len(args))
 	for _, arg := range args {
 		res = append(res, arg.(lit.Lit))
 	}
@@ -177,7 +177,7 @@ func FlagPrepper(consts []cor.Const) KeyPrepper {
 			}
 			return nil, cor.Errorf("no constant named %q", k)
 		}
-		num, ok := l.(lit.Numer)
+		num, ok := l.(lit.Numeric)
 		if !ok {
 			return nil, cor.Errorf("expect numer for %q got %T", n.Key(), l)
 		}
@@ -192,7 +192,7 @@ func FlagSetter(key string) KeySetter {
 		if err != nil {
 			return err
 		}
-		v, ok := f.(lit.Numer)
+		v, ok := f.(lit.Numeric)
 		if !ok {
 			return cor.Errorf("expect int field for %q got %T", key, f)
 		}

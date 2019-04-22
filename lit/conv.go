@@ -48,14 +48,14 @@ func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 	case typ.CmpCompSpec, typ.CmpCheckSpec:
 		l, err = checkSpec(l, dst)
 	case typ.CmpCheckList:
-		return checkList(l.(List), dst)
+		return checkList(l.(Idxr), dst)
 	case typ.CmpCheckDict:
-		return checkDict(l.(*Dict), dst)
+		return checkDict(l.(*Keyr), dst)
 	case typ.CmpConvArr, typ.CmpCheckArr:
 		return checkArr(l, dst)
 	case typ.CmpConvMap, typ.CmpCheckMap:
 		return checkMap(l, dst)
-	case typ.CmpConvObj, typ.CmpCheckObj:
+	case typ.CmpConvRec, typ.CmpCheckRec:
 		l, err = checkObj(l, dst)
 	}
 	if err != nil {
@@ -70,19 +70,19 @@ func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 func convBase(l Lit, to typ.Type) (Lit, error) {
 	switch to.Kind & typ.MaskBase {
 	case typ.BaseNum:
-		if v, ok := l.(Numer); ok {
+		if v, ok := l.(Numeric); ok {
 			return Num(v.Num()), nil
 		}
 	case typ.BaseChar:
-		if v, ok := l.(Charer); ok {
+		if v, ok := l.(Character); ok {
 			return Char(v.Char()), nil
 		}
 	}
 	return nil, cor.Errorf("%v %T to base", ErrUnconv, l)
 }
 func convList(l Lit) (Lit, error) {
-	if v, ok := l.(Idxer); ok {
-		res := make(List, v.Len())
+	if v, ok := l.(Indexer); ok {
+		res := make(Idxr, v.Len())
 		for i := range res {
 			el, err := v.Idx(i)
 			if err != nil {
@@ -104,7 +104,7 @@ func convDict(l Lit) (Lit, error) {
 			}
 			res[i] = Keyed{k, el}
 		}
-		return &Dict{res}, nil
+		return &Keyr{res}, nil
 	}
 	return nil, cor.Errorf("%v %T to dict", ErrUnconv, l)
 }
@@ -128,7 +128,7 @@ func checkAny(l Lit, to typ.Type) (Lit, error) {
 }
 func checkSpec(l Lit, to typ.Type) (res Lit, err error) {
 	switch v := l.(type) {
-	case Numer:
+	case Numeric:
 		n := v.Num()
 		switch to.Kind & typ.MaskElem {
 		case typ.KindBool:
@@ -142,7 +142,7 @@ func checkSpec(l Lit, to typ.Type) (res Lit, err error) {
 		case typ.KindTime:
 			res = Time(cor.UnixMilliTime(int64(n)))
 		}
-	case Charer:
+	case Character:
 		s := v.Char()
 		switch to.Kind & typ.MaskElem {
 		case typ.KindStr:
@@ -178,12 +178,12 @@ func checkSpec(l Lit, to typ.Type) (res Lit, err error) {
 	}
 	return res, nil
 }
-func checkList(l List, to typ.Type) (res Idxer, err error) {
+func checkList(l Idxr, to typ.Type) (res Indexer, err error) {
 	switch to.Kind & typ.MaskElem {
-	case typ.KindArr:
-		res, err = MakeArr(to, len(l))
-	case typ.KindObj:
-		res, err = MakeObj(to)
+	case typ.KindList:
+		res, err = MakeList(to, len(l))
+	case typ.KindRec:
+		res, err = MakeRec(to)
 	default:
 		return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 	}
@@ -198,12 +198,12 @@ func checkList(l List, to typ.Type) (res Idxer, err error) {
 	}
 	return res, nil
 }
-func checkDict(l *Dict, to typ.Type) (res Keyer, err error) {
+func checkDict(l *Keyr, to typ.Type) (res Keyer, err error) {
 	switch to.Kind & typ.MaskElem {
-	case typ.KindMap:
-		res, err = MakeMapCap(to, l.Len())
-	case typ.KindObj:
-		res, err = MakeObj(to)
+	case typ.KindDict:
+		res, err = MakeDictCap(to, l.Len())
+	case typ.KindRec:
+		res, err = MakeRec(to)
 	default:
 		return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 	}
@@ -217,9 +217,9 @@ func checkDict(l *Dict, to typ.Type) (res Keyer, err error) {
 	}
 	return res, nil
 }
-func checkArr(l Lit, to typ.Type) (Arr, error) {
-	if v, ok := l.(Arr); ok {
-		res, err := MakeArr(to, v.Len())
+func checkArr(l Lit, to typ.Type) (Appender, error) {
+	if v, ok := l.(Appender); ok {
+		res, err := MakeList(to, v.Len())
 		if err != nil {
 			return nil, err
 		}
@@ -234,9 +234,9 @@ func checkArr(l Lit, to typ.Type) (Arr, error) {
 	}
 	return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 }
-func checkMap(l Lit, to typ.Type) (Map, error) {
-	if v, ok := l.(Map); ok {
-		res, err := MakeMapCap(to, v.Len())
+func checkMap(l Lit, to typ.Type) (Dictionary, error) {
+	if v, ok := l.(Dictionary); ok {
+		res, err := MakeDictCap(to, v.Len())
 		if err != nil {
 			return nil, err
 		}
@@ -258,8 +258,8 @@ func checkObj(l Lit, to typ.Type) (Lit, error) {
 			return Null(to), nil
 		}
 	}
-	if v, ok := l.(Obj); ok {
-		res, err := MakeObj(to)
+	if v, ok := l.(Record); ok {
+		res, err := MakeRec(to)
 		if err != nil {
 			return nil, err
 		}

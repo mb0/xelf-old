@@ -20,14 +20,14 @@ func Equal(a, b Lit) bool {
 	case typ.Type:
 		w, ok := b.(typ.Type)
 		return ok && v.Equal(w)
-	case Numer:
-		w, ok := b.(Numer)
+	case Numeric:
+		w, ok := b.(Numeric)
 		return ok && equalNumer(v, w)
-	case Charer:
-		w, ok := b.(Charer)
+	case Character:
+		w, ok := b.(Character)
 		return ok && equalCharer(v, w)
-	case Idxer:
-		w, ok := b.(Idxer)
+	case Indexer:
+		w, ok := b.(Indexer)
 		return ok && equalIdxer(v, w)
 	case Keyer:
 		w, ok := b.(Keyer)
@@ -116,7 +116,7 @@ func comparable(a, b Lit) (v, w Lit, ok bool) {
 	return a, b, true
 }
 
-func equalNumer(a, b Numer) bool {
+func equalNumer(a, b Numeric) bool {
 	switch v := a.Val().(type) {
 	case bool:
 		w, ok := b.Val().(bool)
@@ -137,7 +137,7 @@ func equalNumer(a, b Numer) bool {
 	return false
 }
 
-func equalCharer(a, b Charer) bool {
+func equalCharer(a, b Character) bool {
 	switch v := a.Val().(type) {
 	case string:
 		w, ok := b.Val().(string)
@@ -160,7 +160,7 @@ func equalCharer(a, b Charer) bool {
 
 var notEqual = cor.StrError("not equal")
 
-func equalIdxer(a, b Idxer) bool {
+func equalIdxer(a, b Indexer) bool {
 	n := a.Len()
 	if n != b.Len() {
 		return false

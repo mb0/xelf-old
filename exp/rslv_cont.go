@@ -9,8 +9,7 @@ import (
 /*
 Container operations
 
-The len form returns the length of a str, raw, container literal, or the field count in an object
-type.
+The len form returns the length of a str, raw, container literal, or the field count of a record.
 
 The fst, lst and nth are a short-circuiting loops that optionally accept a iterator predicate and
 return the first match from the start for fst, end for lst or the nth match from the end if the
@@ -36,7 +35,7 @@ confusion foldr should be thought of as reverse.
 
 	(form accumulator +a @ +val @el +idx? int +key? str - @a)
 
-The list, dict, arr and map constructor forms accept any container with an appropriate iterator
+The list, dict constructor forms accept any container with an appropriate iterator
 to construct a new container literal by effectively using each or foldr.
 
 
@@ -136,7 +135,7 @@ func rslvNth(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	if err != nil {
 		return e, err
 	}
-	l, ok := lo.Arg(1).(lit.Numer)
+	l, ok := lo.Arg(1).(lit.Numeric)
 	if !ok {
 		return nil, cor.Errorf("want number got %s", lo.Arg(1))
 	}
@@ -154,13 +153,13 @@ func nth(c *Ctx, env Env, e *Call, hint Type, cont El, pred El, idx int) (_ El, 
 		}
 	}
 	switch v := deopt(cont).(type) {
-	case lit.Idxer:
+	case lit.Indexer:
 		idx, err = checkIdx(idx, v.Len())
 		if err != nil {
 			return nil, err
 		}
 		return v.Idx(idx)
-	case *lit.Dict:
+	case *lit.Keyr:
 		idx, err = checkIdx(idx, v.Len())
 		if err != nil {
 			return nil, err
@@ -299,7 +298,7 @@ func (r *fIter) filter(c *Ctx, env Env, cont El) (Lit, error) {
 			return nil, err
 		}
 		return out, nil
-	case lit.Idxer:
+	case lit.Indexer:
 		if r.k > 0 {
 			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
 		}
@@ -358,24 +357,24 @@ func rslvMap(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 		it = typ.Any
 	}
 	switch t := cont.Typ(); t.Kind & typ.MaskElem {
-	case typ.BaseList:
+	case typ.BaseIdxr:
 		if it == typ.Any {
-			rt = typ.List
+			rt = typ.Idxer
 		} else {
-			rt = typ.Arr(it)
+			rt = typ.List(it)
 		}
-	case typ.KindArr:
-		rt = typ.Arr(it)
-	case typ.BaseDict:
+	case typ.KindList:
+		rt = typ.List(it)
+	case typ.BaseKeyr:
 		if it == typ.Any {
-			rt = typ.Dict
+			rt = typ.Keyer
 		} else {
-			rt = typ.Map(it)
+			rt = typ.Dict(it)
 		}
-	case typ.KindMap:
-		rt = typ.Map(it)
-	case typ.KindObj:
-		rt = typ.Dict
+	case typ.KindDict:
+		rt = typ.Dict(it)
+	case typ.KindRec:
+		rt = typ.Keyer
 	}
 	switch v := deopt(cont).(type) {
 	case lit.Keyer:
@@ -397,7 +396,7 @@ func rslvMap(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 			return nil, err
 		}
 		return out, nil
-	case lit.Idxer:
+	case lit.Indexer:
 		out := lit.Zero(rt).(lit.Appender)
 		if iter.k > 0 {
 			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
@@ -446,7 +445,7 @@ func rslvFold(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 			return nil, err
 		}
 		return acc, nil
-	case lit.Idxer:
+	case lit.Indexer:
 		if iter.k > 0 {
 			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
 		}
@@ -490,7 +489,7 @@ func rslvFoldr(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 			}
 		}
 		return acc, nil
-	case lit.Idxer:
+	case lit.Indexer:
 		if iter.k > 0 {
 			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
 		}

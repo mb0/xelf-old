@@ -158,7 +158,7 @@ func (a Type) WriteBfr(b *bfr.Ctx) error {
 func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 	var detail bool
 	switch a.Kind & MaskRef {
-	case KindObj, KindRec:
+	case KindRec, KindObj:
 		for i := 0; i < len(hist); i++ {
 			h := hist[len(hist)-1-i]
 			if a.Info.Equal(h) {
@@ -166,7 +166,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 				return nil
 			}
 		}
-	case KindArr, KindMap:
+	case KindList, KindDict:
 		if pre == nil {
 			pre = &strings.Builder{}
 		}
@@ -181,10 +181,10 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		}
 		writeRef(b, pre, '@', ref, a)
 		return nil
-	case KindObj, KindExp, KindAlt:
+	case KindRec, KindExp, KindAlt:
 		detail = true
 		fallthrough
-	case KindFlag, KindEnum, KindRec:
+	case KindFlag, KindEnum, KindObj:
 		b.WriteByte('(')
 		err := writePre(b, pre, a)
 		if err != nil {

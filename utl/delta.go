@@ -6,13 +6,13 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-func NewDelta(a, b lit.Obj) (*lit.Dict, error) {
+func NewDelta(a, b lit.Record) (*lit.Keyr, error) {
 	t := a.Typ()
 	cmp := typ.Compare(t, b.Typ())
 	if cmp < typ.LvlComp {
 		return nil, cor.Errorf("types not comparable %s %s", t, b.Typ())
 	}
-	res := &lit.Dict{}
+	res := &lit.Keyr{}
 	for _, p := range t.Params {
 		key := p.Key()
 		av, err := a.Key(key)
@@ -32,7 +32,7 @@ func NewDelta(a, b lit.Obj) (*lit.Dict, error) {
 	return res, nil
 }
 
-func MergeDeltas(a, b *lit.Dict) error {
+func MergeDeltas(a, b *lit.Keyr) error {
 	for _, kv := range b.List {
 		// TODO check for common prefix, but order preserving dict works for now
 		_, err := a.SetKey(kv.Key, kv.Lit)
@@ -43,7 +43,7 @@ func MergeDeltas(a, b *lit.Dict) error {
 	return nil
 }
 
-func ApplyDelta(o lit.Keyer, d *lit.Dict) error {
+func ApplyDelta(o lit.Keyer, d *lit.Keyr) error {
 	for _, kv := range d.List {
 		p, err := lit.ReadPath(kv.Key)
 		if err != nil {

@@ -103,10 +103,10 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 	for i, s := range p {
 		if s.Sel && (i > 0 || !subs) {
 			sub := p[i:]
-			var res List
+			var res Idxr
 			switch v := Deopt(l).(type) {
-			case Idxer:
-				res = make(List, 0, v.Len())
+			case Indexer:
+				res = make(Idxr, 0, v.Len())
 				err = v.IterIdx(func(_ int, el Lit) error {
 					el, err = selectPath(el, sub, true)
 					if err != nil {
@@ -116,7 +116,7 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 					return nil
 				})
 			case Keyer:
-				res = make(List, 0, v.Len())
+				res = make(Idxr, 0, v.Len())
 				err = v.IterKey(func(_ string, el Lit) error {
 					el, err = selectPath(el, sub, true)
 					if err != nil {
@@ -126,7 +126,7 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 					return nil
 				})
 			case typ.Type:
-				return typ.List, nil
+				return typ.Idxer, nil
 			default:
 				err = cor.Errorf("want idxer or keyer got %s", l.Typ())
 			}
@@ -156,11 +156,11 @@ func getKey(l Lit, key string) (Lit, error) {
 			return typ.Any, nil
 		}
 		switch v.Kind & typ.MaskElem {
-		case typ.BaseDict:
+		case typ.BaseKeyr:
 			return typ.Any, nil
-		case typ.KindMap:
+		case typ.KindDict:
 			return v.Elem(), nil
-		case typ.KindObj:
+		case typ.KindRec:
 			f, _, err := v.ParamByKey(key)
 			if err != nil {
 				return nil, err
@@ -180,11 +180,11 @@ func getIdx(l Lit, idx int) (Lit, error) {
 			return typ.Any, nil
 		}
 		switch v.Kind & typ.MaskElem {
-		case typ.BaseList:
+		case typ.BaseIdxr:
 			return typ.Any, nil
-		case typ.KindArr:
+		case typ.KindList:
 			return v.Elem(), nil
-		case typ.KindObj:
+		case typ.KindRec:
 			if idx < 0 {
 				idx = v.ParamLen() + idx
 			}
@@ -194,7 +194,7 @@ func getIdx(l Lit, idx int) (Lit, error) {
 			}
 			return f.Type, nil
 		}
-	case Idxer:
+	case Indexer:
 		if idx < 0 {
 			idx = v.Len() + idx
 		}
@@ -226,8 +226,8 @@ func setPath(l Lit, el Lit, p Path, create bool) (Lit, error) {
 func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
 	t := l.Typ()
 	v, ok := l.(Keyer)
-	if !ok && create && (t.Kind == typ.KindAny || t.Kind&typ.BaseDict != 0) {
-		v, ok = &Dict{}, true
+	if !ok && create && (t.Kind == typ.KindAny || t.Kind&typ.BaseKeyr != 0) {
+		v, ok = &Keyr{}, true
 	}
 	if !ok {
 		return l, cor.Errorf("key segment %q expects keyer got %s", key, l.Typ())
@@ -252,10 +252,10 @@ func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
 
 func setIdx(l Lit, el Lit, idx int, rest Path, create bool) (Lit, error) {
 	t := l.Typ()
-	v, ok := l.(Idxer)
+	v, ok := l.(Indexer)
 	if !ok && create && (t.Kind == typ.KindAny ||
-		t.Kind&typ.BaseList != 0) {
-		res := make(List, idx+1)
+		t.Kind&typ.BaseIdxr != 0) {
+		res := make(Idxr, idx+1)
 		for i := range res {
 			res[i] = Nil
 		}

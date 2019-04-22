@@ -85,13 +85,13 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 		}
 		return res, nil
 	}
-	if len(s) > 4 && s[3] == '|' {
-		t, err := ParseSym(s[4:], hist)
-		switch s[:3] {
-		case "arr":
-			return Arr(t), err
-		case "map":
-			return Map(t), err
+	if len(s) > 5 && s[4] == '|' {
+		t, err := ParseSym(s[5:], hist)
+		switch s[:4] {
+		case "list":
+			return List(t), err
+		case "dict":
+			return Dict(t), err
 		}
 	}
 	k, err := ParseKind(s)
@@ -101,10 +101,10 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 // NeedsInfo returns whether type t is missing reference or params information.
 func NeedsInfo(t Type) (ref, params bool) {
 	switch k := t.Last().Kind & MaskRef; k {
-	case KindFlag, KindEnum, KindRec:
+	case KindFlag, KindEnum, KindObj:
 		ref = t.Info == nil || len(t.Ref) == 0
 		return ref, false
-	case KindObj, KindAlt:
+	case KindRec, KindAlt:
 		return false, t.Info == nil || len(t.Params) == 0
 	case KindExp:
 		switch t.Kind {

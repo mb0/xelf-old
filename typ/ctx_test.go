@@ -12,17 +12,17 @@ func TestCtx(t *testing.T) {
 			{Type: typ.Var(1)},
 			{Type: typ.Bool},
 		})},
-		{Type: typ.Arr(typ.Var(1))},
-		{Type: typ.Arr(typ.Var(1))},
+		{Type: typ.List(typ.Var(1))},
+		{Type: typ.List(typ.Var(1))},
 	})
-	want := `(func + (func + @1 + bool) + + arr|@1)`
+	want := `(func + (func + @1 + bool) + + list|@1)`
 	if got := s.String(); got != want {
 		t.Errorf("want %s\ngot %s", want, got)
 	}
 	c := new(typ.Ctx)
 	c.Bind(typ.VarKind(5), typ.Any)
 	s = c.Inst(s)
-	want = `(func + (func + @6 + bool) + + arr|@6)`
+	want = `(func + (func + @6 + bool) + + list|@6)`
 	if got := s.String(); got != want {
 		t.Errorf("want inst %s\ngot %s", want, got)
 	}
@@ -44,7 +44,7 @@ func TestCtx(t *testing.T) {
 		t.Errorf("want bound [6] got %s", bound)
 	}
 	a := c.Apply(s)
-	want = `(func + (func + int + bool) + + arr|int)`
+	want = `(func + (func + int + bool) + + list|int)`
 	if got := a.String(); got != want {
 		t.Errorf("want %s\ngot %s", want, got)
 	}

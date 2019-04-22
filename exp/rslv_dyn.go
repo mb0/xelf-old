@@ -1,8 +1,6 @@
 package exp
 
 import (
-	"log"
-
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -20,8 +18,8 @@ func init() {
 	}, rslvDyn)
 	formAs = core.add("as", []typ.Param{
 		{Name: "t", Type: typ.Typ},
-		{Name: "args", Type: typ.List},
-		{Name: "unis", Type: typ.Dict},
+		{Name: "args", Type: typ.Idxer},
+		{Name: "unis", Type: typ.Keyer},
 		{Type: typ.Infer},
 	}, rslvAs)
 }
@@ -90,9 +88,9 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 			sym = "add"
 		case typ.BaseChar, typ.KindStr, typ.KindRaw:
 			sym = "cat"
-		case typ.BaseList, typ.KindArr:
+		case typ.BaseIdxr, typ.KindList:
 			sym = "apd" // TODO maybe cat
-		case typ.BaseDict, typ.KindMap, typ.KindObj:
+		case typ.BaseKeyr, typ.KindDict, typ.KindRec:
 			sym = "set" // TODO maybe merge
 		}
 	}
@@ -147,14 +145,13 @@ func rslvAs(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 		}
 	}
 	// third rule: set declarations
-	if t.Kind&typ.BaseDict != 0 {
+	if t.Kind&typ.BaseKeyr != 0 {
 		res := deopt(lit.Zero(t)).(lit.Keyer)
 		for _, d := range decls {
 			el, ok := d.Arg().(Lit)
 			if !ok {
 				return nil, cor.Errorf("want literal in declaration got %s", d.El)
 			}
-			log.Printf("got delc %s %s", d.Key(), el)
 			_, err = res.SetKey(d.Key(), el)
 			if err != nil {
 				return nil, err
@@ -163,17 +160,17 @@ func rslvAs(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 		return res, nil
 	}
 	// fourth rule: append list
-	if ok && t.Kind&typ.BaseList != 0 {
-		res := deopt(lit.Zero(t)).(lit.Idxer)
+	if ok && t.Kind&typ.BaseIdxr != 0 {
+		res := deopt(lit.Zero(t)).(lit.Indexer)
 		apd, _ := res.(lit.Appender)
 		for i, a := range args {
 			el, ok := a.(Lit)
 			if !ok {
 				return nil, cor.Error("want literal in argument list")
 			}
-			if apd != nil { // list or arr uses append
+			if apd != nil { // list uses append
 				apd, err = apd.Append(el)
-			} else { // otherwise its an obj literal set by index
+			} else { // otherwise its a record literal set by index
 				_, err = res.SetIdx(i, el)
 			}
 			if err != nil {

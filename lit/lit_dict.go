@@ -6,8 +6,8 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Dict is a generic container implementing Keyer.
-type Dict struct {
+// Keyr is a generic container implementing the keyer type.
+type Keyr struct {
 	List []Keyed
 }
 
@@ -17,16 +17,16 @@ type Keyed struct {
 	Lit
 }
 
-func (*Dict) Typ() typ.Type  { return typ.Dict }
-func (d *Dict) IsZero() bool { return d == nil || len(d.List) == 0 }
+func (*Keyr) Typ() typ.Type  { return typ.Keyer }
+func (d *Keyr) IsZero() bool { return d == nil || len(d.List) == 0 }
 
-func (d *Dict) Len() int {
+func (d *Keyr) Len() int {
 	if d == nil {
 		return 0
 	}
 	return len(d.List)
 }
-func (d *Dict) Keys() []string {
+func (d *Keyr) Keys() []string {
 	if d == nil {
 		return nil
 	}
@@ -36,7 +36,7 @@ func (d *Dict) Keys() []string {
 	}
 	return res
 }
-func (d *Dict) Key(k string) (Lit, error) {
+func (d *Keyr) Key(k string) (Lit, error) {
 	if d == nil {
 		return Nil, nil
 	}
@@ -47,9 +47,9 @@ func (d *Dict) Key(k string) (Lit, error) {
 	}
 	return Nil, nil
 }
-func (d *Dict) SetKey(k string, el Lit) (Keyer, error) {
+func (d *Keyr) SetKey(k string, el Lit) (Keyer, error) {
 	if d == nil {
-		d = &Dict{}
+		d = &Keyr{}
 	}
 	for i, v := range d.List {
 		if v.Key == k {
@@ -65,7 +65,7 @@ func (d *Dict) SetKey(k string, el Lit) (Keyer, error) {
 	return d, nil
 }
 
-func (d *Dict) IterKey(it func(string, Lit) error) error {
+func (d *Keyr) IterKey(it func(string, Lit) error) error {
 	if d == nil {
 		return nil
 	}
@@ -80,9 +80,9 @@ func (d *Dict) IterKey(it func(string, Lit) error) error {
 	return nil
 }
 
-func (v *Dict) String() string               { return bfr.String(v) }
-func (v *Dict) MarshalJSON() ([]byte, error) { return bfr.JSON(v) }
-func (v *Dict) WriteBfr(b *bfr.Ctx) error {
+func (v *Keyr) String() string               { return bfr.String(v) }
+func (v *Keyr) MarshalJSON() ([]byte, error) { return bfr.JSON(v) }
+func (v *Keyr) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	for i, e := range v.List {
 		if i > 0 {
@@ -94,13 +94,13 @@ func (v *Dict) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
-func (v *Dict) Ptr() interface{} { return v }
-func (v *Dict) Assign(l Lit) error {
+func (v *Keyr) Ptr() interface{} { return v }
+func (v *Keyr) Assign(l Lit) error {
 	if v == nil {
 		return cor.Errorf("nil keyer")
 	}
 	switch lv := Deopt(l).(type) {
-	case *Dict:
+	case *Keyr:
 		*v = *lv
 	case Keyer:
 		res := v.List[:0]

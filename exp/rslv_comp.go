@@ -10,7 +10,7 @@ func init() {
 	var rest2 = []typ.Param{
 		{Name: "a", Type: typ.Any},
 		{Name: "b", Type: typ.Any},
-		{Name: "plain", Type: typ.Arr(typ.Any)},
+		{Name: "plain", Type: typ.List(typ.Any)},
 		{Type: typ.Bool},
 	}
 	core.add("eq", rest2, rslvEq)
@@ -19,7 +19,7 @@ func init() {
 
 	var ab = []typ.Param{
 		{Name: "a", Type: typ.Any},
-		{Name: "b", Type: typ.List},
+		{Name: "b", Type: typ.Idxer},
 		{Type: typ.Bool},
 	}
 	core.add("in", ab, rslvIn)
@@ -64,7 +64,7 @@ func inOrNi(c *Ctx, env Env, e *Call, neg bool) (El, error) {
 		return e, err
 	}
 	a := lo.Arg(0).(Lit)
-	list, ok := lo.Arg(1).(lit.Idxer)
+	list, ok := lo.Arg(1).(lit.Indexer)
 	if !ok {
 		return nil, cor.Errorf("expect idxer got %s", lo.Arg(1).Typ())
 	}

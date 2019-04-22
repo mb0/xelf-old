@@ -19,18 +19,18 @@ func TestString(t *testing.T) {
 		{Alt(Num, Str), `(alt + num + str)`},
 		{Opt(Ref("b")), `@b?`},
 		{Opt(Enum("kind")), `(enum? 'kind')`},
-		{Opt(Obj([]Param{
+		{Opt(Rec([]Param{
 			{Name: "Name", Type: Str},
-		})), `(obj? +Name str)`},
-		{Obj([]Param{
+		})), `(rec? +Name str)`},
+		{Rec([]Param{
 			{Name: "x", Type: Int},
 			{Name: "y", Type: Int},
-		}), `(obj +x +y int)`},
-		{Obj([]Param{
+		}), `(rec +x +y int)`},
+		{Rec([]Param{
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
-		}), `(obj + @Other +Name str)`},
-		{Rec("Foo"), `(rec 'Foo')`},
+		}), `(rec + @Other +Name str)`},
+		{Obj("Foo"), `(obj 'Foo')`},
 		{Type{Kind: ExpFunc, Info: &Info{Params: []Param{
 			{Name: "text", Type: Str},
 			{Name: "sub", Type: Str},
@@ -76,20 +76,20 @@ func TestString(t *testing.T) {
 }
 
 func TestTypeSelfRef(t *testing.T) {
-	a := Obj([]Param{{Name: "Ref"}})
+	a := Rec([]Param{{Name: "Ref"}})
 	a.Params[0].Type = Opt(a)
-	b := Obj([]Param{{Name: "C"}})
-	c := Obj([]Param{{Name: "Ref"}})
+	b := Rec([]Param{{Name: "C"}})
+	c := Rec([]Param{{Name: "Ref"}})
 	b.Params[0].Type = c
-	c.Params[0].Type = Arr(b)
+	c.Params[0].Type = List(b)
 	tests := []struct {
 		typ Type
 		raw string
 	}{
-		{a, "(obj +Ref ~0?)"},
-		{Opt(a), "(obj? +Ref ~0?)"},
-		{b, "(obj +C (obj +Ref arr|~1))"},
-		{Opt(b), "(obj? +C (obj +Ref arr|~1))"},
+		{a, "(rec +Ref ~0?)"},
+		{Opt(a), "(rec? +Ref ~0?)"},
+		{b, "(rec +C (rec +Ref list|~1))"},
+		{Opt(b), "(rec? +C (rec +Ref list|~1))"},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()

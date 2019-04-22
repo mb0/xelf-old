@@ -43,8 +43,8 @@ base types:
    bool for 'true' and 'false'
    num  for JSON numbers
    char for JSON strings
-   list for JSON arrays
-   dict for JSON objects
+   idxr for JSON arrays
+   keyr for JSON objects
 
 However we usually need more specific type information that can not be represented in JSON.
 The type system chose a number of specific primitive types. The specific types of num are int, real
@@ -60,49 +60,45 @@ supported by full featured databases like postgresql. We do not bother with diff
 or text length because it only complicates what xelf tries to provide and is only a concern to a
 validation or storage layer. For most uses a couple of wasted bytes is not an issue.
 
-There are two distinct behavior of container types called idxer or keyer. An idxer provides access
-to its elements by index, and a keyer by a string key. The idxer base type list can have elements of
-any type, while the arr type takes an explicit element type. The keyer types are the base type dict,
-the map type with explicit element type, as well as obj and rec with field info. Because object
-fields are inherently ordered, both the obj and rec types do implement idxer as well. Dict is
-implemented to preserve field order for this reason, but does not provide the idxer interface.
+There are two distinct behavior of container types called idxr and keyr. An indexer provides access
+to its elements by index, and a keyer by a string key. The idxr and keyr base type can hold any
+elements, while the list and dict type take an optional element type. They use different types to
+avoid mix-ups with the record types rec and obj that do implement both indexer and keyer interface,
+because record fields are inherently ordered. Idxr should be implemented to preserve field order for
+this reason, but does not provide the idxr interface. Another reason in go to avoid maps most
+literals in xelf is that they do not support interior pointers.
 
-Apart from the any type all primitive and object types can be optional. Optional type variants have
+Apart from the any type all primitive and record types can be optional. Optional type variants have
 a question mark suffix and translate to pointer, option or nullable types in the target
-environments. Note that there are also optional object fields that mark the field itself and not its
+environments. Note that there are also optional record fields that mark the field itself and not its
 value optional.
 
 To rely on type information without specifying it explicitly in every case, for possibly large
 composite literals, xelf must allow to explicitly refer to and infer from existing types. This is
-covered by type embedding and type references. Recursive obj and rec declaration also use special
+covered by type embedding and type references. Recursive record declaration also use special
 type references to itself or an ancestor. Type references are implicitly used in the type inference
 and resolution phase.
 
-The flag, enum and rec types are called schema types and are global references to a type definition
+The flag, enum and obj types are called schema types and are global references to a type definition
 with additional information. The flag type is a integer type used as bit set with associated
-constants. The enum type is a string type with associated constants. A record is an object with a
-known schema.
+constants. The enum type is a string type with associated constants. A object is a record type with
+a known schema and possibly additional information attached to it.
 
 The void, typ and exp types are special types and are useful in a language context. The exp types
 provide a type signature for form, func types. They are otherwise used as an universal indicator to
 differentiate between all language elements. This allows us to replace some type switches and
 assertions to use a simple interface call instead.
 
-The final naming of the types took a long time and serious consideration. Real does not imply
-a floating point precision as much as float does and fits the short naming schema. Dict implies
-an ordered list if of keyed entries, while map implies a key is mapped to a kind of value. List is
-just a sequence of values and arr is hopefully more associated with a specific element type. An
-object has fields or properties, while a record implies multiple instances and a significant type.
+The final naming of the types took a long time, some changes and serious consideration. Real does
+not imply a floating point precision as much as float does and fits the short naming schema. Dict
+implies an ordered list if of keyed entries, while map implies a key is mapped to a kind of value.
+List is a sequence of values and array is more associated with a specific element type. A record has
+is a structure of fields, while an object implies more 'real-world' properties.
 
 To efficiently work with types most of the information is encoded in the 'kind' bit set. This bit
 set is very compact and can quickly answer questions in varying granularity. For example:
 An encoder is only interested in the base type, while the resolver only wants to check if its a
 reference type. The reference name and field information are stored in a companion object.
-
-The kind encodes the element type for arr and map types. Each type slot uses one byte and we can
-only assume 53bit precision when a float64 may be involved. It follows that arr and map types can
-only be nested six levels deep. This could be worked around, but I do not expect the situation to
-arise.
 
 Literals
 --------
@@ -117,7 +113,7 @@ Single quoted char literals are therefor the default xelf format.
 Char literals can be back-tick quoted multi line raw literals without escape sequences. This is
 especially useful when use in templates or everywhere else with large pre-formated char literals.
 
-List and dict literals can omit commas, because it does not fit in with the lisp style expression
+Idxr and Keyr literals can omit commas, because it does not fit in with the lisp style expression
 syntax as later discussed. And simple dict keys can be symbols and do not need any quotes.
 
 Composite literals can only contain literals. Any opening square or curly braces always start a
@@ -128,8 +124,8 @@ Types, functions and forms do implement the main literal interface and can be us
 some cases. This also simplifies the already heavy resolution API, as a successful resolution will
 always return a valid literal, and alleviates another check after each resolution step.
 
-All literals except booleans are parsed as the base types any, num, char, list and dict.
-The literals are usually converted to a specific type inferred from the expression context.
+All literals except booleans are parsed as the base types any, num, char, idxr and keyr. They are
+later converted to a specific type inferred from the expression context.
 
 Every environment working with xelf literals requires some adapter code to convert, compare or
 otherwise work with literal. The xelf go package provides interfaces for each class of literal
@@ -162,11 +158,11 @@ types are comparable to their specific type, unless the specific type requires a
 means that char is comparable to str or enum, and the num type is comparable to any specific numeric
 type.
 
-Convertible types cover arr, map and obj types whose element types also convertible.
+Convertible types cover idxr, keyr and record types whose element types also convertible.
 
 Checked convertible type might be convertible, but need to check the literal value to decide if they
 actually are. This is the case for types containing unresolved type reference, if the source type is
-the any, list or dict type and should convert to a more specific type, or is an arr, map or obj
+the any, idxr or keyr type and should convert to a more specific type, or is an list, dict or record
 type, whose element types are checked convertible, or is the char type that should convert to a
 specific type with a strict format (raw, uuid, time and span).
 
@@ -181,10 +177,10 @@ libs. Built-in expression resolvers all use short ascii names instead of punctua
 By using only the ASCII character set we can avoid any encoding issues or substitutions in
 environments without unicode identifier support.
 
-Xelf will need to work in environment that are case-sensitive and case-insensitive. To address
-that, cased names are usually used for declarations and are then automatically lowercased. All
-lookups in the resolution environment, map elements or object fields must use lowercase keys. This
-way we do not have to use configurable casing rules to generate idiomatic code for the go target.
+Xelf will need to work in environment that are case-sensitive and case-insensitive. To address that,
+cased names are usually used for declarations and are then automatically lowercased. All lookups in
+the resolution environment. This way we do not have to use configurable casing rules to generate
+idiomatic code for the go target.
 
 Compound names that would use either CamelCase, snake_case or kebab-case depending on the
 environment like ClientID are instead used as cased name for the go target and simply lowercased
@@ -192,7 +188,7 @@ for all others. This avoids a lot of busy code to convert from one identifier fl
 and avoids potentially even more confusion.
 
 Symbols in literals must be simple alphanumeric names and only allow the underscore as valid
-punctuation. This makes a potentially problematic colon parsing in map literals a non-issue.
+punctuation. This makes a potentially problematic colon parsing in keyer literals a non-issue.
 
 Expression Syntax
 -----------------
@@ -209,8 +205,7 @@ Xelf has special handling for tag and declaration symbols within expressions. Th
 excessive nesting of expressions and to achieve a comfortable level of expressiveness in a variety
 of contexts. Tag symbols that start with a colon and can be used for named arguments, node
 properties or similar things. Declaration symbols starting with a plus sign are used to signify
-variables, parameters or field names in declarations or when setting object fields or map elements
-by key.
+variables, parameters or field names in declarations or when setting elements by key.
 
 Predefined Symbols
 ------------------
@@ -338,9 +333,9 @@ signature allows us to factor out the default type checking and inference and pr
 and comfortable user experience. Functions are called only if all their arguments are successfully
 resolved and then use their declaration environment for evaluation.
 
-If the last function parameter has an arr or list type, it can be called as variadic parameter -
+If the last function parameter has an list type, it can be called as variadic parameter -
 meaning multiple elemement arguments can be used instead of the expected indexer argument. When
-exactly one argument is used that is convertible to the list or arr type it is used-as, in other
+exactly one argument is used that is convertible to the list type it is used-as, in other
 cases it is treated as element.
 
 Resolvers that need to have control over type checking or can partially resolve their arguments

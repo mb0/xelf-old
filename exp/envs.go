@@ -115,7 +115,7 @@ func (c *DataScope) Get(s string) *Def {
 // It is also used as part of the prog scope and for signature definitions.
 type ParamScope struct {
 	*Scope
-	Param *lit.DictObj
+	Param *lit.Rec
 }
 
 func (*ParamScope) Supports(x byte) bool { return x == '$' }
@@ -134,7 +134,7 @@ func (p *ParamScope) Get(s string) *Def {
 // ProgScope wraps a param scope and provides global result resolution.
 type ProgScope struct {
 	ParamScope
-	Result *lit.Dict
+	Result *lit.Keyr
 }
 
 func (*ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
