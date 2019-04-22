@@ -95,23 +95,27 @@ func ParseKind(str string) (Kind, error) {
 		return KindVoid, nil
 	case "any":
 		return KindAny, nil
-	case "typ":
+	case "~typ":
 		return KindTyp, nil
-	case "list":
+	case "~idxr":
 		return BaseIdxr, nil
-	case "dict":
+	case "~keyr":
 		return BaseKeyr, nil
-	case "sym":
+	case "list":
+		return KindList, nil
+	case "dict":
+		return KindDict, nil
+	case "~sym":
 		return ExpSym, nil
-	case "dyn":
+	case "~dyn":
 		return ExpDyn, nil
 	case "form":
 		return ExpForm, nil
 	case "func":
 		return ExpFunc, nil
-	case "tag":
+	case "~tag":
 		return ExpTag, nil
-	case "decl":
+	case "~decl":
 		return ExpDecl, nil
 	case "alt":
 		return KindAlt, nil
@@ -121,15 +125,13 @@ func ParseKind(str string) (Kind, error) {
 		str = str[:len(str)-1]
 		kk = FlagOpt
 	}
-	if len(str) > 4 {
+	if len(str) > 5 {
 		return KindVoid, ErrInvalid
 	}
 	switch str {
-	case "ref":
-		return kk | KindRef, nil
-	case "num":
+	case "~num":
 		return kk | BaseNum, nil
-	case "char":
+	case "~char":
 		return kk | BaseChar, nil
 	case "bool":
 		return kk | KindBool, nil
@@ -199,21 +201,21 @@ func simpleStr(k Kind) string {
 	case KindAny:
 		return "any"
 	case KindTyp:
-		return "typ"
+		return "~typ"
 	case KindExp:
 		switch k {
 		case ExpSym:
-			return "sym"
+			return "~sym"
 		case ExpDyn:
-			return "dyn"
+			return "~dyn"
 		case ExpForm:
 			return "form"
 		case ExpFunc:
 			return "func"
 		case ExpTag:
-			return "tag"
+			return "~tag"
 		case ExpDecl:
-			return "decl"
+			return "~decl"
 		}
 	case KindVar:
 		id := k >> SlotSize
@@ -224,21 +226,21 @@ func simpleStr(k Kind) string {
 	case KindAlt:
 		return "alt"
 	case KindList:
-		return "list|"
+		return "list"
 	case KindDict:
-		return "dict|"
+		return "dict"
 	}
 	switch k & MaskRef {
 	case KindRef:
 		return "@"
 	case BaseNum:
-		return "num"
+		return "~num"
 	case BaseChar:
-		return "char"
+		return "~char"
 	case BaseIdxr:
-		return "list"
+		return "~idxr"
 	case BaseKeyr:
-		return "dict"
+		return "~keyr"
 	case KindBool:
 		return "bool"
 	case KindInt:

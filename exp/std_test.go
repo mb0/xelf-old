@@ -100,7 +100,6 @@ func TestStdResolve(t *testing.T) {
 		{`(le 2 1 0)`, lit.False},
 		{`(le 0 0 2)`, lit.True},
 		{`(le 2 0 0)`, lit.False},
-		{`(add)`, lit.Num(0)},
 		{`(add 1 2)`, lit.Num(3)},
 		{`(add 1 2 3)`, lit.Num(6)},
 		{`(add -5 2 3)`, lit.Num(0)},
@@ -120,7 +119,7 @@ func TestStdResolve(t *testing.T) {
 		{`(cat [1] [2] [3])`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
 		{`(apd [] 1 2 3)`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
 		{`([] 1 2 3)`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
-		{`(list (list|int 1 2 3))`, lit.Idxr{lit.Int(1), lit.Int(2), lit.Int(3)}},
+		{`(~idxr (list|int 1 2 3))`, lit.Idxr{lit.Int(1), lit.Int(2), lit.Int(3)}},
 		{`(set {} +x +y 3)`, &lit.Keyr{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
@@ -129,7 +128,7 @@ func TestStdResolve(t *testing.T) {
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
 		}}},
-		{`(dict (dict|int +x +y 3))`, &lit.Keyr{List: []lit.Keyed{
+		{`(~keyr (dict|int +x +y 3))`, &lit.Keyr{List: []lit.Keyed{
 			{"x", lit.Int(3)},
 			{"y", lit.Int(3)},
 		}}},
@@ -155,15 +154,15 @@ func TestStdResolve(t *testing.T) {
 		{`(lst [1 2 3 4 5])`, lit.Num(5)},
 		{`(nth [1 2 3 4 5] 2)`, lit.Num(3)},
 		{`(nth [1 2 3 4 5] -3)`, lit.Num(3)},
-		{`(fst [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Num(2)},
-		{`(lst [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Num(4)},
-		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 0)))`, lit.Idxr{
+		{`(fst [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Num(2)},
+		{`(lst [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Num(4)},
+		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Idxr{
 			lit.Num(2), lit.Num(4),
 		}},
-		{`(filter [1 2 3 4 5] (fn +a num - bool (eq (rem _ 2) 1)))`, lit.Idxr{
+		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 1)))`, lit.Idxr{
 			lit.Num(1), lit.Num(3), lit.Num(5),
 		}},
-		{`(map [1 2 3 4] (fn +a num - num (mul _ _)))`, lit.List{Elem: typ.Num,
+		{`(map [1 2 3 4] (fn +a ~num - ~num (mul _ _)))`, lit.List{Elem: typ.Num,
 			Idxr: lit.Idxr{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
 		}},
 		{`(fold ['alice' 'bob' 'calvin'] 'hello'` +
@@ -185,7 +184,7 @@ func TestStdResolve(t *testing.T) {
 		)`, lit.Int(6)},
 		{`(let 'test' .)`, lit.Char("test")},
 		{`(let ((rec +a int) [1]) .a)`, lit.Int(1)},
-		{`(let [1 2 3 4 5] +even (fn +a num - bool (eq (rem _ 2) 0)) (and
+		{`(let [1 2 3 4 5] +even (fn +a ~num - bool (eq (rem _ 2) 0)) (and
 			(eq (len "test") 4)
 			(eq (len .) 5)
 			(eq (fst .) (nth . 0) 1)
@@ -196,9 +195,9 @@ func TestStdResolve(t *testing.T) {
 			(eq (nth . -2 even) 2)
 			(eq (filter . even) [2 4])
 			(eq (map . even) [false true false true false])
-			(eq (fold . 0 (fn +a +v - num (add _ .v))) 15)
-			(eq (fold . [0] (fn +a list +v num - list (apd _ .v))) [0 1 2 3 4 5])
-			(eq (foldr . [0] (fn +a list +v num - list (apd _ .v))) [0 5 4 3 2 1])
+			(eq (fold . 0 (fn +a +v - ~num (add _ .v))) 15)
+			(eq (fold  . [0] (fn +a ~idxr +v ~num - ~idxr (apd _ .v))) [0 1 2 3 4 5])
+			(eq (foldr . [0] (fn +a ~idxr +v ~num - ~idxr (apd _ .v))) [0 5 4 3 2 1])
 		))`, lit.True},
 	}
 	for _, test := range tests {
@@ -242,19 +241,19 @@ func TestStdResolvePart(t *testing.T) {
 		{`(lt 0 1 x)`, `(lt 1 x)`, "bool"},
 		{`(lt 0 x 2)`, `(lt 0 x 2)`, "bool"},
 		{`(lt x 1 2)`, `(lt x 1)`, "bool"},
-		{`(add x 2 3)`, `(add x 5)`, "num"},
-		{`(add 1 x 3)`, `(add 4 x)`, "num"},
-		{`(add 1 2 x)`, `(add 3 x)`, "num"},
-		{`(sub x 2 3)`, `(sub x 5)`, "num"},
-		{`(sub 1 x 3)`, `(sub -2 x)`, "num"},
-		{`(sub 1 2 x)`, `(sub -1 x)`, "num"},
-		{`(mul x 2 3)`, `(mul x 6)`, "num"},
-		{`(mul 6 x 3)`, `(mul 18 x)`, "num"},
-		{`(mul 6 2 x)`, `(mul 12 x)`, "num"},
-		{`(div x 2 3)`, `(div x 6)`, "num"},
-		{`(div 6 x 3)`, `(div 2 x)`, "num"},
-		{`(div 6 2 x)`, `(div 3 x)`, "num"},
-		{`(1 2 x)`, `(add 3 x)`, "num"},
+		{`(add x 2 3)`, `(add x 5)`, "~num"},
+		{`(add 1 x 3)`, `(add 4 x)`, "~num"},
+		{`(add 1 2 x)`, `(add 3 x)`, "~num"},
+		{`(sub x 2 3)`, `(sub x 5)`, "~num"},
+		{`(sub 1 x 3)`, `(sub -2 x)`, "~num"},
+		{`(sub 1 2 x)`, `(sub -1 x)`, "~num"},
+		{`(mul x 2 3)`, `(mul x 6)`, "~num"},
+		{`(mul 6 x 3)`, `(mul 18 x)`, "~num"},
+		{`(mul 6 2 x)`, `(mul 12 x)`, "~num"},
+		{`(div x 2 3)`, `(div x 6)`, "~num"},
+		{`(div 6 x 3)`, `(div 2 x)`, "~num"},
+		{`(div 6 2 x)`, `(div 3 x)`, "~num"},
+		{`(1 2 x)`, `(add 3 x)`, "~num"},
 		{`(not (bool x))`, `(not x)`, "bool"},
 		{`(not (not x))`, `(bool x)`, "bool"},
 		{`(not (not (not x)))`, `(not x)`, "bool"},

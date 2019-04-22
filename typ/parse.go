@@ -53,10 +53,8 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 			}
 			res = hist[len(hist)-1-idx]
 		} else if strings.IndexByte(ref, '.') == -1 { // explicit type
-			res, err = ParseSym(ref, hist)
-			if err != nil {
-				return Void, err
-			}
+			k, err := ParseKind(s)
+			return Type{Kind: k}, err
 		} else { // schema type
 			res = Ref(ref)
 		}
@@ -85,8 +83,14 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 		}
 		return res, nil
 	}
-	if len(s) > 5 && s[4] == '|' {
-		t, err := ParseSym(s[5:], hist)
+	if len(s) == 4 || len(s) > 4 && s[4] == '|' {
+		t := Any
+		if len(s) > 4 {
+			t, err = ParseSym(s[5:], hist)
+			if err != nil {
+				return Void, err
+			}
+		}
 		switch s[:4] {
 		case "list":
 			return List(t), err

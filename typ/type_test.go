@@ -16,9 +16,11 @@ func TestString(t *testing.T) {
 		{Ref("a"), `@a`},
 		{Ref("a.b"), `@a.b`},
 		{Var(1), `@1`},
-		{Alt(Num, Str), `(alt + num + str)`},
+		{Alt(Num, Str), `(alt + ~num + str)`},
 		{Opt(Ref("b")), `@b?`},
 		{Opt(Enum("kind")), `(enum? 'kind')`},
+		{List(Any), `list`},
+		{List(Int), `list|int`},
 		{Opt(Rec([]Param{
 			{Name: "Name", Type: Str},
 		})), `(rec? +Name str)`},

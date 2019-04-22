@@ -191,9 +191,8 @@ func getIter(c *Ctx, env Env, e El, ct Type, ator bool) (r *fIter, _ error) {
 	if err != nil && err != ErrUnres {
 		return nil, err
 	}
-	switch t := e.Typ(); t.Kind {
-	case typ.ExpFunc, typ.ExpForm:
-		r = &fIter{Spec: e.(*Spec)}
+	if s, ok := e.(*Spec); ok {
+		r = &fIter{Spec: s}
 	}
 	if r == nil {
 		return nil, cor.Errorf("iter not a func or form %s", e.Typ())

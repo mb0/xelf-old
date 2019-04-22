@@ -169,6 +169,8 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 	case KindList, KindDict:
 		if pre == nil {
 			pre = &strings.Builder{}
+		} else {
+			pre.WriteByte('|')
 		}
 		pre.WriteString(a.Kind.String())
 		return a.Elem().writeBfr(b, pre, hist)
@@ -200,6 +202,10 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 func writePre(b *bfr.Ctx, pre *strings.Builder, a Type) error {
 	if pre != nil {
 		b.WriteString(pre.String())
+		if a == Any {
+			return nil
+		}
+		b.WriteByte('|')
 	}
 	return a.Kind.WriteBfr(b)
 }
@@ -207,6 +213,7 @@ func writePre(b *bfr.Ctx, pre *strings.Builder, a Type) error {
 func writeRef(b *bfr.Ctx, pre *strings.Builder, x byte, ref string, a Type) {
 	if pre != nil {
 		b.WriteString(pre.String())
+		b.WriteByte('|')
 	}
 	b.WriteByte(x)
 	b.WriteString(ref)
