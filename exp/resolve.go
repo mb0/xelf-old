@@ -55,11 +55,12 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	}
 	switch v := x.(type) {
 	case Type: // resolve type references
-		last := v.Last()
-		v, err = c.resolveType(env, v, last)
-		if err == ErrUnres {
-			c.Unres = append(c.Unres, x)
-			return x, err
+		if !v.Resolved() {
+			v, err = c.resolveType(env, v)
+			if err == ErrUnres {
+				c.Unres = append(c.Unres, x)
+				return x, err
+			}
 		}
 		return v, err
 	case *Sym:
@@ -117,7 +118,8 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 	return lit.Select(res, path)
 }
 
-func (c *Ctx) resolveType(env Env, t Type, last Type) (_ Type, err error) {
+func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {
+	last := t.Last()
 	if last.Kind&typ.FlagRef == 0 {
 		if last.Kind == typ.ExpFunc {
 			// TODO resolve func signatures

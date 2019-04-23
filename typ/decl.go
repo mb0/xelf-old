@@ -96,3 +96,25 @@ func (t Type) Ordered() bool {
 	}
 	return false
 }
+
+// Resolved returns whether t is fully resolved
+func (t Type) Resolved() bool {
+	switch t.Kind & SlotMask {
+	case KindFlag, KindEnum: // check that consts were resolved
+		return t.Info != nil && len(t.Consts) != 0
+	case KindList, KindDict: // check elem type
+		return t.Elem().Resolved()
+	case KindObj, KindRec: // check that params were resolved
+		if t.Info == nil || len(t.Params) == 0 {
+			return false
+		}
+		for _, p := range t.Params {
+			if !p.Type.Resolved() {
+				return false
+			}
+		}
+	case KindExp, KindVoid, KindRef, KindVar, KindAlt:
+		return false
+	}
+	return true
+}
