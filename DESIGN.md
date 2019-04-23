@@ -52,9 +52,9 @@ and flag for bit sets, the specific types of char are str, raw for bytes, uuid, 
 for durations. The bool type is also considered a numeric type, because some environments might not
 have a dedicated bool type, indexedDB in browsers comes to mind. Both span and time are usually
 represented in a text format but can also be converted to an integer, representing milliseconds.
-The time type as num are milliseconds since the unix epoch.
+The numeric value of a time are the milliseconds from the unix epoch.
 
-The selection is based on what types strings and number literals are commonly used for, that
+The selection is based on what types character and numeric literals are commonly used for, that
 differentiate enough in comparison or manipulation behavior. It is heavily informed by types
 supported by full featured databases like postgresql. We do not bother with different number sizes
 or text length because it only complicates what xelf tries to provide and is only a concern to a
@@ -76,8 +76,8 @@ value optional.
 To rely on type information without specifying it explicitly in every case, for possibly large
 composite literals, xelf must allow to explicitly refer to and infer from existing types. This is
 covered by type embedding and type references. Recursive record declaration also use special
-type references to itself or an ancestor. Type references are implicitly used in the type inference
-and resolution phase.
+type references to itself or an ancestor. Type variables and alternatives are implicitly used in the
+type inference and resolution phase.
 
 The flag, enum and obj types are called schema types and are global references to a type definition
 with additional information. The flag type is a integer type used as bit set with associated
@@ -158,7 +158,7 @@ types are comparable to their specific type, unless the specific type requires a
 means that char is comparable to str or enum, and the num type is comparable to any specific numeric
 type.
 
-Convertible types cover idxr, keyr and record types whose element types also convertible.
+Convertible types cover list, dict and record types whose element types also convertible.
 
 Checked convertible type might be convertible, but need to check the literal value to decide if they
 actually are. This is the case for types containing unresolved type reference, if the source type is
@@ -172,7 +172,7 @@ Symbols, Names and Keys
 Xelf symbols are ASCII identifiers that allow a large number of punctuation characters. Some
 punctuation characters already have a designated meaning. As prefix ':+-@~', as suffix '?' and the
 prefixes '$/.' for special scope lookups. All other punctuation characters can be used in client
-libs. Built-in expression resolvers all use short ascii names instead of punctuation.
+libs. Built-in expression resolvers all use short ASCII names instead of punctuation.
 
 By using only the ASCII character set we can avoid any encoding issues or substitutions in
 environments without unicode identifier support.
@@ -194,12 +194,12 @@ Expression Syntax
 -----------------
 
 Xelf must be very simple to parse. Infix notation is always harder to parse than s-expressions. So
-we naturally choose lisp style parenthesis enclosed expressions. The parenthesis are also used for
+we naturally choose LISP style parenthesis enclosed expressions. The parenthesis are also used for
 defining complex types. But apart from that always indicate that a resolver is called with the
 expression element.
 
-Lisp is great. However, many key concepts of lisp languages are not easily expressed in simple
-environments. Xelf builds on JSON and adds a notation for types and expressions on top of it.
+LISP languages are great. However, many key concepts of LISP-languages are not easily expressed in
+simple environments. Xelf builds on JSON and adds a notation for types and expressions on top of it.
 
 Xelf has special handling for tag and declaration symbols within expressions. This is to avoid
 excessive nesting of expressions and to achieve a comfortable level of expressiveness in a variety
@@ -215,29 +215,27 @@ types are just built-in definitions that can be overwritten in sub environment.
 
 The schema prefix can be used to refer to built-in types, even if shadowed by a another definition.
 
-Types are mostly used in context where they are explicitly expected. Maybe we can introduce a rule
-stating that in those cases simple names are always treated as type, while every other case resolves
-the name in its environment.
+Type References and Variables
+-----------------------------
 
-Type References
----------------
+Type references refer to any literal in scope and represent the underlying type of the literal. They
+start with the at-sign followed by any symbol '@name' and can refer to a generalized element type of
+any container with a underscore path segment '@mylist._'.
 
-There are four kinds of reference types.
+Type variables represent unresolved types and are used during type inference and checking. They
+start with reference prefix followed by a numeric type variable id '@123'. The naked at-sign '@'
+without id represents a new type variable.
 
-Self and ancestor reference refer to the current or ancestor object type and are used for recursive
-type definitions.
+Schema types are a kind of reference and need to be resolved. The name of schema types refers to a
+global type schema and uses the schema prefix '~schema.model' for lookups from the environment.
 
-Schema types are a kind of reference and need to be resolved. The reference name of schema types
-refers to a global type schema and uses the schema prefix '~' for lookups from the environment.
+Self and ancestor references point to the current or ancestor record type and are used for recursive
+type definitions. They use the schema prefix followed by a number '~1'.
 
 Unnamed references are inferred types and need to be inferred from context. They are mostly used in
 the resolution phase and may represent poly types by collecting candidates in the companion field
 list normally used by object types.
 
-Normal type references refer to any literal in scope and represent the type of that literal. Type
-references referring to type literals do use the underlying type and not the special typ type.
-Type references can refer to a generalized element type of any container with a underscore path
-segment.
 
 Symbol Resolution
 -----------------
@@ -265,35 +263,29 @@ used for parameter and result paths. Both use the immediate environment supporti
 can be followed by dots to select a supporting parent. A double prefix '$$' or '//' will select the
 outermost supporting environment.
 
-The with expression starting with a plain literal argument creates a data scope. The literal
-argument can still be followed by declarations or have nested let expression that define normal
-scope resolvers. Normal functions and loop expressions provide their arguments as a data scope as
-well.
+The let expression starting with a plain literal argument creates a data scope. The literal argument
+can still be followed by other declarations or have nested let expression that define normal scope
+resolvers. Normal functions and loop expressions provide their arguments as a data scope as well.
 
 Type references not starting with dots first try to resolve as relative path symbol and after that
-as plain symbol. Schema prefix could become completely unnecessary at some point, because the
-plain symbol namespace is much less crowded and we can use it for schema types as well. We also
-moved the type parser to the exp package, that allows us to look up schema data from the resolution
-environment. There might not even any name conflicts because we only use references to models or
-their contents and not the schema, if we otherwise disallow dots in resolver names.
+as plain symbol.
 
 Expressions
 -----------
 
 Xelf language elements can be literals including types, symbols or expressions. Expression can
-either be tag and declaration expressions or dynamic and normal expressions. All elements share a
-common interface, that includes a sting and write bfr method as well as a type method. The returned
-type identifies the kind of the language element.
+either be named or dynamic and call expressions. All elements share a common interface, that
+includes a sting and write bfr method as well as a type method. The returned type identifies the
+kind of the language element.
 
-Tag and declaration expressions start with a tag or declaration symbol respectively and are handled
-by the parent expression's resolver. They are formed automatically by the parser from tag and
-declaration symbols in expression arguments.
+Named expressions start with a tag or declaration symbol and are handled by the parent's
+specification. They are formed automatically by the parser from tag and declaration tokens.
 
 Dynamic expressions are expressions, where the resolver is yet unknown and may start with a literal
 or sub expression. Dynamic expressions starting with a literal are resolved with the configurable
 dyn resolver.
 
-Normal expressions are all expressions where an expression resolver was found.
+Calls are all expressions where a specification was found.
 
 Expression Resolution
 ---------------------
@@ -305,58 +297,47 @@ context or uses the default dyn resolver. Changing the dyn resolver is still pos
 context.
 
 The default dyn resolver resolves the first arg and delegates to a resolver based on it. If the
-first argument is func or form it is called directly. If it is a type the expression is treated as
-the 'as' type conversion resolver. For other literals a appropriate combination operator is used if
+first argument is form or function it is called directly. If it is a type the expression is treated
+as the 'as' type conversion form. For other literals a appropriate combination operator is used if
 available. Users can redefine and reuse the dyn resolver to add custom delegations.
 
-A resolver is free to choose how its arguments are typed and resolved and can even change the
-environment for subexpressions. There should only be one resolver interface for all aspects of
-the resolution process. For that reason a resolution context is passed in that indicates whether
-an expression can execute or can return a partially resolved expression. The context also
-encapsulates the default resolution machinery that resolvers can choose to resolve arguments.
+There is only one resolver interface for all aspects of the resolution process to keep it simple.
+For that reason a context is passed in that indicates whether an expression can execute or can
+return a partially resolved expression. The context also encapsulates the default resolution
+machinery that resolvers can choose to resolve arguments.
 
 The form resolvers provided by xelf are grouped into the core, std and library resolvers. The core
-built-ins include basic operators, conditional and the dyn and as resolvers. The std built-ins
-have basic resolvers that include declarations. The library built-ins are usually provide extra
-functionality centered around a type of literals.
+built-ins include basic operators, conditional and the dyn and as resolvers. The std built-ins have
+basic resolvers that include declarations. The library built-ins are provide extra functionality
+centered around one type.
 
-Function Type and Literal
--------------------------
+Forms and Functions
+-------------------
 
-Xelf tried to build around the concept of resolvers that do not differentiate between variables,
-functions or built-in expressions. However this meant that even simple resolvers, that could be
-expressed in xelf expressions, needed to be implemented in every environment used. The concept
-of function is also common enough to justify special handling to reduce code duplication.
+Form and function types provide a signature that can be used to direct most aspects of the
+resolution process. The signature allows us to factor out the default type checking and inference
+and provide a more stable and comfortable user experience. Forms signatures accept special
+parameter names, that allow tags and declaration parsing.
 
-Functions as literals also imply a function type that represents the type's signature. A declared
-signature allows us to factor out the default type checking and inference and provide a more stable
-and comfortable user experience. Functions are called only if all their arguments are successfully
-resolved and then use their declaration environment for evaluation.
+Form and function types have a reference name, primarily to be printable. This name is not meant to
+be resolved, but should match the definition.
 
-If the last function parameter has an list type, it can be called as variadic parameter -
-meaning multiple elemement arguments can be used instead of the expected indexer argument. When
-exactly one argument is used that is convertible to the list type it is used-as, in other
-cases it is treated as element.
+A form is free to choose how its arguments are typed and resolved and can even change the
+environment for subexpressions.
 
-Resolvers that need to have control over type checking or can partially resolve their arguments
-must be implemented as form resolver.
+Functions are called only if all their arguments are successfully resolved and then use their
+declaration environment for evaluation, acting as closures. If the last function argument parameter
+has an list type, it can be called as variadic parameter - meaning multiple arguments can be used
+instead of the expected list. When exactly one argument is used that is convertible to the list type
+it is used-as, other cases are treated as element.
 
-Because we have different kinds of function implementation we use a common function literal type,
-that implements the literal and expr resolver interface and delegates expression resolution to a
-function body implementation. The different kinds are built-in functions with custom or reflection
-base resolvers and normal function bodies with a list of expression elements.
+Specification
+-------------
 
-Functions are allowed to access the environment chain they were declared in. This is only useful
-for normal functions and means their implementations need to remember the declaration environment.
-A special function scope provides the parameter declarations that were resolved in the calling
-environment.
+Specifications quasi-literals with a form or function type and a call resolver.
 
-Normal functions need to be inlined in environments without function literals. For this reason they
-are allowed to execute without exec context. Other functions only call the body if exec is true.
-
-A new resolver 'fn' is used to construct function literals. It has the same parameter and result
-declaration as the function type syntax but ends in a tail of body elements. Simple function
-expression should be able to omit and infer the function signature.
+The 'fn' form can be used to construct function literals. Simple function expression should be able
+to omit and infer the function signature.
 
 If we have a full function type as hint, inferring the signature could be as simple as checking if
 all parameter references work with the declared type and whether the result type if comparable. The
@@ -368,56 +349,26 @@ To infer the signature without any hint we must deduce all parameter references 
 well as the result type. The prefix allow us to identify all parameter references. We can use index
 parameters to explicitly order some of the parameters append named ones in order.
 
-Form Type and Literal
----------------------
-
-Form literals are used for expression resolvers that cannot be expressed as function. Form literals
-are a more general expression resolver and can direct most aspects of the resolution process. Using
-literals for all expression resolvers allows us to use reference resolution to lookup the resolver.
-
-Most of the built-in resolvers do not conform to a simple type signature and need to resolve their
-arguments for type information anyway. Modeling these signatures with the type system in the same
-way as function types would have no clear benefit. It was therefor decided to introduce another
-quasi-literal for those cases.
-
-Form types have a reference name, primarily to be printable. This name is not meant to be resolved,
-but should match the definition name of that form.
-
-Expressions have different layouts regarding the number and shape of their arguments. Function for
-example accept leading plain elements and optionally tagged elements for named parameters. Forms
-can have any layout including not only tag expressions but also declaration expressions.
-
-Form types have a signature of type hints. Layouts can be used to validate and resolve args against
-the form signature. And the type resolution machinery uses specific result types.
-
 Type Inference
 --------------
 
-This is a work in progress.
+After even more study over the hindley-milner type system, I come to the conclusion, that it is
+practically unavoidable when implementing type systems. However due to the involved type conversion
+rules the Xelf uses it cannot be used without without modification. Instead of involved coercions
+using constraints or ad-hoc coercions, Xelf uses type alternatives internally. Type alternatives
+collect type options for a given base type. They are basically type classes, from what I gather.
+They are not as useful in Xelf as in Haskell, because type behaviour can only be one of the base
+types.
 
-After some study over the hindley-milner type system, I come to the conclusion, that it does not
-lend itself to be faithfully applied to xelf. We cannot separate type checking from the resolution
-process, because xelf allows resolvers to direct most aspects of the process. Form resolvers often
-need to resolve their arguments to provide the result type information, expressing their signatures
-in type variables and constraints would be more work without significant value. We also have
-auto conversion rules between base type and comparable special types.
-
-Instead we need a way to check and infer types within the same resolution context and process. It
-should be flexible enough to cover functions or references and help form expression infer their
-types. Luckily we already have type references, that we can use as type variables and as poly type
-behind the scenes, a context to stash intermediate results and an environment to look it all up.
-Using function signatures and implementing type resolution in all form resolvers potentially
-provides use with all the types we need.
+We cannot completely separate type checking from the resolution process, because xelf allows forms
+to direct most aspects of the process. Forms are called to resolve their arguments and provide the
+result type information, if not available in the form signature. However type variables, references
+and alternatives should allow expressing many complex signatures.
 
 We pass a type hint to resolvers, so it can be considered when inferring types and encapsulate their
 type resolution. The other option would be to handle type checking and inference at the call site,
-but this would limit what resolvers could infer.
+but this would limit what resolvers could infer. The encapsulation this enables can also avoid full
+program type inference and instead incrementally resolves each call. Type hints can be of any kind,
+including variables, references and alternatives. Void hints indicates a lack of type expectations
+and means the resolver can disregard the hint completely.
 
-The type hint is interpreted differently than normal types and should work the same way as types in
-form parameters. This is done to make hints more expressive for the common cases. Type hints can
-be transformed into a corresponding poly type. If type hint should explicitly represent the void,
-any or a base type it can be expressed as poly type with the hint as only option.
-
-Void indicates a lack of type expectations and means the resolver can disregard the hint completely.
-The any type indicates a common literal type excluding the special typ, func and form types. The
-base types represents the type itself as well as all its specific types.
