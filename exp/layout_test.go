@@ -13,40 +13,40 @@ func TestLayout(t *testing.T) {
 		raw  string
 		args []string
 	}{
-		{"(form '_' +plain + any)",
+		{"(form '_' :plain : any)",
 			"(_ a b c)", []string{
 				"(a b c)",
 			},
 		},
-		{"(form '_' +a +plain + any)",
+		{"(form '_' :a :plain : any)",
 			"(_ a b c)", []string{
 				"(a)",
 				"(b c)",
 			},
 		},
-		{"(form '_' +a +tags + any)",
+		{"(form '_' :a :tags : any)",
 			"(_ a :b 1 :c 2)", []string{
 				"(a)",
 				"(:b 1 :c 2)",
 			},
 		},
-		{"(form '_' +a? +tags + any)",
+		{"(form '_' :a? :tags : any)",
 			"(_ :b 1 :c 2)", []string{
 				"()",
 				"(:b 1 :c 2)",
 			},
 		},
-		{"(form '_' +args + any)",
+		{"(form '_' :args : any)",
 			"(_ a :b 1 :c 2)", []string{
 				"(a :b 1 :c 2)",
 			},
 		},
-		{"(form '_' +decls + any)",
+		{"(form '_' :decls : any)",
 			"(_ +a +b 1 +c 2)", []string{
 				"(+a +b 1 +c 2)",
 			},
 		},
-		{"(form '_' +decls + any)",
+		{"(form '_' :decls : any)",
 			"(_ (+a +b 1) +c 2)", []string{
 				"((+a +b 1) +c 2)",
 			},

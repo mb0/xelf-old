@@ -233,17 +233,20 @@ func (a *Info) writeXelf(b *bfr.Ctx, detail bool, hist []*Info) error {
 	if !detail {
 		return nil
 	}
-	for i := 0; i < len(a.Params); i++ {
+	var i int
+	for ; i < len(a.Params); i++ {
 		f := a.Params[i]
-		b.WriteString(" +")
-		b.WriteString(f.Name)
-		for _, o := range a.Params[i+1:] {
-			if !f.Type.Equal(o.Type) {
-				break
+		if f.Name != "" {
+			b.WriteString(" :")
+			b.WriteString(f.Name)
+			for _, o := range a.Params[i+1:] {
+				if !f.Type.Equal(o.Type) {
+					break
+				}
+				b.WriteString(" :")
+				b.WriteString(o.Name)
+				i++
 			}
-			b.WriteString(" +")
-			b.WriteString(o.Name)
-			i++
 		}
 		b.WriteByte(' ')
 		err := f.Type.writeBfr(b, nil, hist)

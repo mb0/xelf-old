@@ -174,17 +174,18 @@ func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 	var naked int
 	for len(args) > 0 {
 		a := args[0]
-		args = args[1:]
-		if !isDecl(a) {
-			return t, cor.Errorf("want param start got %s", a)
-		}
-		res = append(res, Param{Name: a.Raw[1:]})
+		var name string
+		if a.Tok == lex.Tag {
+			name = a.Raw[1:]
+			args = args[1:]
+		} // else unnamed parameter
+		res = append(res, Param{Name: name})
 		if group {
 			naked++
 		} else {
 			naked = 1
 		}
-		if len(args) > 0 && !isDecl(args[0]) {
+		if len(args) > 0 && args[0].Tok != lex.Tag {
 			t, err := parse(args[0], hist)
 			args = args[1:]
 			if err != nil {
@@ -198,7 +199,4 @@ func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 	}
 	t.Params = res
 	return t, nil
-}
-func isDecl(a *lex.Tree) bool {
-	return a.Tok == lex.Decl && strings.IndexByte("+-", a.Raw[0]) != -1
 }

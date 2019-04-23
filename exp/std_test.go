@@ -173,7 +173,7 @@ func TestStdResolve(t *testing.T) {
 			lit.Str("hello calvin, bob, alice"),
 		},
 		{`(let +a int @a)`, typ.Int},
-		{`(let +a (rec +b int) @a.b)`, typ.Int},
+		{`(let +a (rec :b int) @a.b)`, typ.Int},
 		{`(let +a int +b list|@a @b)`, typ.List(typ.Int)},
 		{`(let +f (fn - int 1) (f))`, lit.Int(1)},
 		{`(let +f (fn +a - int (add .a 1)) (f 1))`, lit.Int(2)},
@@ -183,7 +183,7 @@ func TestStdResolve(t *testing.T) {
 			(sum 1 2 3)
 		)`, lit.Int(6)},
 		{`(let 'test' .)`, lit.Char("test")},
-		{`(let ((rec +a int) [1]) .a)`, lit.Int(1)},
+		{`(let ((rec :a int) [1]) .a)`, lit.Int(1)},
 		{`(let [1 2 3 4 5] +even (fn +a ~num - bool (eq (rem _ 2) 0)) (and
 			(eq (len "test") 4)
 			(eq (len .) 5)

@@ -16,33 +16,33 @@ func TestString(t *testing.T) {
 		{Ref("a"), `@a`},
 		{Ref("a.b"), `@a.b`},
 		{Var(1), `@1`},
-		{Alt(Num, Str), `(alt + ~num + str)`},
+		{Alt(Num, Str), `(alt ~num str)`},
 		{Opt(Ref("b")), `@b?`},
 		{Opt(Enum("kind")), `(enum? 'kind')`},
 		{List(Any), `list`},
 		{List(Int), `list|int`},
 		{Opt(Rec([]Param{
 			{Name: "Name", Type: Str},
-		})), `(rec? +Name str)`},
+		})), `(rec? :Name str)`},
 		{Rec([]Param{
 			{Name: "x", Type: Int},
 			{Name: "y", Type: Int},
-		}), `(rec +x +y int)`},
+		}), `(rec :x :y int)`},
 		{Rec([]Param{
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
-		}), `(rec + @Other +Name str)`},
+		}), `(rec @Other :Name str)`},
 		{Obj("Foo"), `(obj 'Foo')`},
 		{Type{Kind: ExpFunc, Info: &Info{Params: []Param{
 			{Name: "text", Type: Str},
 			{Name: "sub", Type: Str},
 			{Type: Int},
-		}}}, `(func +text +sub str + int)`},
+		}}}, `(func :text :sub str int)`},
 		{Type{Kind: ExpForm, Info: &Info{Ref: "_", Params: []Param{
 			{Name: "a"},
 			{Name: "b"},
 			{Type: Void},
-		}}}, `(form '_' +a +b + void)`},
+		}}}, `(form '_' :a :b : void)`},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()
@@ -88,10 +88,10 @@ func TestTypeSelfRef(t *testing.T) {
 		typ Type
 		raw string
 	}{
-		{a, "(rec +Ref ~0?)"},
-		{Opt(a), "(rec? +Ref ~0?)"},
-		{b, "(rec +C (rec +Ref list|~1))"},
-		{Opt(b), "(rec? +C (rec +Ref list|~1))"},
+		{a, "(rec :Ref ~0?)"},
+		{Opt(a), "(rec? :Ref ~0?)"},
+		{b, "(rec :C (rec :Ref list|~1))"},
+		{Opt(b), "(rec? :C (rec :Ref list|~1))"},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()
