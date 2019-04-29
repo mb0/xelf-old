@@ -56,91 +56,38 @@ to construct a new container literal by effectively using each or foldr.
 ))
 */
 
-func init() {
-	std.add("len", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly str raw list dict)
-		{Type: typ.Int},
-	}, rslvLen)
-	std.add("fst", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly list dict)
-		{Name: "pred?"},
-		{Type: typ.Infer},
-	}, rslvFst)
-	std.add("lst", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly list dict)
-		{Name: "pred?"},
-		{Type: typ.Infer},
-	}, rslvLst)
-	std.add("nth", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly list dict)
-		{Name: "idx", Type: typ.Int},
-		{Name: "pred?"},
-		{Type: typ.Infer},
-	}, rslvNth)
-	std.add("filter", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly list dict)
-		{Name: "pred"},             // @iterator
-		{Type: typ.Infer},          // @a
-	}, rslvFilter)
-	std.add("map", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly list dict)
-		{Name: "mut"},              // @iterator
-		{Type: typ.Infer},          // @a
-	}, rslvMap)
-	std.add("fold", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly list dict)
-		{Name: "acc", Type: typ.Any},
-		{Name: "ator"},    // @accumulator
-		{Type: typ.Infer}, // @acc
-	}, rslvFold)
-	std.add("foldr", []typ.Param{
-		{Name: "a", Type: typ.Any}, // (poly list dict)
-		{Name: "acc", Type: typ.Any},
-		{Name: "ator"},    // @accumulator
-		{Type: typ.Infer}, // @acc
-	}, rslvFoldr)
-}
-
 type litLener interface {
 	Len() int
 }
 
-func rslvLen(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	fst := lo.Arg(0)
-	if v, ok := deopt(fst).(litLener); ok {
-		return lit.Int(v.Len()), nil
-	}
-	return nil, cor.Errorf("cannot call len on %s", fst.Typ())
-}
-func rslvFst(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), 0)
-}
-func rslvLst(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), -1)
-}
-func rslvNth(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	l, ok := lo.Arg(1).(lit.Numeric)
-	if !ok {
-		return nil, cor.Errorf("want number got %s", lo.Arg(1))
-	}
-	return nth(c, env, e, hint, lo.Arg(0), lo.Arg(2), int(l.Num()))
-}
+var lenSpec = std.implResl("(form 'len' :a any : int)", // (poly any ~idxr ~keyr str raw)
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		fst := lo.Arg(0)
+		if v, ok := deopt(fst).(litLener); ok {
+			return lit.Int(v.Len()), nil
+		}
+		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
+	})
+
+var fstSpec = std.implResl("(form 'fst' :a any :pred? @ : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), 0)
+	})
+
+var lstSpec = std.implResl("(form 'lst' :a any :pred? @ : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), -1)
+	})
+
+var nthSpec = std.implResl("(form 'nth' :a any :i int :pred? @ : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		l, ok := lo.Arg(1).(lit.Numeric)
+		if !ok {
+			return nil, cor.Errorf("want number got %s", lo.Arg(1))
+		}
+		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(2), int(l.Num()))
+	})
+
 func nth(c *Ctx, env Env, e *Call, hint Type, cont El, pred El, idx int) (_ El, err error) {
 	if pred != nil {
 		iter, err := getIter(c, env, pred, cont.Typ(), false)
@@ -323,187 +270,177 @@ func (r *fIter) filter(c *Ctx, env Env, cont El) (Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
-func rslvFilter(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	cont := lo.Arg(0)
-	iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
-	if err != nil {
-		return nil, err
-	}
-	res, err := iter.filter(c, env, cont)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
+var filterSpec = std.implResl("(form 'filter' :a any :pred @ : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		cont := lo.Arg(0)
+		iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
+		if err != nil {
+			return nil, err
+		}
+		res, err := iter.filter(c, env, cont)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	})
 
-func rslvMap(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	cont := lo.Arg(0)
-	iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
-	if err != nil {
-		return nil, err
-	}
-	var rt Type
-	it := iter.Res()
-	if it == typ.Void || it == typ.Infer {
-		it = typ.Any
-	}
-	switch t := cont.Typ(); t.Kind & typ.MaskElem {
-	case typ.BaseIdxr:
-		if it == typ.Any {
-			rt = typ.Idxer
-		} else {
+var mapSpec = std.implResl("(form 'map' :a any :mut @ : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		cont := lo.Arg(0)
+		iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
+		if err != nil {
+			return nil, err
+		}
+		var rt Type
+		it := iter.Res()
+		if it == typ.Void || it == typ.Infer {
+			it = typ.Any
+		}
+		switch t := cont.Typ(); t.Kind & typ.MaskElem {
+		case typ.BaseIdxr:
+			if it == typ.Any {
+				rt = typ.Idxer
+			} else {
+				rt = typ.List(it)
+			}
+		case typ.KindList:
 			rt = typ.List(it)
-		}
-	case typ.KindList:
-		rt = typ.List(it)
-	case typ.BaseKeyr:
-		if it == typ.Any {
-			rt = typ.Keyer
-		} else {
+		case typ.BaseKeyr:
+			if it == typ.Any {
+				rt = typ.Keyer
+			} else {
+				rt = typ.Dict(it)
+			}
+		case typ.KindDict:
 			rt = typ.Dict(it)
+		case typ.KindRec:
+			rt = typ.Keyer
 		}
-	case typ.KindDict:
-		rt = typ.Dict(it)
-	case typ.KindRec:
-		rt = typ.Keyer
-	}
-	switch v := deopt(cont).(type) {
-	case lit.Keyer:
-		out := lit.Zero(rt).(lit.Keyer)
-		idx := 0
-		err := v.IterKey(func(key string, el Lit) error {
-			res, err := iter.resolve(c, env, el, idx, key)
-			if err != nil {
-				return err
-			}
-			_, err = out.SetKey(key, res)
-			if err != nil {
-				return err
-			}
-			idx++
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	case lit.Indexer:
-		out := lit.Zero(rt).(lit.Appender)
-		if iter.k > 0 {
-			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
-		}
-		err := v.IterIdx(func(idx int, el Lit) error {
-			res, err := iter.resolve(c, env, el, idx, "")
-			if err != nil {
-				return err
-			}
-			out, err = out.Append(res)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	}
-	return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
-}
-func rslvFold(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	cont := lo.Arg(0)
-	acc := lo.Arg(1).(Lit)
-	iter, err := getIter(c, env, lo.Arg(2), acc.Typ(), true)
-	if err != nil {
-		return nil, err
-	}
-	switch v := deopt(cont).(type) {
-	case lit.Keyer:
-		idx := 0
-		err := v.IterKey(func(key string, el Lit) error {
-			acc, err = iter.accumulate(c, env, acc, el, idx, key)
-			if err != nil {
-				return err
-			}
-			idx++
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
-		return acc, nil
-	case lit.Indexer:
-		if iter.k > 0 {
-			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
-		}
-		err := v.IterIdx(func(idx int, el Lit) error {
-			acc, err = iter.accumulate(c, env, acc, el, idx, "")
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
-		return acc, nil
-	}
-	return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
-}
-func rslvFoldr(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	cont := lo.Arg(0)
-	acc := lo.Arg(1).(Lit)
-	iter, err := getIter(c, env, lo.Arg(2), acc.Typ(), true)
-	if err != nil {
-		return nil, err
-	}
-	switch v := deopt(cont).(type) {
-	case lit.Keyer:
-		keys := v.Keys()
-		for idx := len(keys) - 1; idx >= 0; idx-- {
-			key := keys[idx]
-			el, err := v.Key(key)
+		switch v := deopt(cont).(type) {
+		case lit.Keyer:
+			out := lit.Zero(rt).(lit.Keyer)
+			idx := 0
+			err := v.IterKey(func(key string, el Lit) error {
+				res, err := iter.resolve(c, env, el, idx, key)
+				if err != nil {
+					return err
+				}
+				_, err = out.SetKey(key, res)
+				if err != nil {
+					return err
+				}
+				idx++
+				return nil
+			})
 			if err != nil {
 				return nil, err
 			}
-			acc, err = iter.accumulate(c, env, acc, el, idx, key)
+			return out, nil
+		case lit.Indexer:
+			out := lit.Zero(rt).(lit.Appender)
+			if iter.k > 0 {
+				return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
+			}
+			err := v.IterIdx(func(idx int, el Lit) error {
+				res, err := iter.resolve(c, env, el, idx, "")
+				if err != nil {
+					return err
+				}
+				out, err = out.Append(res)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
 			if err != nil {
 				return nil, err
 			}
+			return out, nil
 		}
-		return acc, nil
-	case lit.Indexer:
-		if iter.k > 0 {
-			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
+		return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
+	})
+
+var foldSpec = std.implResl("(form 'fold' :a any :acc any :ator @ : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		cont := lo.Arg(0)
+		acc := lo.Arg(1).(Lit)
+		iter, err := getIter(c, env, lo.Arg(2), acc.Typ(), true)
+		if err != nil {
+			return nil, err
 		}
-		ln := v.Len()
-		for idx := ln - 1; idx >= 0; idx-- {
-			el, err := v.Idx(idx)
+		switch v := deopt(cont).(type) {
+		case lit.Keyer:
+			idx := 0
+			err := v.IterKey(func(key string, el Lit) error {
+				acc, err = iter.accumulate(c, env, acc, el, idx, key)
+				if err != nil {
+					return err
+				}
+				idx++
+				return nil
+			})
 			if err != nil {
 				return nil, err
 			}
-			acc, err = iter.accumulate(c, env, acc, el, idx, "")
+			return acc, nil
+		case lit.Indexer:
+			if iter.k > 0 {
+				return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
+			}
+			err := v.IterIdx(func(idx int, el Lit) error {
+				acc, err = iter.accumulate(c, env, acc, el, idx, "")
+				if err != nil {
+					return err
+				}
+				return nil
+			})
 			if err != nil {
 				return nil, err
 			}
+			return acc, nil
 		}
-		return acc, nil
-	}
-	return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
-}
+		return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
+	})
+
+var foldrSpec = std.implResl("(form 'foldr' :a any :acc any :ator @ : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		cont := lo.Arg(0)
+		acc := lo.Arg(1).(Lit)
+		iter, err := getIter(c, env, lo.Arg(2), acc.Typ(), true)
+		if err != nil {
+			return nil, err
+		}
+		switch v := deopt(cont).(type) {
+		case lit.Keyer:
+			keys := v.Keys()
+			for idx := len(keys) - 1; idx >= 0; idx-- {
+				key := keys[idx]
+				el, err := v.Key(key)
+				if err != nil {
+					return nil, err
+				}
+				acc, err = iter.accumulate(c, env, acc, el, idx, key)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return acc, nil
+		case lit.Indexer:
+			if iter.k > 0 {
+				return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
+			}
+			ln := v.Len()
+			for idx := ln - 1; idx >= 0; idx-- {
+				el, err := v.Idx(idx)
+				if err != nil {
+					return nil, err
+				}
+				acc, err = iter.accumulate(c, env, acc, el, idx, "")
+				if err != nil {
+					return nil, err
+				}
+			}
+			return acc, nil
+		}
+		return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
+	})

@@ -8,228 +8,166 @@ import (
 
 var ErrExpectNumer = cor.StrError("expected numer argument")
 
-var (
-	formAdd *Spec
-	formMul *Spec
-)
-
-func init() {
-	nums2 := []typ.Param{
-		{Name: "a", Type: typ.Num},
-		{Name: "b", Type: typ.Num},
-		{Name: "plain", Type: typ.List(typ.Num)},
-		{Type: typ.Num},
-	}
-	nums0 := nums2[2:]
-	formAdd = core.add("add", nums0, rslvAdd)
-	formMul = core.add("mul", nums0, rslvMul)
-	core.add("sub", nums2, rslvSub)
-	core.add("div", nums2, rslvDiv)
-	core.add("rem", []typ.Param{
-		{Name: "a", Type: typ.Int},
-		{Name: "b", Type: typ.Int},
-		{Type: typ.Int},
-	}, rslvRem)
-	core.add("abs", []typ.Param{
-		{Name: "a", Type: typ.Num},
-		{Type: typ.Num},
-	}, rslvAbs)
-	core.add("min", nums2[1:], rslvMin)
-	core.add("max", nums2[1:], rslvMax)
-}
-
 func opAdd(r, n float64) (float64, error) { return r + n, nil }
 func opMul(r, n float64) (float64, error) { return r * n, nil }
 
-// rslvAdd adds up all arguments and converts the sum to the first argument's type.
-// (form 'add' +rest list|num - num)
-func rslvAdd(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	return reduceNums(c, env, e, 0, true, opAdd)
-}
-
-// rslvMul multiplies all arguments and converts the product to the first argument's type.
-// (form 'mul' +rest list|num - num)
-func rslvMul(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	return reduceNums(c, env, e, 1, true, opMul)
-}
-
-// rslvSub subtracts the sum of the rest from the first argument and
-// converts to the first argument's type.
-// (form 'sub' +a num +b num +rest list|num - num)
-func rslvSub(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	fst, err := c.Resolve(env, e.Args[0], hint)
-	if err == ErrUnres {
-		if c.Part { // resolve the rest and return partial result
-			rest := &Call{Def: DefSpec(formAdd), Args: e.Args[1:]}
-			sub, err := reduceNums(c, env, rest, 0, false, opAdd)
-			if err == nil {
-				e.Args = append(e.Args[:1], sub)
-			} else if err == ErrUnres {
-				e.Args = append(e.Args[:1], sub.(*Call).Args...)
-			} else {
-				return nil, err
-			}
-		}
-		return e, ErrUnres
-	}
-	if err != nil {
-		return nil, err
-	}
-	num := getNumer(fst)
-	if num == nil {
-		return nil, ErrExpectNumer
-	}
-	return reduceNums(c, env, e, 2*num.Num(), true, func(r, n float64) (float64, error) {
-		return r - n, nil
+// addSpec adds up all arguments and converts the sum to the first argument's type.
+var addSpec = core.impl("(form 'add' :plain list|~num : ~num)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		return reduceNums(c, env, e, 0, true, opAdd)
 	})
-}
 
-// rslvDiv divides the product of the rest from the first argument.
+// mulSpec multiplies all arguments and converts the product to the first argument's type.
+var mulSpec = core.impl("(form 'mul' :plain list|~num : ~num)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		return reduceNums(c, env, e, 1, true, opMul)
+	})
+
+// subSpec subtracts the sum of the rest from the first argument and
+// converts to the first argument's type.
+var subSpec = core.impl("(form 'sub' :a ~num :b ~num :rest list|~num : ~num)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		fst, err := c.Resolve(env, e.Args[0], hint)
+		if err == ErrUnres {
+			if c.Part { // resolve the rest and return partial result
+				rest := &Call{Def: DefSpec(addSpec), Args: e.Args[1:]}
+				sub, err := reduceNums(c, env, rest, 0, false, opAdd)
+				if err == nil {
+					e.Args = append(e.Args[:1], sub)
+				} else if err == ErrUnres {
+					e.Args = append(e.Args[:1], sub.(*Call).Args...)
+				} else {
+					return nil, err
+				}
+			}
+			return e, ErrUnres
+		}
+		if err != nil {
+			return nil, err
+		}
+		num := getNumer(fst)
+		if num == nil {
+			return nil, ErrExpectNumer
+		}
+		return reduceNums(c, env, e, 2*num.Num(), true, func(r, n float64) (float64, error) {
+			return r - n, nil
+		})
+	})
+
+// divSpec divides the product of the rest from the first argument.
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
-// (form 'div' +a num +b num +rest list|num - num)
-func rslvDiv(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	fst, err := c.Resolve(env, e.Args[0], hint)
-	if err == ErrUnres {
-		if c.Part { // resolve the rest and return partial result
-			rest := &Call{Def: DefSpec(formMul), Args: e.Args[1:]}
-			sub, err := reduceNums(c, env, rest, 1, false, opMul)
-			if err == nil {
-				e.Args = append(e.Args[:1], sub)
-			} else if err == ErrUnres {
-				e.Args = append(e.Args[:1], sub.(*Call).Args...)
+var divSpec = core.impl("(form 'div' :a ~num :b ~num :rest list|~num : ~num)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		fst, err := c.Resolve(env, e.Args[0], hint)
+		if err == ErrUnres {
+			if c.Part { // resolve the rest and return partial result
+				rest := &Call{Def: DefSpec(mulSpec), Args: e.Args[1:]}
+				sub, err := reduceNums(c, env, rest, 1, false, opMul)
+				if err == nil {
+					e.Args = append(e.Args[:1], sub)
+				} else if err == ErrUnres {
+					e.Args = append(e.Args[:1], sub.(*Call).Args...)
+				} else {
+					return nil, err
+				}
+			}
+			return e, ErrUnres
+		}
+		if err != nil {
+			return nil, err
+		}
+		num := getNumer(fst)
+		if num == nil {
+			return nil, ErrExpectNumer
+		}
+		var i int
+		isInt := num.Typ().Kind&typ.MaskElem == typ.KindInt
+		return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
+			if i++; i == 1 {
+				return n, nil
+			}
+			if n == 0 {
+				return 0, cor.Error("zero devision")
+			}
+			if isInt {
+				return float64(int64(r) / int64(n)), nil
+			}
+			return r / n, nil
+		})
+	})
+
+// remSpec calculates the remainder of the first two arguments and always returns an int.
+var remSpec = core.implResl("(form 'rem' :a int :b int : int)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		res := lo.Arg(0).(lit.Numeric).Num()
+		mod := lo.Arg(1).(lit.Numeric).Num()
+		return lit.Int(res) % lit.Int(mod), nil
+	})
+
+// absSpec returns the argument with the absolute numeric value.
+var absSpec = core.implResl("(form 'abs' :a ~num : ~num)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (fst El, err error) {
+		fst = lo.Arg(0)
+		switch v := fst.(type) {
+		case lit.Int:
+			if v < 0 {
+				fst = -v
+			}
+		case lit.Num:
+			if v < 0 {
+				fst = -v
+			}
+		case lit.Real:
+			if v < 0 {
+				fst = -v
+			}
+		case lit.Numeric:
+			n := v.Num()
+			if n >= 0 {
+				break
+			}
+			nl := lit.Num(-n)
+			if a, ok := v.(lit.Assignable); ok {
+				err = a.Assign(nl)
+				if err != nil {
+					return nil, err
+				}
 			} else {
-				return nil, err
+				fst, err = lit.Convert(nl, v.Typ(), 0)
+				if err != nil {
+					return nil, err
+				}
 			}
+		default:
+			return nil, cor.Errorf("%v got %T", ErrExpectNumer, fst)
 		}
-		return e, ErrUnres
-	}
-	if err != nil {
-		return nil, err
-	}
-	num := getNumer(fst)
-	if num == nil {
-		return nil, ErrExpectNumer
-	}
-	var i int
-	isInt := num.Typ().Kind&typ.MaskElem == typ.KindInt
-	return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
-		if i++; i == 1 {
+		return fst, nil
+	})
+
+// minSpec returns the argument with the smalles numeric value or an error.
+var minSpec = core.impl("(form 'min' :a ~num :plain list|~num : ~num)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		var i int
+		return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
+			if i++; i > 1 && r < n {
+				return r, nil
+			}
 			return n, nil
-		}
-		if n == 0 {
-			return 0, cor.Error("zero devision")
-		}
-		if isInt {
-			return float64(int64(r) / int64(n)), nil
-		}
-		return r / n, nil
+		})
 	})
-}
 
-// rslvRem calculates the remainder of the first two arguments and always returns an int.
-// (form 'rem' +a int +b int - int)
-func rslvRem(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	res := lo.Arg(0).(lit.Numeric).Num()
-	mod := lo.Arg(1).(lit.Numeric).Num()
-	return lit.Int(res) % lit.Int(mod), nil
-}
-
-// rslvAbs returns the argument with the absolute numeric value.
-// (form 'abs' +a num - num)
-func rslvAbs(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		return e, err
-	}
-	fst := lo.Arg(0)
-	switch v := fst.(type) {
-	case lit.Int:
-		if v < 0 {
-			fst = -v
-		}
-	case lit.Num:
-		if v < 0 {
-			fst = -v
-		}
-	case lit.Real:
-		if v < 0 {
-			fst = -v
-		}
-	case lit.Numeric:
-		n := v.Num()
-		if n >= 0 {
-			break
-		}
-		nl := lit.Num(-n)
-		if a, ok := v.(lit.Assignable); ok {
-			err = a.Assign(nl)
-			if err != nil {
-				return nil, err
+// maxSpec returns the argument with the greatest numeric value or an error.
+var maxSpec = core.impl("(form 'max' :a ~num :plain list|~num : ~num)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		var i int
+		return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
+			if i++; i > 1 && r > n {
+				return r, nil
 			}
-		} else {
-			fst, err = lit.Convert(nl, v.Typ(), 0)
-			if err != nil {
-				return nil, err
-			}
-		}
-	default:
-		return nil, cor.Errorf("%v got %T", ErrExpectNumer, fst)
-	}
-	return fst, nil
-}
-
-// rslvMin returns the argument with the smalles numeric value or an error.
-// (form 'min' +a num +rest list|num - num)
-func rslvMin(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	var i int
-	return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
-		if i++; i > 1 && r < n {
-			return r, nil
-		}
-		return n, nil
+			return n, nil
+		})
 	})
-}
-
-// rslvMax returns the argument with the greatest numeric value or an error.
-// (form 'max' +a num +rest list|num - num)
-func rslvMax(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	_, err := LayoutArgs(e.Spec.Arg(), e.Args)
-	if err != nil {
-		return nil, err
-	}
-	var i int
-	return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
-		if i++; i > 1 && r > n {
-			return r, nil
-		}
-		return n, nil
-	})
-}
 
 func convNumerType(e El, r lit.Numeric) (El, error) {
 	l, ok := e.(Lit)

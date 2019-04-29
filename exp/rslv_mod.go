@@ -15,144 +15,128 @@ var (
 	errSetKeyer = cor.StrError("expected keyer literal as first argument in 'set' expression")
 )
 
-func init() {
-	plainInfer := []typ.Param{
-		{Name: "a", Type: typ.Any},
-		{Name: "plain", Type: typ.Idxer},
-		{Type: typ.Infer},
-	}
-	core.add("cat", plainInfer, rslvCat)
-	core.add("apd", plainInfer, rslvApd)
-	core.add("set", []typ.Param{
-		{Name: "a", Type: typ.Keyer},
-		{Name: "plain", Type: typ.Idxer},
-		{Name: "unis", Type: typ.Keyer},
-		{Type: typ.Infer},
-	}, rslvSet)
-}
+// catSpec concatenates one or more arguments to a str, raw or idxer literal.
+var catSpec = core.impl("(form 'cat' :a any :rest list : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		err := lo.Resolve(c, env)
+		if err != nil {
+			if err == ErrUnres {
+				e.Type, _ = elType(lo.Arg(0))
+			}
+			return e, err
+		}
+		fst := lo.Arg(0).(Lit)
+		t, opt := fst.Typ().Deopt()
+		var res Lit
+		switch t.Kind & typ.MaskRef {
+		case typ.BaseChar, typ.KindStr:
+			var b strings.Builder
+			err = catChar(&b, false, fst, lo.Args(1))
+			if err != nil {
+				return nil, err
+			}
+			res = lit.Str(b.String())
+		case typ.KindRaw:
+			var b bytes.Buffer
+			err = catChar(&b, true, fst, lo.Args(1))
+			if err != nil {
+				return nil, err
+			}
+			res = lit.Raw(b.Bytes())
+		default:
+			apd, ok := fst.(lit.Appender)
+			if !ok {
+				break
+			}
+			for _, arg := range lo.Args(1) {
+				idxr, ok := arg.(lit.Indexer)
+				if !ok {
+					return nil, errCatLit
+				}
+				err = idxr.IterIdx(func(i int, l Lit) error {
+					apd, err = apd.Append(l)
+					return err
+				})
+				if err != nil {
+					return nil, err
+				}
+			}
+			return apd, nil
+		}
+		if res == nil {
+			return nil, cor.Errorf("cannot cat %s", t)
+		}
+		if opt {
+			res = lit.Some{res}
+		}
+		return res, nil
+	})
 
-// rslvCat concatenates one or more arguments to a str, raw or idxer literal.
-// (form 'cat' +a any +rest list - @)
-func rslvCat(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		if err == ErrUnres {
-			e.Type, _ = elType(lo.Arg(0))
-		}
-		return e, err
-	}
-	fst := lo.Arg(0).(Lit)
-	t, opt := fst.Typ().Deopt()
-	var res Lit
-	switch t.Kind & typ.MaskRef {
-	case typ.BaseChar, typ.KindStr:
-		var b strings.Builder
-		err = catChar(&b, false, fst, lo.Args(1))
+// apdSpec appends the rest literal arguments to the first literal appender argument.
+var apdSpec = core.impl("(form 'apd' :a ~idxr :rest list : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		err := lo.Resolve(c, env)
 		if err != nil {
-			return nil, err
+			if err == ErrUnres {
+				e.Type, _ = elType(lo.Arg(0))
+			}
+			return e, err
 		}
-		res = lit.Str(b.String())
-	case typ.KindRaw:
-		var b bytes.Buffer
-		err = catChar(&b, true, fst, lo.Args(1))
-		if err != nil {
-			return nil, err
-		}
-		res = lit.Raw(b.Bytes())
-	default:
-		apd, ok := fst.(lit.Appender)
+		apd, ok := lo.Arg(0).(lit.Appender)
 		if !ok {
-			break
+			return nil, cor.Errorf("cannot append to %T", lo.Arg(0))
 		}
 		for _, arg := range lo.Args(1) {
-			idxr, ok := arg.(lit.Indexer)
-			if !ok {
-				return nil, errCatLit
-			}
-			err = idxr.IterIdx(func(i int, l Lit) error {
+			if l, ok := arg.(Lit); ok {
 				apd, err = apd.Append(l)
-				return err
-			})
-			if err != nil {
-				return nil, err
+				if err != nil {
+					return nil, err
+				}
+				continue
 			}
+			return nil, cor.Errorf("cannot append arg %T", arg)
 		}
 		return apd, nil
-	}
-	if res == nil {
-		return nil, cor.Errorf("cannot cat %s", t)
-	}
-	if opt {
-		res = lit.Some{res}
-	}
-	return res, nil
-}
+	})
 
-// rslvApd appends the rest literal arguments to the first literal appender argument.
-// (form 'apd' +a list +rest list - @)
-func rslvApd(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		if err == ErrUnres {
-			e.Type, _ = elType(lo.Arg(0))
-		}
-		return e, err
-	}
-	apd, ok := lo.Arg(0).(lit.Appender)
-	if !ok {
-		return nil, cor.Errorf("cannot append to %T", lo.Arg(0))
-	}
-	for _, arg := range lo.Args(1) {
-		if l, ok := arg.(Lit); ok {
-			apd, err = apd.Append(l)
-			if err != nil {
-				return nil, err
+// setSpec sets the first keyer literal with the following declaration arguments.
+var setSpec = core.impl("(form 'set' :a ~keyr :plain list :unis dict : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		err := lo.Resolve(c, env)
+		if err != nil {
+			if err == ErrUnres {
+				e.Type, _ = elType(lo.Arg(0))
 			}
-			continue
+			return e, err
 		}
-		return nil, cor.Errorf("cannot append arg %T", arg)
-	}
-	return apd, nil
-}
-
-// rslvSet sets the first keyer literal with the following declaration arguments.
-// (form 'set' +a +plain +unis - @)
-func rslvSet(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		if err == ErrUnres {
-			e.Type, _ = elType(lo.Arg(0))
-		}
-		return e, err
-	}
-	fst := lo.Arg(0)
-	res, ok := deopt(fst).(lit.Keyer)
-	if !ok {
-		return nil, errSetKeyer
-	}
-	opt := res != fst
-	if len(e.Args) == 1 {
-		return fst, nil
-	}
-	decls, err := lo.Unis(2)
-	if err != nil {
-		return nil, err
-	}
-	for _, d := range decls {
-		el, ok := d.Arg().(Lit)
+		fst := lo.Arg(0)
+		res, ok := deopt(fst).(lit.Keyer)
 		if !ok {
-			return nil, cor.Errorf("want literal in declaration got %s", d.El)
+			return nil, errSetKeyer
 		}
-		_, err = res.SetKey(d.Key(), el)
+		opt := res != fst
+		if len(e.Args) == 1 {
+			return fst, nil
+		}
+		decls, err := lo.Unis(2)
 		if err != nil {
 			return nil, err
 		}
-	}
-	if opt {
-		return lit.Some{res}, nil
-	}
-	return res, nil
-}
+		for _, d := range decls {
+			el, ok := d.Arg().(Lit)
+			if !ok {
+				return nil, cor.Errorf("want literal in declaration got %s", d.El)
+			}
+			_, err = res.SetKey(d.Key(), el)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if opt {
+			return lit.Some{res}, nil
+		}
+		return res, nil
+	})
 
 func catChar(b bfr.B, raw bool, fst Lit, args []El) error {
 	err := writeChar(b, fst)

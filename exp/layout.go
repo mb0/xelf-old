@@ -121,8 +121,8 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 	}
 	var res error
 	for i, p := range l.ps {
-		if p.Type == typ.Void {
-			continue
+		if i >= len(l.args) {
+			break
 		}
 		args := l.args[i]
 		if len(args) == 0 {

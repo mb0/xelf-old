@@ -6,34 +6,19 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var errAsType = cor.StrError("the 'as' expression must start with a type")
+var errConType = cor.StrError("the 'con' expression must start with a type")
 
-var formAs *Spec
-
-func init() {
-	core.add("dyn", []typ.Param{
-		{Name: "args"},
-		{Name: "unis"},
-		{Type: typ.Infer},
-	}, rslvDyn)
-	formAs = core.add("as", []typ.Param{
-		{Name: "t", Type: typ.Typ},
-		{Name: "args", Type: typ.Idxer},
-		{Name: "unis", Type: typ.Keyer},
-		{Type: typ.Infer},
-	}, rslvAs)
-}
-
-// rslvDyn resolves a dynamic expressions. If the first element resolves to a type it is
+// dynSpec resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'as' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
-// (form +args +decls - @)
-func rslvDyn(c *Ctx, env Env, e *Call, hint Type) (_ El, err error) {
-	if len(e.Args) == 0 {
-		return typ.Void, nil
-	}
-	return defaultDyn(c, env, &Dyn{Els: e.Args}, hint)
-}
+var dynSpec = core.impl("(form 'dyn' :fst? @ :rest : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (_ El, err error) {
+		if len(e.Args) == 0 {
+			return typ.Void, nil
+		}
+		return defaultDyn(c, env, &Dyn{Els: e.Args}, hint)
+	})
+
 func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 	if len(d.Els) == 0 {
 		return typ.Void, nil
@@ -65,9 +50,9 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 			return fst, nil
 		}
 		if tt == typ.Bool {
-			def, args = DefSpec(formBool), args[1:]
+			def, args = DefSpec(boolSpec), args[1:]
 		} else {
-			sym = "as"
+			sym = "con"
 		}
 	case typ.KindExp:
 		r, ok := fst.(*Spec)
@@ -104,83 +89,83 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 		fst, sym, fst.Typ())
 }
 
-// rslvAs is a type conversion or constructor and must start with a type. It has four forms:
+// conSpec is a type conversion or constructor and must start with a type. It has four forms:
 //    Without further arguments it returns the zero literal for that type.
 //    With one literal compatible to that type it returns the converted literal.
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
-// (form +t typ +args list +unis dict - @t)
-func rslvAs(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-	// resolve all arguments
-	lo, err := ResolveArgs(c, env, e)
-	if err != nil {
-		t, ok := lo.Arg(0).(Type)
-		if ok {
-			e.Type = t
+var conSpec = core.impl("(form 'con' :t ~typ :args :unis : @t)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		// resolve all arguments
+		err := lo.Resolve(c, env)
+		if err != nil {
+			t, ok := lo.Arg(0).(Type)
+			if ok {
+				e.Type = t
+			}
+			return e, err
 		}
-		return e, err
-	}
-	t, ok := lo.Arg(0).(Type)
-	if !ok {
-		return nil, errAsType
-	}
-	if t == typ.Void { // just in case we have a dynamic comment
-		return typ.Void, nil
-	}
-	args := lo.Args(1)
-	decls, err := lo.Unis(2)
-	if err != nil {
-		return nil, err
-	}
-	// first rule: return zero literal
-	if len(args) == 0 && len(decls) == 0 {
-		return lit.Zero(t), nil
-	}
-	// second rule: convert compatible literals
-	if len(args) == 1 && len(decls) == 0 {
-		fst := args[0].(Lit)
-		res, err := lit.Convert(fst, t, 0)
-		if err == nil {
+		t, ok := lo.Arg(0).(Type)
+		if !ok {
+			return nil, errConType
+		}
+		if t == typ.Void { // just in case we have a dynamic comment
+			return typ.Void, nil
+		}
+		args := lo.Args(1)
+		decls, err := lo.Unis(2)
+		if err != nil {
+			return nil, err
+		}
+		// first rule: return zero literal
+		if len(args) == 0 && len(decls) == 0 {
+			return lit.Zero(t), nil
+		}
+		// second rule: convert compatible literals
+		if len(args) == 1 && len(decls) == 0 {
+			fst := args[0].(Lit)
+			res, err := lit.Convert(fst, t, 0)
+			if err == nil {
+				return res, nil
+			}
+		}
+		// third rule: set declarations
+		if t.Kind&typ.BaseKeyr != 0 {
+			res := deopt(lit.Zero(t)).(lit.Keyer)
+			for _, d := range decls {
+				el, ok := d.Arg().(Lit)
+				if !ok {
+					return nil, cor.Errorf("want literal in declaration got %s", d.El)
+				}
+				_, err = res.SetKey(d.Key(), el)
+				if err != nil {
+					return nil, err
+				}
+			}
 			return res, nil
 		}
-	}
-	// third rule: set declarations
-	if t.Kind&typ.BaseKeyr != 0 {
-		res := deopt(lit.Zero(t)).(lit.Keyer)
-		for _, d := range decls {
-			el, ok := d.Arg().(Lit)
-			if !ok {
-				return nil, cor.Errorf("want literal in declaration got %s", d.El)
+		// fourth rule: append list
+		if ok && t.Kind&typ.BaseIdxr != 0 {
+			res := deopt(lit.Zero(t)).(lit.Indexer)
+			apd, _ := res.(lit.Appender)
+			for i, a := range args {
+				el, ok := a.(Lit)
+				if !ok {
+					return nil, cor.Error("want literal in argument list")
+				}
+				if apd != nil { // list uses append
+					apd, err = apd.Append(el)
+				} else { // otherwise its a record literal set by index
+					_, err = res.SetIdx(i, el)
+				}
+				if err != nil {
+					return nil, err
+				}
 			}
-			_, err = res.SetKey(d.Key(), el)
-			if err != nil {
-				return nil, err
+			if apd != nil {
+				return apd, nil
 			}
+			return res, nil
 		}
-		return res, nil
-	}
-	// fourth rule: append list
-	if ok && t.Kind&typ.BaseIdxr != 0 {
-		res := deopt(lit.Zero(t)).(lit.Indexer)
-		apd, _ := res.(lit.Appender)
-		for i, a := range args {
-			el, ok := a.(Lit)
-			if !ok {
-				return nil, cor.Error("want literal in argument list")
-			}
-			if apd != nil { // list uses append
-				apd, err = apd.Append(el)
-			} else { // otherwise its a record literal set by index
-				_, err = res.SetIdx(i, el)
-			}
-			if err != nil {
-				return nil, err
-			}
-		}
-		if apd != nil {
-			return apd, nil
-		}
-		return res, nil
-	}
-	return nil, cor.Error("not implemented")
-}
+		return nil, cor.Error("not implemented")
+	})
