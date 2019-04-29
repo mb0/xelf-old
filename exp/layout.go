@@ -238,22 +238,8 @@ func consumeArg(es []El) (El, []El) {
 }
 func consumeTag(es []El) (El, []El) {
 	if len(es) != 0 {
-		e := es[0]
-		if t, s, a, ok := isSpecial(e, ":+-;"); ok {
-			if s[0] != ':' {
-				return nil, es
-			}
-			tag := &Named{Name: s}
-			es = es[1:]
-			if t == typ.Dyn || len(a) > 0 {
-				els, a := consumePlain(a, nil)
-				els, a = consumeTags(a, els)
-				els, a = consumeDecls(a, els)
-				tag.El = &Dyn{Els: els}
-			} else {
-				tag.El, es = consumeArg(es)
-			}
-			return tag, es
+		if v, ok := es[0].(*Named); ok && v.IsTag() {
+			return v, es[1:]
 		}
 	}
 	return nil, es

@@ -67,8 +67,7 @@ func TestFuncResolver(t *testing.T) {
 			lit.Str("HELLO"),
 		}, `'hello'`, nil},
 		{time.Time.Format, []string{"t?", "format"}, []exp.El{
-			&exp.Named{Name: ":format"},
-			lit.Char(`2006-02-01`),
+			&exp.Named{Name: ":format", El: lit.Char(`2006-02-01`)},
 		}, `'0001-01-01'`, nil},
 		{fmt.Sprintf, nil, []exp.El{
 			lit.Str("Hi %s no. %d."),

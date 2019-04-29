@@ -90,8 +90,10 @@ func (x *Named) WriteBfr(b *bfr.Ctx) error {
 	if x.El == nil {
 		return b.Fmt(x.Name)
 	}
-	if d := x.Dyn(); d != nil {
-		return writeExpr(b, x.Name, d.Els)
+	if x.Name == "" || x.Name[0] != ':' {
+		if d := x.Dyn(); d != nil {
+			return writeExpr(b, x.Name, d.Els)
+		}
 	}
 	if x.Name != "" {
 		b.WriteString(x.Name)
@@ -124,8 +126,20 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 	}
 	return b.WriteByte(')')
 }
-func (x *Sym) Key() string   { return cor.Keyed(x.Name) }
+func (x *Sym) Key() string { return cor.Keyed(x.Name) }
+
+func NewNamed(name string, els ...El) *Named {
+	if len(els) == 0 {
+		return &Named{Name: name, El: nil}
+	}
+	if len(els) > 1 {
+		return &Named{Name: name, El: &Dyn{Els: els}}
+	}
+	return &Named{Name: name, El: els[0]}
+}
+
 func (x *Named) Key() string { return cor.Keyed(x.Name) }
+func (x *Named) IsTag() bool { return x.Name != "" && x.Name[0] == ':' }
 
 func (x *Named) Args() []El {
 	if x.El == nil {

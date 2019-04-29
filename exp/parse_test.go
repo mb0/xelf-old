@@ -85,7 +85,7 @@ func TestParse(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("%s want:\n%s\n\tgot:\n%#v", test.raw, test.want, got)
+			t.Errorf("%s want:\n%s\n\tgot:\n%s", test.raw, test.want, got)
 			continue
 		}
 	}

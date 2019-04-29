@@ -169,7 +169,8 @@ func TestStdResolve(t *testing.T) {
 			`(fn +a +v str +i int - str (cat _ (if .i ',') ' ' .v)))`,
 			lit.Str("hello alice, bob, calvin"),
 		},
-		{`(foldr ['alice' 'bob' 'calvin'] 'hello' (fn +a +v str +i int - str (cat _ ' ' .v (if .i ','))))`,
+		{`(foldr ['alice' 'bob' 'calvin'] 'hello'
+			(fn +a +v str +i int - str (cat _ ' ' .v (if .i ','))))`,
 			lit.Str("hello calvin, bob, alice"),
 		},
 		{`(let +a int @a)`, typ.Int},

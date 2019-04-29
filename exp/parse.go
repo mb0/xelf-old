@@ -82,6 +82,10 @@ func Parse(env Env, a *lex.Tree) (Expr, error) {
 				return &Atom{tt, a.Src}, nil
 			}
 		case *Named:
+			if t.Name[0] == ':' {
+				// TODO decide what to do with tag expressions
+				return parseDyn(env, a.Seq, nil)
+			}
 			dyn, err := parseDyn(env, a.Seq[1:], nil)
 			if err != nil {
 				return nil, err
@@ -122,18 +126,37 @@ func parseArgs(env Env, seq []*lex.Tree, el Expr) (args []El, src lex.Src, err e
 		args = append(args, el)
 		src.Pos = el.Source().Pos
 	}
+	var tag *Named
 	for i, t := range seq {
 		if i == 0 && el == nil {
 			src.Pos = t.Pos
 		}
+		src.End = t.End
 		el, err = Parse(env, t)
 		if err != nil {
 			return nil, src, err
 		}
-		if el != nil {
-			args = append(args, el)
-			src.End = t.End
+		switch v := el.(type) {
+		case nil:
+			continue
+		case *Named:
+			if tag != nil {
+				args = append(args, tag)
+				tag = nil
+			}
+			if v.IsTag() && v.El == nil {
+				tag = v
+				continue
+			}
 		}
+		if tag != nil {
+			tag.El = el
+			el, tag = tag, nil
+		}
+		args = append(args, el)
+	}
+	if tag != nil {
+		args = append(args, tag)
 	}
 	return args, src, nil
 }
