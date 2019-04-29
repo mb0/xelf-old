@@ -183,9 +183,9 @@ func TestStdResolve(t *testing.T) {
 				(fold .n 0 (fn +a +b - int (add .a .b))))
 			(sum 1 2 3)
 		)`, lit.Int(6)},
-		{`(let 'test' .)`, lit.Char("test")},
-		{`(let ((rec :a int) [1]) .a)`, lit.Int(1)},
-		{`(let [1 2 3 4 5] +even (fn +a ~num - bool (eq (rem _ 2) 0)) (and
+		{`(with 'test' .)`, lit.Char("test")},
+		{`(with ((rec :a int) [1]) .a)`, lit.Int(1)},
+		{`(with [1 2 3 4 5] (let +even (fn +a ~num - bool (eq (rem _ 2) 0)) (and
 			(eq (len "test") 4)
 			(eq (len .) 5)
 			(eq (fst .) (nth . 0) 1)
@@ -199,7 +199,7 @@ func TestStdResolve(t *testing.T) {
 			(eq (fold . 0 (fn +a +v - ~num (add _ .v))) 15)
 			(eq (fold  . [0] (fn +a ~idxr +v ~num - ~idxr (apd _ .v))) [0 1 2 3 4 5])
 			(eq (foldr . [0] (fn +a ~idxr +v ~num - ~idxr (apd _ .v))) [0 5 4 3 2 1])
-		))`, lit.True},
+		)))`, lit.True},
 	}
 	for _, test := range tests {
 		x, err := ParseString(StdEnv, test.raw)

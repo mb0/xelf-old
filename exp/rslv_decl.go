@@ -5,25 +5,36 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
-// It returns the last actions result.
-var letSpec = std.impl("(form 'let' :a? any :unis :rest : @)",
+var withSpec = core.impl("(form 'with' :a any :rest : @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		dot := lo.Arg(0)
-		if dot != nil {
-			el, err := c.Resolve(env, dot, typ.Void)
-			if err != nil {
-				return e, err
-			}
-			env = &DataScope{env, el.(Lit)}
+		el, err := c.Resolve(env, dot, typ.Void)
+		if err != nil {
+			return e, err
 		}
-		decls, err := lo.Unis(1)
+		env = &DataScope{env, el.(Lit)}
+		rest := lo.Args(1)
+		if len(rest) == 0 {
+			return nil, cor.Errorf("with must have body expressions")
+		}
+		rest, err = c.ResolveAll(env, rest, typ.Void)
+		if err != nil {
+			return e, err
+		}
+		return rest[len(rest)-1], nil
+	})
+
+// letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
+// It returns the last actions result.
+var letSpec = std.impl("(form 'let' :unis :rest : @)",
+	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		decls, err := lo.Unis(0)
 		if err != nil {
 			return nil, err
 		}
-		rest := lo.Args(2)
-		if len(rest) == 0 && len(decls) == 0 {
-			return nil, cor.Errorf("let must have declarations or a body")
+		rest := lo.Args(1)
+		if len(rest) == 0 || len(decls) == 0 {
+			return nil, cor.Errorf("let must have declarations and a body")
 		}
 		s := NewScope(env)
 		if len(decls) > 0 {
