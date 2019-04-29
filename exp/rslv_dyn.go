@@ -9,7 +9,7 @@ import (
 var errConType = cor.StrError("the 'con' expression must start with a type")
 
 // dynSpec resolves a dynamic expressions. If the first element resolves to a type it is
-// resolves as the 'as' expression. If it is a literal it selects an appropriate combine
+// resolves as the 'con' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
 var dynSpec = core.impl("(form 'dyn' :fst? @ :rest : @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (_ El, err error) {

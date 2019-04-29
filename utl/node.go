@@ -39,7 +39,7 @@ type NodeRules struct {
 }
 
 // NodeResolverFunc returns a one time node form resolver that uses v directly.
-func NodeResolverFunc(rules NodeRules, v interface{}) exp.FormResolverFunc {
+func NodeResolverFunc(rules NodeRules, v interface{}) exp.CallResolverFunc {
 	r := NewNodeResolver(rules, v)
 	r.reuse = true
 	return r.ResolveCall

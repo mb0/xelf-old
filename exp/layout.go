@@ -219,14 +219,6 @@ Loop:
 	return &Layout{params, res}, nil
 }
 
-func ResolveArgs(c *Ctx, env Env, e *Call) (*Layout, error) {
-	lo, err := LayoutArgs(e.Spec.Arg(), e.Args)
-	if err != nil {
-		return lo, err
-	}
-	err = lo.Resolve(c, env)
-	return lo, err
-}
 func consumeArg(es []El) (El, []El) {
 	if len(es) != 0 {
 		e := es[0]
