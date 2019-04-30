@@ -57,12 +57,15 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	case Type: // resolve type references
 		if !v.Resolved() {
 			v, err = c.resolveType(env, v)
-			if err == ErrUnres {
-				c.Unres = append(c.Unres, x)
-				return x, err
+			if err != nil {
+				if err == ErrUnres {
+					c.Unres = append(c.Unres, x)
+					return x, err
+				}
+				return nil, err
 			}
 		}
-		return v, err
+		return c.checkHint(hint, v)
 	case *Sym:
 		return c.resolveSym(env, v, hint)
 	case *Named:
@@ -79,9 +82,20 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	case *Call:
 		return v.Spec.ResolveCall(c, env, v, hint)
 	case Lit:
-		return x, nil
+		return c.checkHint(hint, v)
 	}
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
+}
+
+func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
+	if hint != typ.Void {
+		lt := c.Inst(l.Typ())
+		err := typ.Unify(&c.Ctx, hint, lt)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return l, nil
 }
 
 func (c *Ctx) resolveDyn(env Env, d *Dyn, hint Type) (El, error) {
@@ -112,10 +126,13 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 		return ref, err
 	}
 	res := el.(Lit)
-	if path == "" {
-		return res, nil
+	if path != "" {
+		res, err = lit.Select(res, path)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return lit.Select(res, path)
+	return c.checkHint(hint, res)
 }
 
 func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {

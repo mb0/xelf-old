@@ -7,7 +7,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var layoutTags = []typ.Param{{Name: "args"}}
+var layoutSig = exp.MustSig("(form '_' :args : void)")
 
 // ParseTags parses args as tags and sets them to v using rules or returns an error.
 func ParseTags(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules TagRules) error {
@@ -15,7 +15,7 @@ func ParseTags(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules TagR
 	if err != nil {
 		return err
 	}
-	lo, err := exp.LayoutArgs(layoutTags, args)
+	lo, err := exp.LayoutArgs(layoutSig, args)
 	if err != nil {
 		return err
 	}

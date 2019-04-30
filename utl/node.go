@@ -78,8 +78,7 @@ func (r *NodeResolver) getNode() (Node, error) {
 }
 
 func (r *NodeResolver) ResolveCall(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type) (exp.El, error) {
-	fps := x.Spec.Arg()
-	lo, err := exp.LayoutArgs(fps, x.Args)
+	lo, err := exp.LayoutCall(x)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +88,7 @@ func (r *NodeResolver) ResolveCall(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.T
 	}
 	var decls []*exp.Named
 	// associate to arguments using using rules
+	fps := x.Spec.Arg()
 	for i, fp := range fps {
 		switch fp.Name {
 		case "plain", "tags", "args":

@@ -12,11 +12,11 @@ import (
 // it is called for printing the body expressions.
 // Resolution handles reference and delegates expression resolution to the body.
 
-var layoutArgs = []typ.Param{{Name: "args"}}
+var callSig = MustSig("(form '_' :args : void)")
 
 // FuncArgs matches arguments of x to the parameters of f and returns a layout or an error.
 func FuncArgs(x *Call) (*Layout, error) {
-	lo, err := LayoutArgs(layoutArgs, x.Args)
+	lo, err := LayoutArgs(callSig, x.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func FuncArgs(x *Call) (*Layout, error) {
 
 		}
 	}
-	return &Layout{x.Spec.Arg(), args}, nil
+	return &Layout{x.Spec.Type, args}, nil
 }
 
 func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.List, error) {

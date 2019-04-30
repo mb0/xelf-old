@@ -35,10 +35,8 @@ import (
 // container types. The unis and decls parameters expect a keyer type, while all others accpect an
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
-// TODO:
-//    add type validation when hints are provided
 type Layout struct {
-	ps   []typ.Param
+	sig  Type
 	args [][]El
 }
 
@@ -120,7 +118,8 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 		return nil
 	}
 	var res error
-	for i, p := range l.ps {
+	l.sig = c.Inst(l.sig)
+	for i, p := range l.sig.Params[:len(l.sig.Params)-1] {
 		if i >= len(l.args) {
 			break
 		}
@@ -130,7 +129,7 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 		}
 		switch p.Name {
 		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
-			args, err := c.ResolveAll(env, args, typ.Void)
+			args, err := c.ResolveAll(env, args, p.Type.Elem())
 			if err != nil {
 				if err == ErrUnres {
 					res = err
@@ -150,10 +149,6 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 				}
 				return err
 			}
-			cmp := typ.Compare(el.Typ(), p.Type)
-			if cmp < typ.LvlCheck {
-				return cor.Errorf("cannot convert %s to %s", el.Typ(), p.Type)
-			}
 			if c.Part {
 				args[0] = el
 			} else {
@@ -163,14 +158,14 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 	}
 	return res
 }
-
-func LayoutArgs(params []typ.Param, args []El) (*Layout, error) {
-	if len(params) == 0 {
-		if len(args) > 0 {
-			return nil, cor.Error("unexpected argument count")
-		}
-		return &Layout{}, nil
+func LayoutCall(c *Call) (*Layout, error) {
+	return LayoutArgs(c.Spec.Type, c.Args)
+}
+func LayoutArgs(sig typ.Type, args []El) (*Layout, error) {
+	if !isSig(sig) {
+		return nil, cor.Errorf("invalid signature")
 	}
+	params := sig.Params[:len(sig.Params)-1]
 	res := make([][]El, 0, len(params))
 	var tmp []El
 Loop:
@@ -216,7 +211,12 @@ Loop:
 	if len(args) > 0 {
 		return nil, cor.Errorf("unexpected tail element %s", args[0])
 	}
-	return &Layout{params, res}, nil
+	return &Layout{sig, res}, nil
+}
+
+func isSig(t Type) bool {
+	return (t.Kind == typ.ExpForm || t.Kind == typ.ExpFunc) &&
+		t.Info != nil && len(t.Params) > 0
 }
 
 func consumeArg(es []El) (El, []El) {

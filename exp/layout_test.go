@@ -58,15 +58,14 @@ func TestLayout(t *testing.T) {
 			t.Errorf("parse sig %s err: %v", test.sig, err)
 			continue
 		}
-		ps := form.Params[:len(form.Params)-1]
 		el, err := ParseString(Builtin{}, test.raw)
 		if err != nil {
 			t.Errorf("parse raw %s err: %v", test.raw, err)
 			continue
 		}
-		l, err := LayoutArgs(ps, el.(*Dyn).Els[1:])
+		l, err := LayoutArgs(form, el.(*Dyn).Els[1:])
 		if err != nil {
-			t.Errorf("layout %s %s %s err: %v", test.sig, test.raw, ps, err)
+			t.Errorf("layout %s %s %s err: %v", test.sig, test.raw, form, err)
 			continue
 		}
 		res := make([]string, 0, len(l.args))

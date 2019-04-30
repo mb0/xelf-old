@@ -1,5 +1,7 @@
 package exp
 
+import "github.com/mb0/xelf/typ"
+
 // DynResolver is a special resolver for dynamic expressions.
 type DynResolver interface {
 	ResolveDyn(c *Ctx, env Env, d *Dyn, hint Type) (El, error)
@@ -25,6 +27,8 @@ type Ctx struct {
 	// Dyn is a configurable resolver for dynamic expressions. A default resolver is
 	// used if this field is nil.
 	Dyn DynResolver
+
+	typ.Ctx
 }
 
 // WithPart returns a copy of c with part set to val.

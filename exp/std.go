@@ -3,6 +3,7 @@ package exp
 import (
 	"log"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -33,13 +34,31 @@ func (rf CallResolverFunc) ResolveCall(c *Ctx, env Env, e *Call, hint Type) (El,
 
 type LayoutResolverFunc = func(*Ctx, Env, *Call, *Layout, Type) (El, error)
 
-func Implement(sig string, resolve bool, r LayoutResolverFunc) *Spec {
+func Sig(sig string) (Type, error) {
 	s, err := typ.ParseString(sig)
 	if err != nil {
-		log.Fatalf("cannot parse spec signature %s: %v", sig, err)
+		return typ.Void, cor.Errorf("cannot parse signature %s: %v", sig, err)
 	}
+	switch s.Kind {
+	case typ.ExpForm, typ.ExpFunc:
+	default:
+		return typ.Void, cor.Errorf("not a form or func signature %s", sig)
+	}
+	return s, nil
+}
+
+func MustSig(sig string) Type {
+	s, err := Sig(sig)
+	if err != nil {
+		log.Fatalf("implement spec error: %v", err)
+	}
+	return s
+}
+
+func Implement(sig string, resolve bool, r LayoutResolverFunc) *Spec {
+	s := MustSig(sig)
 	return &Spec{s, CallResolverFunc(func(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-		lo, err := LayoutArgs(e.Spec.Arg(), e.Args)
+		lo, err := LayoutCall(e)
 		if err != nil {
 			return nil, err
 		}
