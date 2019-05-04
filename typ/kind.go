@@ -71,13 +71,13 @@ const (
 	KindEnum = KindCtx | KindStr
 	KindObj  = KindCtx | KindRec
 
-	KindTyp  = KindExpr | KindBit1 // 0x110
-	KindDyn  = KindExpr | KindBit2 // 0x210
-	KindSym  = KindCtx | KindDyn
-	KindFunc = KindExpr | KindBit3 // 0x410
-	KindForm = KindCtx | KindExpr
-	KindDecl = KindExpr | KindBit4 // 0x810
-	KindTag  = KindCtx | KindDecl
+	KindTyp   = KindExpr | KindBit1 // 0x110
+	KindFunc  = KindExpr | KindBit2 // 0x210
+	KindForm  = KindCtx | KindExpr
+	KindDyn   = KindExpr | KindBit3 // 0x410
+	KindCall  = KindCtx | KindDyn
+	KindNamed = KindExpr | KindBit4 // 0x810
+	KindSym   = KindCtx | KindNamed
 
 	KindVar = KindMeta | KindBit1 // 0x120
 	KindRef = KindMeta | KindBit2 // 0x220
@@ -115,14 +115,14 @@ func ParseKind(str string) (Kind, error) {
 		return KindSym, nil
 	case "~dyn":
 		return KindDyn, nil
+	case "~call":
+		return KindCall, nil
 	case "form":
 		return KindForm, nil
 	case "func":
 		return KindFunc, nil
-	case "~tag":
-		return KindTag, nil
-	case "~decl":
-		return KindDecl, nil
+	case "~named":
+		return KindNamed, nil
 	case "alt":
 		return KindAlt, nil
 	}
@@ -208,18 +208,18 @@ func simpleStr(k Kind) string {
 		return "any"
 	case KindTyp:
 		return "~typ"
-	case KindSym:
-		return "~sym"
-	case KindDyn:
-		return "~dyn"
 	case KindForm:
 		return "form"
 	case KindFunc:
 		return "func"
-	case KindTag:
-		return "~tag"
-	case KindDecl:
-		return "~decl"
+	case KindDyn:
+		return "~dyn"
+	case KindCall:
+		return "~call"
+	case KindNamed:
+		return "~named"
+	case KindSym:
+		return "~sym"
 	case KindVar:
 		id := k >> SlotSize
 		if id == 0 {
@@ -273,30 +273,30 @@ func simpleStr(k Kind) string {
 }
 
 var kindConsts = map[string]int64{
-	"Void": int64(KindVoid),
-	"Any":  int64(KindAny),
-	"Bool": int64(KindBool),
-	"Int":  int64(KindInt),
-	"Real": int64(KindReal),
-	"Span": int64(KindSpan),
-	"Str":  int64(KindStr),
-	"Raw":  int64(KindRaw),
-	"UUID": int64(KindUUID),
-	"Time": int64(KindTime),
-	"List": int64(KindList),
-	"Dict": int64(KindDict),
-	"Rec":  int64(KindRec),
-	"Bits": int64(KindBits),
-	"Enum": int64(KindEnum),
-	"Obj":  int64(KindObj),
-	"Typ":  int64(KindTyp),
-	"Dyn":  int64(KindDyn),
-	"Sym":  int64(KindSym),
-	"Func": int64(KindFunc),
-	"Form": int64(KindForm),
-	"Decl": int64(KindDecl),
-	"Tag":  int64(KindTag),
-	"Var":  int64(KindVar),
-	"Ref":  int64(KindRef),
-	"Alt":  int64(KindAlt),
+	"Void":  int64(KindVoid),
+	"Any":   int64(KindAny),
+	"Bool":  int64(KindBool),
+	"Int":   int64(KindInt),
+	"Real":  int64(KindReal),
+	"Span":  int64(KindSpan),
+	"Str":   int64(KindStr),
+	"Raw":   int64(KindRaw),
+	"UUID":  int64(KindUUID),
+	"Time":  int64(KindTime),
+	"List":  int64(KindList),
+	"Dict":  int64(KindDict),
+	"Rec":   int64(KindRec),
+	"Bits":  int64(KindBits),
+	"Enum":  int64(KindEnum),
+	"Obj":   int64(KindObj),
+	"Typ":   int64(KindTyp),
+	"Func":  int64(KindFunc),
+	"Form":  int64(KindForm),
+	"Dyn":   int64(KindDyn),
+	"Call":  int64(KindDyn),
+	"Named": int64(KindNamed),
+	"Sym":   int64(KindSym),
+	"Var":   int64(KindVar),
+	"Ref":   int64(KindRef),
+	"Alt":   int64(KindAlt),
 }

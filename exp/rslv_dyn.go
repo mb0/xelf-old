@@ -25,7 +25,7 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 	}
 	fst := d.Els[0]
 	switch t := fst.Typ(); t.Kind {
-	case typ.KindSym, typ.KindForm, typ.KindFunc:
+	case typ.KindSym, typ.KindCall:
 		fst, err = c.Resolve(env, fst, typ.Void)
 	case typ.KindDyn:
 		v, _ := fst.(*Dyn)
@@ -37,7 +37,7 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 	if err != nil {
 		return d, err
 	}
-	var def *Def
+	var spec *Spec
 	var sym string
 	args := d.Els
 	switch t := fst.Typ(); t.Kind & typ.MaskRef {
@@ -50,14 +50,14 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 			return fst, nil
 		}
 		if tt == typ.Bool {
-			def, args = DefSpec(boolSpec), args[1:]
+			spec, args = boolSpec, args[1:]
 		} else {
 			sym = "con"
 		}
 	case typ.KindFunc, typ.KindForm:
 		r, ok := fst.(*Spec)
 		if ok {
-			def, args = DefSpec(r), args[1:]
+			spec, args = r, args[1:]
 		}
 	default:
 		if len(d.Els) == 1 && t.Kind&typ.MaskBase != 0 {
@@ -80,10 +80,13 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if sym != "" {
-		def = LookupSupports(env, sym, '~')
+		def := LookupSupports(env, sym, '~')
+		if def != nil {
+			spec, _ = def.Lit.(*Spec)
+		}
 	}
-	if def != nil {
-		return def.Resolve(c, env, &Call{Def: def, Args: args}, hint)
+	if spec != nil {
+		return spec.Resolve(c, env, &Call{Spec: spec, Args: args}, hint)
 	}
 	return nil, cor.Errorf("unexpected first argument %[1]T %[1]s in dynamic expression\n%s %s",
 		fst, sym, fst.Typ())

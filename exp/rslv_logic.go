@@ -32,7 +32,7 @@ var orSpec = core.impl("(form 'or' :plain ~idxr : bool)",
 						return nil, err
 					}
 					if len(e.Args) == 1 {
-						e = &Call{Def: DefSpec(boolSpec), Args: e.Args}
+						e = &Call{Spec: boolSpec, Args: e.Args}
 					}
 				}
 				return e, ErrUnres
@@ -63,7 +63,7 @@ func resolveAnd(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Call{Def: DefSpec(boolSpec), Args: e.Args}
+					e = &Call{Spec: boolSpec, Args: e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -150,7 +150,7 @@ func simplifyBool(e *Call, args []El) *Call {
 	default:
 		return e
 	}
-	return &Call{Def: DefSpec(f), Args: fst.Args}
+	return &Call{Spec: f, Args: fst.Args}
 }
 
 // ifSpec resolves the arguments as condition, action pairs as part of an if-else condition.

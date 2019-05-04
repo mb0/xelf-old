@@ -60,7 +60,7 @@ func (l *Layout) Tags(idx int) ([]*Named, error) {
 	res := make([]*Named, 0, len(args))
 	for _, arg := range args {
 		switch arg.Typ() {
-		case typ.Tag:
+		case typ.Named:
 			res = append(res, arg.(*Named))
 		default:
 			res = append(res, &Named{El: arg})
@@ -74,7 +74,7 @@ func (l *Layout) Decls(idx int) ([]*Named, error) {
 	res := make([]*Named, 0, len(args))
 	for _, arg := range args {
 		switch arg.Typ() {
-		case typ.Decl:
+		case typ.Named:
 			res = append(res, arg.(*Named))
 		default:
 			return nil, cor.Errorf("unexpected decl element %s", arg)
@@ -89,7 +89,7 @@ func (l *Layout) Unis(idx int) ([]*Named, error) {
 	var naked int
 	for _, arg := range args {
 		switch arg.Typ() {
-		case typ.Decl:
+		case typ.Named:
 			n := arg.(*Named)
 			res = append(res, n)
 			if n.El == nil {
@@ -334,7 +334,7 @@ func isSpecial(e El, pre string) (t Type, s string, a []El, ok bool) {
 				a = d.Els[1:]
 			}
 		}
-	case typ.Tag, typ.Decl:
+	case typ.Named:
 		v := e.(*Named)
 		d := v.Dyn()
 		s, ok = v.Name, true

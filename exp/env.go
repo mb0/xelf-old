@@ -2,7 +2,6 @@ package exp
 
 import (
 	"github.com/mb0/xelf/cor"
-	"github.com/mb0/xelf/typ"
 )
 
 // ErrUnres is returned by a resolver if the result is unresolved, but otherwise valid.
@@ -13,41 +12,13 @@ var ErrExec = cor.StrError("not executed")
 
 // Def represents a definition in an environment.
 type Def struct {
-	typ.Type
-	Lit  Lit
-	Spec *Spec
+	// Type is the resolved definition type.
+	Type
+	// Lit is the evaluated literal. The literal must be convertible to the definiton type.
+	Lit Lit
 }
 
-func DefLit(l Lit) *Def    { return &Def{Type: l.Typ(), Lit: l} }
-func DefSpec(r *Spec) *Def { return &Def{Type: r.Res(), Spec: r} }
-
-// Resolve resolves el with a context, env, type hint and returns the result or an error.
-//
-// The passed in unresolved element is either a symbol or spec call.
-//
-// A successful resolution returns a literal and no error.
-// If the type hint is not void, it is used to check or infer the element type.
-// When parts of the element could not be resolved it returns the special error ErrUnres,
-// and either the original element or if the context allows a partially resolved element.
-// If the resolution cannot proceed with execution it returns the special error ErrExec.
-// Any other error ends the whole resolution process.
-func (d *Def) Resolve(c *Ctx, env Env, el El, hint Type) (El, error) {
-	if d == nil {
-		return nil, cor.Error("nil def")
-	}
-	switch el.Typ().Kind {
-	case typ.KindSym:
-		if d.Lit != nil {
-			return d.Lit, nil
-		}
-		if d.Spec != nil {
-			return d.Spec, nil
-		}
-	case typ.KindFunc, typ.KindForm:
-		return d.Spec.ResolveCall(c, env, el.(*Call), hint)
-	}
-	return el, ErrUnres
-}
+func NewDef(l Lit) *Def { return &Def{Type: l.Typ(), Lit: l} }
 
 // Env is a scoped symbol environment used to define and lookup resolvers by symbol.
 type Env interface {

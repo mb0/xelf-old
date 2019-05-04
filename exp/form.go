@@ -11,7 +11,15 @@ type Spec struct {
 }
 
 type Resl interface {
-	ResolveCall(c *Ctx, env Env, e *Call, hint Type) (El, error)
+	// Resolve resolves a call and returns the result or an error.
+	//
+	// A successful resolution returns a literal and no error.
+	// If the type hint is not void, it is used to check or infer the element type.
+	// When parts of the element could not be resolved it returns the special error ErrUnres,
+	// and either the original element or if the context allows it a partially resolved element.
+	// If the resolution cannot proceed with execution it returns the special error ErrExec.
+	// Any other error ends the whole resolution process.
+	Resolve(c *Ctx, env Env, e *Call, hint Type) (El, error)
 }
 
 // Arg returns the argument parameters or nil.
@@ -34,6 +42,7 @@ func (f *Spec) Typ() typ.Type { return f.Type }
 func (f *Spec) IsZero() bool {
 	return f == nil || f.Resl == nil || f.Info == nil || len(f.Params) == 0
 }
+
 func (f *Spec) String() string { return bfr.String(f) }
 func (f *Spec) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('(')

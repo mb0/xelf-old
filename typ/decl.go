@@ -23,10 +23,10 @@ var (
 
 	Infer = Type{Kind: KindVar}
 
-	Sym  = Type{Kind: KindSym}
-	Dyn  = Type{Kind: KindDyn}
-	Tag  = Type{Kind: KindTag}
-	Decl = Type{Kind: KindDecl}
+	Sym   = Type{Kind: KindSym}
+	Dyn   = Type{Kind: KindDyn}
+	Call  = Type{Kind: KindCall}
+	Named = Type{Kind: KindNamed}
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | KindOpt, t.Info} }

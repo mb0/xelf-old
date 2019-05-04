@@ -99,9 +99,9 @@ func letDecls(c *Ctx, env *Scope, decls []*Named) (res El, err error) {
 		switch l := res.(type) {
 		case Lit:
 			if r, ok := l.(*Spec); ok {
-				err = env.Def(d.Key(), DefSpec(r))
+				err = env.Def(d.Key(), NewDef(r))
 			} else {
-				err = env.Def(d.Key(), DefLit(l))
+				err = env.Def(d.Key(), NewDef(l))
 			}
 		default:
 			return nil, cor.Errorf("unexpected element as declaration value %v", res)

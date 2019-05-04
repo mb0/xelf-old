@@ -17,7 +17,7 @@ type ReflectBody struct {
 	err   bool
 }
 
-func (f *ReflectBody) ResolveCall(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
+func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
 	lo, err := exp.ResolveFuncArgs(c, env, x)
 	if err != nil {
 		return x, err

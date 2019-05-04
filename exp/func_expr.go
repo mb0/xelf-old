@@ -37,7 +37,7 @@ func (f *FuncScope) Get(s string) *Def {
 	return f.DataScope.Get(s)
 }
 
-func (f *ExprBody) ResolveCall(c *Ctx, env Env, x *Call, hint Type) (El, error) {
+func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint Type) (El, error) {
 	// build a parameter record from all arguments
 	lo, err := ResolveFuncArgs(c, env, x)
 	if err != nil {

@@ -42,7 +42,7 @@ type NodeRules struct {
 func NodeResolverFunc(rules NodeRules, v interface{}) exp.CallResolverFunc {
 	r := NewNodeResolver(rules, v)
 	r.reuse = true
-	return r.ResolveCall
+	return r.Resolve
 }
 
 // NodeResolver is a form resolver that returns nodes of a specific type.
@@ -77,7 +77,7 @@ func (r *NodeResolver) getNode() (Node, error) {
 	return p.(Node), nil
 }
 
-func (r *NodeResolver) ResolveCall(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type) (exp.El, error) {
+func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type) (exp.El, error) {
 	lo, err := exp.LayoutCall(x)
 	if err != nil {
 		return nil, err

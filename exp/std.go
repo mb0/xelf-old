@@ -28,7 +28,7 @@ func Std(sym string) *Spec {
 
 type CallResolverFunc func(*Ctx, Env, *Call, Type) (El, error)
 
-func (rf CallResolverFunc) ResolveCall(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+func (rf CallResolverFunc) Resolve(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 	return rf(c, env, e, hint)
 }
 

@@ -47,13 +47,14 @@ func Parse(env Env, a *lex.Tree) (Expr, error) {
 			return &Atom{Lit: lit.True, Src: a.Src}, nil
 		}
 		def := Lookup(env, a.Raw)
-		if def == nil {
-			t, err := typ.Parse(a)
-			if err == nil {
-				return &Atom{Lit: t, Src: a.Src}, nil
-			}
+		if def != nil {
+			return &Sym{Name: a.Raw, Src: a.Src, Type: def.Type, Lit: def.Lit}, nil
 		}
-		return &Sym{Name: a.Raw, Src: a.Src, Def: def}, nil
+		t, err := typ.Parse(a)
+		if err == nil {
+			return &Atom{Lit: t, Src: a.Src}, nil
+		}
+		return &Sym{Name: a.Raw, Src: a.Src}, nil
 	case lex.Tag, lex.Decl:
 		return &Named{Name: a.Raw, Src: a.Src}, nil
 	case '(':
@@ -94,12 +95,12 @@ func Parse(env Env, a *lex.Tree) (Expr, error) {
 			t.Src = a.Src
 			return t, nil
 		case *Sym:
-			if t.Def != nil && t.Def.Spec != nil {
+			if spec, ok := t.Lit.(*Spec); ok {
 				els, _, err := parseArgs(env, a.Seq[1:], nil)
 				if err != nil {
 					return nil, err
 				}
-				return &Call{Def: t.Def, Args: els, Src: a.Src}, nil
+				return &Call{Spec: spec, Args: els, Src: a.Src}, nil
 			}
 		}
 		d, err := parseDyn(env, a.Seq[1:], fst)

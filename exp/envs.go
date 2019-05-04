@@ -34,14 +34,14 @@ func (b Builtin) Get(sym string) *Def {
 		sym = sym[1:]
 		t, err := typ.ParseSym(sym, nil)
 		if err == nil {
-			return DefLit(t)
+			return NewDef(t)
 		}
 	}
 	// lookup type
 	for _, f := range b {
 		r := f(sym)
 		if r != nil {
-			return DefSpec(r)
+			return NewDef(r)
 		}
 	}
 	return nil
@@ -106,7 +106,7 @@ func (c *DataScope) Get(s string) *Def {
 		if err != nil {
 			return nil
 		}
-		return DefLit(l)
+		return NewDef(l)
 	}
 	return nil
 }
@@ -126,7 +126,7 @@ func (p *ParamScope) Get(s string) *Def {
 		if err != nil {
 			return nil
 		}
-		return DefLit(l)
+		return NewDef(l)
 	}
 	return p.Scope.Get(s)
 }
@@ -145,7 +145,7 @@ func (p *ProgScope) Get(s string) *Def {
 		if err != nil {
 			return nil
 		}
-		return DefLit(l)
+		return NewDef(l)
 	}
 	return p.ParamScope.Get(s)
 }

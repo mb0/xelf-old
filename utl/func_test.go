@@ -82,8 +82,8 @@ func TestFuncResolver(t *testing.T) {
 			continue
 		}
 		ctx := &exp.Ctx{Exec: true}
-		call := &exp.Call{Def: exp.DefSpec(r), Args: test.args}
-		res, err := r.ResolveCall(ctx, exp.StdEnv, call, typ.Void)
+		call := &exp.Call{Spec: r, Args: test.args}
+		res, err := r.Resolve(ctx, exp.StdEnv, call, typ.Void)
 		if err != nil {
 			if test.err == nil || test.err.Error() != err.Error() {
 				t.Errorf("for %T want err %v got %v", test.fun, test.err, err)

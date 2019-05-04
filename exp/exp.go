@@ -41,7 +41,10 @@ type (
 	// Sym is an identifier, that refers to a definition.
 	Sym struct {
 		Name string
-		Def  *Def
+		// Type is the resolved type of lit in this context or void.
+		Type Type
+		// Lit is the resolved literal or nil. Conversion may be required.
+		Lit Lit
 		lex.Src
 	}
 
@@ -60,24 +63,19 @@ type (
 
 	// Call is an expression with a defined specification.
 	Call struct {
-		*Def
+		// Type is the resolved type of lit in this context or void.
+		Type Type
+		// Spec is the form or func specification
+		Spec *Spec
 		Args []El
 		lex.Src
 	}
 )
 
-func (*Sym) Typ() Type    { return typ.Sym }
-func (Dyn) Typ() Type     { return typ.Dyn }
-func (x *Call) Typ() Type { return x.Spec.Typ() }
-func (x *Named) Typ() Type {
-	if x == nil {
-		return typ.Void
-	}
-	if x.Name == "" || x.Name[0] == ':' {
-		return typ.Tag
-	}
-	return typ.Decl
-}
+func (*Sym) Typ() Type     { return typ.Sym }
+func (Dyn) Typ() Type      { return typ.Dyn }
+func (x *Call) Typ() Type  { return typ.Call }
+func (x *Named) Typ() Type { return typ.Named }
 
 func (x *Sym) String() string   { return x.Name }
 func (x *Dyn) String() string   { return bfr.String(x) }

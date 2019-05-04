@@ -30,7 +30,7 @@ var subSpec = core.impl("(form 'sub' :a ~num :b ~num :rest list|~num : ~num)",
 		fst, err := c.Resolve(env, e.Args[0], hint)
 		if err == ErrUnres {
 			if c.Part { // resolve the rest and return partial result
-				rest := &Call{Def: DefSpec(addSpec), Args: e.Args[1:]}
+				rest := &Call{Spec: addSpec, Args: e.Args[1:]}
 				sub, err := reduceNums(c, env, rest, 0, false, opAdd)
 				if err == nil {
 					e.Args = append(e.Args[:1], sub)
@@ -62,7 +62,7 @@ var divSpec = core.impl("(form 'div' :a ~num :b ~num :rest list|~num : ~num)",
 		fst, err := c.Resolve(env, e.Args[0], hint)
 		if err == ErrUnres {
 			if c.Part { // resolve the rest and return partial result
-				rest := &Call{Def: DefSpec(mulSpec), Args: e.Args[1:]}
+				rest := &Call{Spec: mulSpec, Args: e.Args[1:]}
 				sub, err := reduceNums(c, env, rest, 1, false, opMul)
 				if err == nil {
 					e.Args = append(e.Args[:1], sub)

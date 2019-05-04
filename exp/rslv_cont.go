@@ -198,8 +198,8 @@ func (r *fIter) resolve(c *Ctx, env Env, el El, idx int, key string) (Lit, error
 	if r.k > 0 {
 		r.args[r.k] = lit.Str(key)
 	}
-	call := &Call{Def: DefSpec(r.Spec), Args: r.args}
-	res, err := r.ResolveCall(c, env, call, typ.Void)
+	call := &Call{Spec: r.Spec, Args: r.args}
+	res, err := r.Resolve(c, env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -216,8 +216,8 @@ func (r *fIter) accumulate(c *Ctx, env Env, acc, el El, idx int, key string) (Li
 	if r.k > 0 {
 		r.args[r.k] = lit.Str(key)
 	}
-	call := &Call{Def: DefSpec(r.Spec), Args: r.args}
-	res, err := r.ResolveCall(c, env, call, typ.Void)
+	call := &Call{Spec: r.Spec, Args: r.args}
+	res, err := r.Resolve(c, env, call, typ.Void)
 	if err != nil {
 		return nil, cor.Errorf("accumulate: %w", err)
 	}

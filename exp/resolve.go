@@ -80,7 +80,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	case *Dyn:
 		return c.resolveDyn(env, v, hint)
 	case *Call:
-		return v.Spec.ResolveCall(c, env, v, hint)
+		return v.Spec.Resolve(c, env, v, hint)
 	case Lit:
 		return c.checkHint(hint, v)
 	}
@@ -106,26 +106,15 @@ func (c *Ctx) resolveDyn(env Env, d *Dyn, hint Type) (El, error) {
 }
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
-	r, name, path, err := findResolver(env, ref.Name)
-	if r == nil || err == ErrUnres {
+	r, _, path, err := findResolver(env, ref.Name)
+	if r == nil || r.Lit == nil || err == ErrUnres {
 		c.Unres = append(c.Unres, ref)
 		return ref, ErrUnres
 	}
 	if err != nil {
 		return nil, err
 	}
-	tmp := ref
-	if ref.Name != name {
-		tmp = &Sym{Name: name}
-	}
-	el, err := r.Resolve(c, env, tmp, typ.Void)
-	if err != nil {
-		if err == ErrUnres {
-			c.Unres = append(c.Unres, ref)
-		}
-		return ref, err
-	}
-	res := el.(Lit)
+	res := r.Lit
 	if path != "" {
 		res, err = lit.Select(res, path)
 		if err != nil {
@@ -246,10 +235,10 @@ func elType(el El) (Type, error) {
 		return el.(Type), nil
 	case typ.KindSym:
 		s := el.(*Sym)
-		if s.Def != nil && s.Def.Type != typ.Void {
-			return s.Def.Type, nil
+		if s.Type != typ.Void {
+			return s.Type, nil
 		}
-	case typ.KindForm, typ.KindFunc:
+	case typ.KindCall:
 		x := el.(*Call)
 		if t := x.Spec.Res(); t != typ.Void {
 			return t, nil
