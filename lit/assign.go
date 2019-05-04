@@ -128,11 +128,11 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 	}
 	p := proxy{t, ptr}
 	switch t.Kind & typ.MaskBase {
-	case typ.BaseNum:
+	case typ.KindNum:
 		return &proxyNum{p}, nil
-	case typ.BaseIdxr:
+	case typ.KindIdxr:
 		return &proxyList{p}, nil
-	case typ.BaseKeyr:
+	case typ.KindKeyr:
 		return &proxyDict{p}, nil
 	case typ.MaskCont:
 		if et.Kind() == reflect.Ptr {

@@ -36,14 +36,14 @@ func (d *Def) Resolve(c *Ctx, env Env, el El, hint Type) (El, error) {
 		return nil, cor.Error("nil def")
 	}
 	switch el.Typ().Kind {
-	case typ.ExpSym:
+	case typ.KindSym:
 		if d.Lit != nil {
 			return d.Lit, nil
 		}
 		if d.Spec != nil {
 			return d.Spec, nil
 		}
-	case typ.ExpFunc, typ.ExpForm:
+	case typ.KindFunc, typ.KindForm:
 		return d.Spec.ResolveCall(c, env, el.(*Call), hint)
 	}
 	return el, ErrUnres

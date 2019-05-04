@@ -82,7 +82,7 @@ type infoPair = struct{ a, b *Info }
 
 func (a Type) Equal(b Type) bool { return a.equal(b, nil) }
 func (a Type) equal(b Type, hist []infoPair) bool {
-	return a.Kind == b.Kind && a.Info.equal(b.Info, a.Kind&FlagRef != 0, hist)
+	return a.Kind == b.Kind && a.Info.equal(b.Info, a.Kind&KindCtx != 0, hist)
 }
 func (a *Info) Equal(b *Info) bool { return a.equal(b, false, nil) }
 func (a *Info) equal(b *Info, ref bool, hist []infoPair) bool {
@@ -156,7 +156,6 @@ func (a Type) WriteBfr(b *bfr.Ctx) error {
 }
 
 func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
-	var detail bool
 	switch a.Kind & MaskRef {
 	case KindRec, KindObj:
 		for i := 0; i < len(hist); i++ {
@@ -175,6 +174,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		pre.WriteString(a.Kind.String())
 		return a.Elem().writeBfr(b, pre, hist)
 	}
+	var detail bool
 	switch a.Kind & MaskRef {
 	case KindRef:
 		ref := ""
@@ -183,10 +183,10 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		}
 		writeRef(b, pre, '@', ref, a)
 		return nil
-	case KindRec, KindExp, KindAlt:
+	case KindRec, KindFunc, KindForm, KindAlt:
 		detail = true
 		fallthrough
-	case KindFlag, KindEnum, KindObj:
+	case KindBits, KindEnum, KindObj:
 		b.WriteByte('(')
 		err := writePre(b, pre, a)
 		if err != nil {
@@ -217,7 +217,7 @@ func writeRef(b *bfr.Ctx, pre *strings.Builder, x byte, ref string, a Type) {
 	}
 	b.WriteByte(x)
 	b.WriteString(ref)
-	if a.Kind&FlagOpt != 0 {
+	if a.Kind&KindOpt != 0 {
 		b.WriteByte('?')
 	}
 }

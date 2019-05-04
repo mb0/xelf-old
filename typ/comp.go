@@ -125,8 +125,8 @@ func (c Cmp) Mirror() (m Cmp) {
 
 func compare(src, dst Type) Cmp {
 	s, d := src.Kind, dst.Kind
-	if s == d && s != KindRef && s != KindVar {
-		if src.Info.equal(dst.Info, s&FlagRef != 0, nil) {
+	if s == d && s&KindMeta == 0 {
+		if src.Info.equal(dst.Info, s&KindCtx != 0, nil) {
 			return CmpSame
 		}
 	}
@@ -135,10 +135,7 @@ func compare(src, dst Type) Cmp {
 		// infer dst type from src
 		return CmpInfer
 	}
-	if s == KindVar || s == KindRef {
-		return CmpCheckRef
-	}
-	if d == KindRef {
+	if s&KindMeta != 0 || d&KindMeta != 0 {
 		// ref needs to be resolved first
 		return CmpCheckRef
 	}
@@ -150,7 +147,7 @@ func compare(src, dst Type) Cmp {
 		return CmpCheckRef
 	}
 	// rule out special types, which have strict equality
-	if m := Kind(MaskBase | FlagOpt); s&m == 0 || d&m == 0 {
+	if m := Kind(MaskBase | KindOpt); s&m == 0 || d&m == 0 {
 		return CmpNone
 	}
 	// handle any, type
@@ -161,17 +158,17 @@ func compare(src, dst Type) Cmp {
 		return CmpCheckAny
 	}
 	// handle base types starting with primitives
-	if d == BaseNum || d == BaseChar {
-		if s&d == 0 {
+	if d == KindNum || d == KindChar {
+		if s&d == 0 && s != KindTime && s != KindSpan {
 			return CmpNone
 		}
 		return CmpCompBase
 	}
-	if s == BaseNum || s == BaseChar {
-		if d&s == 0 {
+	if s == KindNum || s == KindChar {
+		if d&s == 0 && d != KindTime && d != KindSpan {
 			return CmpNone
 		}
-		if s == BaseChar {
+		if s == KindChar {
 			switch d & MaskElem {
 			case KindRaw, KindUUID, KindTime, KindSpan:
 				return CmpCheckSpec
@@ -180,19 +177,19 @@ func compare(src, dst Type) Cmp {
 		return CmpCompSpec
 	}
 	// handle container base type list and dict
-	if d == BaseIdxr {
-		if s&BaseIdxr == 0 {
+	if d == KindIdxr {
+		if s&KindIdxr == 0 {
 			return CmpNone
 		}
 		return CmpCompList
 	}
-	if d == BaseKeyr {
-		if s&BaseKeyr == 0 {
+	if d == KindKeyr {
+		if s&KindKeyr == 0 {
 			return CmpNone
 		}
 		return CmpCompDict
 	}
-	if s == BaseIdxr {
+	if s == KindIdxr {
 		switch d & MaskElem {
 		case KindList, KindRec:
 		default:
@@ -200,7 +197,7 @@ func compare(src, dst Type) Cmp {
 		}
 		return CmpCheckList
 	}
-	if s == BaseKeyr {
+	if s == KindKeyr {
 		switch d & MaskElem {
 		case KindDict, KindRec:
 		default:

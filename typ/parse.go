@@ -105,19 +105,16 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 // NeedsInfo returns whether type t is missing reference or params information.
 func NeedsInfo(t Type) (ref, params bool) {
 	switch k := t.Last().Kind & MaskRef; k {
-	case KindFlag, KindEnum, KindObj:
+	case KindBits, KindEnum, KindObj:
 		ref = t.Info == nil || len(t.Ref) == 0
 		return ref, false
 	case KindRec, KindAlt:
 		return false, t.Info == nil || len(t.Params) == 0
-	case KindExp:
-		switch t.Kind {
-		case ExpForm:
-			return t.Info == nil || len(t.Ref) == 0,
-				t.Info == nil || len(t.Params) == 0
-		case ExpFunc:
-			return false, t.Info == nil || len(t.Params) == 0
-		}
+	case KindForm:
+		return t.Info == nil || len(t.Ref) == 0,
+			t.Info == nil || len(t.Params) == 0
+	case KindFunc:
+		return false, t.Info == nil || len(t.Params) == 0
 	}
 	return false, false
 }
@@ -169,7 +166,7 @@ func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 	}
 	dt, _ := t.Deopt()
 	hist = append(hist, dt)
-	group := dt.Kind != ExpForm
+	group := dt.Kind != KindForm
 	res := make([]Param, 0, len(args))
 	var naked int
 	for len(args) > 0 {

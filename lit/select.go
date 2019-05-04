@@ -156,7 +156,7 @@ func getKey(l Lit, key string) (Lit, error) {
 			return typ.Any, nil
 		}
 		switch v.Kind & typ.MaskElem {
-		case typ.BaseKeyr:
+		case typ.KindKeyr:
 			return typ.Any, nil
 		case typ.KindDict:
 			return v.Elem(), nil
@@ -180,7 +180,7 @@ func getIdx(l Lit, idx int) (Lit, error) {
 			return typ.Any, nil
 		}
 		switch v.Kind & typ.MaskElem {
-		case typ.BaseIdxr:
+		case typ.KindIdxr:
 			return typ.Any, nil
 		case typ.KindList:
 			return v.Elem(), nil
@@ -226,7 +226,7 @@ func setPath(l Lit, el Lit, p Path, create bool) (Lit, error) {
 func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
 	t := l.Typ()
 	v, ok := l.(Keyer)
-	if !ok && create && (t.Kind == typ.KindAny || t.Kind&typ.BaseKeyr != 0) {
+	if !ok && create && (t.Kind == typ.KindAny || t.Kind&typ.KindKeyr != 0) {
 		v, ok = &Keyr{}, true
 	}
 	if !ok {
@@ -254,7 +254,7 @@ func setIdx(l Lit, el Lit, idx int, rest Path, create bool) (Lit, error) {
 	t := l.Typ()
 	v, ok := l.(Indexer)
 	if !ok && create && (t.Kind == typ.KindAny ||
-		t.Kind&typ.BaseIdxr != 0) {
+		t.Kind&typ.KindIdxr != 0) {
 		res := make(Idxr, idx+1)
 		for i := range res {
 			res[i] = Nil

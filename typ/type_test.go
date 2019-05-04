@@ -33,12 +33,12 @@ func TestString(t *testing.T) {
 			{Name: "Name", Type: Str},
 		}), `(rec @Other :Name str)`},
 		{Obj("Foo"), `(obj 'Foo')`},
-		{Type{Kind: ExpFunc, Info: &Info{Params: []Param{
+		{Type{Kind: KindFunc, Info: &Info{Params: []Param{
 			{Name: "text", Type: Str},
 			{Name: "sub", Type: Str},
 			{Type: Int},
 		}}}, `(func :text :sub str int)`},
-		{Type{Kind: ExpForm, Info: &Info{Ref: "_", Params: []Param{
+		{Type{Kind: KindForm, Info: &Info{Ref: "_", Params: []Param{
 			{Name: "a"},
 			{Name: "b"},
 			{Type: Void},

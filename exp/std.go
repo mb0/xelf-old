@@ -40,7 +40,7 @@ func Sig(sig string) (Type, error) {
 		return typ.Void, cor.Errorf("cannot parse signature %s: %v", sig, err)
 	}
 	switch s.Kind {
-	case typ.ExpForm, typ.ExpFunc:
+	case typ.KindForm, typ.KindFunc:
 	default:
 		return typ.Void, cor.Errorf("not a form or func signature %s", sig)
 	}

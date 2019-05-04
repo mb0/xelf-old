@@ -7,75 +7,81 @@ import (
 )
 
 // Kind is a bit-set describing a type. It represents all type information except reference names
-// and record fields. It is a handy implementation detail, but not part of the xelf specification.
+// and type parameters. It is a handy implementation detail, but not part of the xelf specification.
 type Kind uint64
 
 func (Kind) Flags() map[string]int64 { return kindConsts }
 
-// A Kind consists of one slot that uses the least significant byte and stores the kind bits.
-// The rest of the bytes is used by expression types to store extended bits and by type variables
-// to store a unique type id.
+// A Kind describes a type in a slot that uses the 12 least significant bits. The rest of the bits
+// are reserved to be used by specific types. Type variables use it to store a unique type id and
+// other types might use it in the future to optimization access the most important type parameter
+// details without chasing pointers.
 const (
-	SlotSize = 8
-	SlotMask = 0xff
+	SlotSize = 12
+	SlotMask = 0xfff
 )
 
 // Each bit in a slot has a certain meaning. The first four bits specify a base type, next two bits
 // further specify the type. The last two bits flag a type as optional or reference version.
 const (
-	BaseNum  Kind = 1 << iota // 0000 0001
-	BaseChar                  // 0000 0010
-	BaseIdxr                  // 0000 0100
-	BaseKeyr                  // 0000 1000
-	Spec1                     // 0001 0000
-	Spec2                     // 0010 0000
-	FlagRef                   // 0100 0000
-	FlagOpt                   // 1000 0000
+	KindNum  Kind = 1 << iota // 0x001
+	KindChar                  // 0x002
+	KindIdxr                  // 0x004
+	KindKeyr                  // 0x008
+	KindExpr                  // 0x010
+	KindMeta                  // 0x020
+	KindCtx                   // 0x040
+	KindOpt                   // 0x080
+	KindBit1                  // 0x100
+	KindBit2                  // 0x200
+	KindBit3                  // 0x400
+	KindBit4                  // 0x800
+)
 
-	Spec3    = Spec1 | Spec2       // 0011 0000
-	MaskPrim = BaseNum | BaseChar  // 0000 0011
-	MaskCont = BaseIdxr | BaseKeyr // 0000 1100
-	MaskBase = MaskPrim | MaskCont // 0000 1111
-	MaskElem = MaskBase | Spec3    // 0011 1111
-	MaskRef  = MaskElem | FlagRef  // 0111 1111
+const (
+	MaskPrim = KindNum | KindChar            // 0000 0000 0011
+	MaskCont = KindIdxr | KindKeyr           // 0000 0000 1100
+	MaskBase = MaskPrim | MaskCont           // 0000 0000 1111
+	MaskUber = KindExpr | KindMeta           // 0000 0011 0000
+	MaskBits = 0xf00                         // 1111 0000 0000
+	MaskElem = MaskBase | MaskBits           // 1111 0000 1111
+	MaskRef  = MaskElem | MaskUber | KindCtx // 1111 0111 1111
+	MaskLit  = MaskRef | KindOpt             // 1111 1100 1111
 )
 
 const (
 	KindVoid = 0x00
-	KindRef  = FlagRef
-	KindAny  = FlagOpt
-	KindTyp  = Spec1
-	KindExp  = Spec2
+	KindAny  = MaskBase
 
-	KindVar = FlagRef | Spec1
-	KindAlt = FlagRef | Spec2
+	KindBool = KindNum | KindBit1 // 0x101
+	KindInt  = KindNum | KindBit2 // 0x201
+	KindReal = KindNum | KindBit3 // 0x401
+	KindSpan = KindNum | KindBit4 // 0x801
 
-	KindBool = BaseNum | Spec1
-	KindInt  = BaseNum | Spec2
-	KindReal = BaseNum | Spec3
+	KindStr  = KindChar | KindBit1 // 0x102
+	KindRaw  = KindChar | KindBit2 // 0x202
+	KindUUID = KindChar | KindBit3 // 0x402
+	KindTime = KindChar | KindBit4 // 0x802
 
-	KindStr  = BaseChar | Spec1
-	KindRaw  = BaseChar | Spec2
-	KindUUID = BaseChar | Spec3
+	KindList = KindIdxr | KindBit1 // 0x104
+	KindDict = KindKeyr | KindBit2 // 0x208
+	KindRec  = MaskCont | KindBit3 // 0x30c
 
-	KindTime = BaseChar | BaseNum | Spec1
-	KindSpan = BaseChar | BaseNum | Spec2
+	KindBits = KindCtx | KindInt
+	KindEnum = KindCtx | KindStr
+	KindObj  = KindCtx | KindRec
 
-	KindList = BaseIdxr | Spec1
-	KindDict = BaseKeyr | Spec1
-	KindRec  = BaseKeyr | BaseIdxr | Spec1
+	KindTyp  = KindExpr | KindBit1 // 0x110
+	KindDyn  = KindExpr | KindBit2 // 0x210
+	KindSym  = KindCtx | KindDyn
+	KindFunc = KindExpr | KindBit3 // 0x410
+	KindForm = KindCtx | KindExpr
+	KindDecl = KindExpr | KindBit4 // 0x810
+	KindTag  = KindCtx | KindDecl
 
-	KindFlag = FlagRef | KindInt
-	KindEnum = FlagRef | KindStr
-	KindObj  = FlagRef | KindRec
-)
-const (
-	ExpDyn  = KindExp | BaseIdxr<<SlotSize
-	ExpForm = KindExp | BaseKeyr<<SlotSize
-	ExpFunc = KindExp | KindRec<<SlotSize
-	ExpSym  = KindExp | KindAny<<SlotSize
-	ExpTag  = KindExp | KindStr<<SlotSize
-	ExpDecl = KindExp | KindRaw<<SlotSize
+	KindVar = KindMeta | KindBit1 // 0x120
+	KindRef = KindMeta | KindBit2 // 0x220
+	KindAlt = KindMeta | KindBit3 // 0x420
 )
 
 func ParseKind(str string) (Kind, error) {
@@ -98,41 +104,41 @@ func ParseKind(str string) (Kind, error) {
 	case "~typ":
 		return KindTyp, nil
 	case "~idxr":
-		return BaseIdxr, nil
+		return KindIdxr, nil
 	case "~keyr":
-		return BaseKeyr, nil
+		return KindKeyr, nil
 	case "list":
 		return KindList, nil
 	case "dict":
 		return KindDict, nil
 	case "~sym":
-		return ExpSym, nil
+		return KindSym, nil
 	case "~dyn":
-		return ExpDyn, nil
+		return KindDyn, nil
 	case "form":
-		return ExpForm, nil
+		return KindForm, nil
 	case "func":
-		return ExpFunc, nil
+		return KindFunc, nil
 	case "~tag":
-		return ExpTag, nil
+		return KindTag, nil
 	case "~decl":
-		return ExpDecl, nil
+		return KindDecl, nil
 	case "alt":
 		return KindAlt, nil
 	}
 	var kk Kind
 	if str[len(str)-1] == '?' {
 		str = str[:len(str)-1]
-		kk = FlagOpt
+		kk = KindOpt
 	}
 	if len(str) > 5 {
 		return KindVoid, ErrInvalid
 	}
 	switch str {
 	case "~num":
-		return kk | BaseNum, nil
+		return kk | KindNum, nil
 	case "~char":
-		return kk | BaseChar, nil
+		return kk | KindChar, nil
 	case "bool":
 		return kk | KindBool, nil
 	case "int":
@@ -152,7 +158,7 @@ func ParseKind(str string) (Kind, error) {
 	case "rec":
 		return kk | KindRec, nil
 	case "flag":
-		return kk | KindFlag, nil
+		return kk | KindBits, nil
 	case "enum":
 		return kk | KindEnum, nil
 	case "obj":
@@ -165,7 +171,7 @@ func (k Kind) WriteBfr(b *bfr.Ctx) (err error) {
 	str := simpleStr(k)
 	if str != "" {
 		err = b.Fmt(str)
-		if k != KindAny && k&FlagOpt != 0 {
+		if k != KindAny && k&KindOpt != 0 {
 			err = b.WriteByte('?')
 		}
 		return err
@@ -176,7 +182,7 @@ func (k Kind) WriteBfr(b *bfr.Ctx) (err error) {
 func (k Kind) String() string {
 	str := simpleStr(k)
 	if str != "" {
-		if k != KindAny && k&FlagOpt != 0 {
+		if k != KindAny && k&KindOpt != 0 {
 			return str + "?"
 		}
 		return str
@@ -202,21 +208,18 @@ func simpleStr(k Kind) string {
 		return "any"
 	case KindTyp:
 		return "~typ"
-	case KindExp:
-		switch k {
-		case ExpSym:
-			return "~sym"
-		case ExpDyn:
-			return "~dyn"
-		case ExpForm:
-			return "form"
-		case ExpFunc:
-			return "func"
-		case ExpTag:
-			return "~tag"
-		case ExpDecl:
-			return "~decl"
-		}
+	case KindSym:
+		return "~sym"
+	case KindDyn:
+		return "~dyn"
+	case KindForm:
+		return "form"
+	case KindFunc:
+		return "func"
+	case KindTag:
+		return "~tag"
+	case KindDecl:
+		return "~decl"
 	case KindVar:
 		id := k >> SlotSize
 		if id == 0 {
@@ -233,13 +236,13 @@ func simpleStr(k Kind) string {
 	switch k & MaskRef {
 	case KindRef:
 		return "@"
-	case BaseNum:
+	case KindNum:
 		return "~num"
-	case BaseChar:
+	case KindChar:
 		return "~char"
-	case BaseIdxr:
+	case KindIdxr:
 		return "~idxr"
-	case BaseKeyr:
+	case KindKeyr:
 		return "~keyr"
 	case KindBool:
 		return "bool"
@@ -259,7 +262,7 @@ func simpleStr(k Kind) string {
 		return "span"
 	case KindRec:
 		return "rec"
-	case KindFlag:
+	case KindBits:
 		return "flag"
 	case KindEnum:
 		return "enum"
@@ -270,22 +273,30 @@ func simpleStr(k Kind) string {
 }
 
 var kindConsts = map[string]int64{
-	"Ref":  int64(KindRef),
+	"Void": int64(KindVoid),
 	"Any":  int64(KindAny),
-	"Typ":  int64(KindTyp),
-	"Exp":  int64(KindExp),
 	"Bool": int64(KindBool),
 	"Int":  int64(KindInt),
 	"Real": int64(KindReal),
+	"Span": int64(KindSpan),
 	"Str":  int64(KindStr),
 	"Raw":  int64(KindRaw),
 	"UUID": int64(KindUUID),
 	"Time": int64(KindTime),
-	"Span": int64(KindSpan),
 	"List": int64(KindList),
 	"Dict": int64(KindDict),
 	"Rec":  int64(KindRec),
-	"Flag": int64(KindFlag),
+	"Bits": int64(KindBits),
 	"Enum": int64(KindEnum),
 	"Obj":  int64(KindObj),
+	"Typ":  int64(KindTyp),
+	"Dyn":  int64(KindDyn),
+	"Sym":  int64(KindSym),
+	"Func": int64(KindFunc),
+	"Form": int64(KindForm),
+	"Decl": int64(KindDecl),
+	"Tag":  int64(KindTag),
+	"Var":  int64(KindVar),
+	"Ref":  int64(KindRef),
+	"Alt":  int64(KindAlt),
 }

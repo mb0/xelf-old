@@ -69,11 +69,11 @@ func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 
 func convBase(l Lit, to typ.Type) (Lit, error) {
 	switch to.Kind & typ.MaskBase {
-	case typ.BaseNum:
+	case typ.KindNum:
 		if v, ok := l.(Numeric); ok {
 			return Num(v.Num()), nil
 		}
-	case typ.BaseChar:
+	case typ.KindChar:
 		if v, ok := l.(Character); ok {
 			return Char(v.Char()), nil
 		}

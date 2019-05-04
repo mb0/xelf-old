@@ -161,7 +161,7 @@ func ResolveFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
 func isVariadic(ps []typ.Param) bool {
 	if len(ps) != 0 {
 		switch ps[len(ps)-1].Type.Kind & typ.SlotMask {
-		case typ.BaseIdxr, typ.KindList:
+		case typ.KindIdxr, typ.KindList:
 			return true
 		}
 	}

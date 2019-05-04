@@ -18,13 +18,13 @@ var (
 
 // Zero returns the zero literal for the given type t.
 func Zero(t typ.Type) Lit {
-	if t.Kind&typ.FlagOpt != 0 {
+	if t.Kind&typ.KindOpt != 0 {
 		return Null(t)
 	}
 	switch t.Kind & typ.MaskRef {
 	case typ.KindTyp:
 		return typ.Void
-	case typ.BaseNum:
+	case typ.KindNum:
 		return Num(0)
 	case typ.KindBool:
 		return False
@@ -32,7 +32,7 @@ func Zero(t typ.Type) Lit {
 		return Int(0)
 	case typ.KindReal:
 		return Real(0)
-	case typ.BaseChar:
+	case typ.KindChar:
 		return Char("")
 	case typ.KindStr:
 		return Str("")
@@ -44,9 +44,9 @@ func Zero(t typ.Type) Lit {
 		return ZeroTime
 	case typ.KindSpan:
 		return ZeroSpan
-	case typ.BaseIdxr:
+	case typ.KindIdxr:
 		return (Idxr)(nil)
-	case typ.BaseKeyr:
+	case typ.KindKeyr:
 		return &Keyr{}
 	case typ.KindList:
 		a, _ := MakeList(t, 0)
@@ -83,9 +83,9 @@ func ZeroProxy(tt typ.Type) (res Assignable) {
 		res = new(Time)
 	case typ.KindSpan:
 		res = new(Span)
-	case typ.BaseIdxr:
+	case typ.KindIdxr:
 		res = new(Idxr)
-	case typ.BaseKeyr:
+	case typ.KindKeyr:
 		res = &Keyr{}
 	case typ.KindList:
 		res, _ = MakeList(t, 0)

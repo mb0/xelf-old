@@ -72,7 +72,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		}
 		if isRef(t, refEnum) {
 			cs := reflect.Zero(t).Interface().(MarkEnum).Enums()
-			res = typ.Type{typ.KindFlag, getConstInfo(t, cor.Consts(cs))}
+			res = typ.Type{typ.KindBits, getConstInfo(t, cor.Consts(cs))}
 			break
 		}
 		fallthrough
@@ -81,7 +81,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 	case reflect.Uint64:
 		if isRef(t, refFlag) {
 			cs := reflect.Zero(t).Interface().(MarkFlag).Flags()
-			res = typ.Type{typ.KindFlag, getConstInfo(t, cor.Consts(cs))}
+			res = typ.Type{typ.KindBits, getConstInfo(t, cor.Consts(cs))}
 			break
 		}
 		fallthrough
@@ -92,7 +92,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 	case reflect.String:
 		if isRef(t, refEnum) {
 			cs := reflect.Zero(t).Interface().(MarkEnum).Enums()
-			res = typ.Type{typ.KindFlag, getConstInfo(t, cor.Consts(cs))}
+			res = typ.Type{typ.KindBits, getConstInfo(t, cor.Consts(cs))}
 			break
 		}
 		res = typ.Str

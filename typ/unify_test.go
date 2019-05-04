@@ -17,6 +17,7 @@ func TestUnify(t *testing.T) {
 		{Var(1), Var(1), Var(1)},
 		{Alt(Num, Int), Int, Int},
 		{Alt(Num, Int), Real, Num},
+		{Alt(Num, Int), Num, Int},
 		{Int, Alt(Num, Int), Int},
 		{Real, Alt(Num, Int), Num},
 		{List(Int), Idxer, List(Int)},
@@ -25,7 +26,6 @@ func TestUnify(t *testing.T) {
 		{List(Real), List(Int), List(Num)},
 		{Alt(Char, Str, Raw), UUID, Char},
 		{Alt(Char, Str), Time, Char},
-		{Alt(Num, Int), Time, Num},
 	}
 	for _, test := range tests {
 		c := new(Ctx)
@@ -51,6 +51,7 @@ func TestUnify(t *testing.T) {
 		}
 	}
 }
+
 func TestUnifyError(t *testing.T) {
 	tests := []struct {
 		a, b Type

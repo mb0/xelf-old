@@ -29,7 +29,7 @@ var catSpec = core.impl("(form 'cat' :a any :rest list : @)",
 		t, opt := fst.Typ().Deopt()
 		var res Lit
 		switch t.Kind & typ.MaskRef {
-		case typ.BaseChar, typ.KindStr:
+		case typ.KindChar, typ.KindStr:
 			var b strings.Builder
 			err = catChar(&b, false, fst, lo.Args(1))
 			if err != nil {

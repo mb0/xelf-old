@@ -25,9 +25,9 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 	}
 	fst := d.Els[0]
 	switch t := fst.Typ(); t.Kind {
-	case typ.ExpSym, typ.ExpForm, typ.ExpFunc:
+	case typ.KindSym, typ.KindForm, typ.KindFunc:
 		fst, err = c.Resolve(env, fst, typ.Void)
-	case typ.ExpDyn:
+	case typ.KindDyn:
 		v, _ := fst.(*Dyn)
 		if len(v.Els) == 0 {
 			return typ.Void, nil
@@ -40,7 +40,7 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 	var def *Def
 	var sym string
 	args := d.Els
-	switch t := fst.Typ(); t.Kind & typ.MaskElem {
+	switch t := fst.Typ(); t.Kind & typ.MaskRef {
 	case typ.KindTyp:
 		if a, ok := fst.(*Atom); ok {
 			fst = a.Lit
@@ -54,7 +54,7 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 		} else {
 			sym = "con"
 		}
-	case typ.KindExp:
+	case typ.KindFunc, typ.KindForm:
 		r, ok := fst.(*Spec)
 		if ok {
 			def, args = DefSpec(r), args[1:]
@@ -69,13 +69,13 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 		switch t.Kind & typ.MaskElem {
 		case typ.KindBool:
 			sym = "and"
-		case typ.BaseNum, typ.KindInt, typ.KindReal, typ.KindSpan:
+		case typ.KindNum, typ.KindInt, typ.KindReal, typ.KindSpan:
 			sym = "add"
-		case typ.BaseChar, typ.KindStr, typ.KindRaw:
+		case typ.KindChar, typ.KindStr, typ.KindRaw:
 			sym = "cat"
-		case typ.BaseIdxr, typ.KindList:
+		case typ.KindIdxr, typ.KindList:
 			sym = "apd" // TODO maybe cat
-		case typ.BaseKeyr, typ.KindDict, typ.KindRec:
+		case typ.KindKeyr, typ.KindDict, typ.KindRec:
 			sym = "set" // TODO maybe merge
 		}
 	}
@@ -130,7 +130,7 @@ var conSpec = core.impl("(form 'con' :t ~typ :args :unis : @t)",
 			}
 		}
 		// third rule: set declarations
-		if t.Kind&typ.BaseKeyr != 0 {
+		if t.Kind&typ.KindKeyr != 0 {
 			res := deopt(lit.Zero(t)).(lit.Keyer)
 			for _, d := range decls {
 				el, ok := d.Arg().(Lit)
@@ -145,7 +145,7 @@ var conSpec = core.impl("(form 'con' :t ~typ :args :unis : @t)",
 			return res, nil
 		}
 		// fourth rule: append list
-		if ok && t.Kind&typ.BaseIdxr != 0 {
+		if ok && t.Kind&typ.KindIdxr != 0 {
 			res := deopt(lit.Zero(t)).(lit.Indexer)
 			apd, _ := res.(lit.Appender)
 			for i, a := range args {

@@ -79,7 +79,7 @@ var fnSpec = std.impl("(form 'fn' :unis :rest : @)",
 				}
 				fs = append(fs, typ.Param{Name: d.Name[1:], Type: dt})
 			}
-			sig = typ.Type{Kind: typ.ExpFunc, Info: &typ.Info{Params: fs}}
+			sig = typ.Type{Kind: typ.KindFunc, Info: &typ.Info{Params: fs}}
 		}
 		return &Spec{sig, &ExprBody{rest, env}}, nil
 	})

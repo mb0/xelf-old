@@ -137,8 +137,8 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 
 func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {
 	last := t.Last()
-	if last.Kind&typ.FlagRef == 0 {
-		if last.Kind == typ.ExpFunc {
+	if last.Kind&typ.KindExpr != 0 {
+		if last.Kind&typ.KindFunc != 0 {
 			// TODO resolve func signatures
 		}
 		return t, nil
@@ -150,7 +150,7 @@ func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {
 	}
 	key := last.Ref
 	switch k {
-	case typ.KindFlag, typ.KindEnum, typ.KindObj:
+	case typ.KindBits, typ.KindEnum, typ.KindObj:
 		// return already resolved schema types, otherwise add schema prefix '~'
 		if len(last.Params) > 0 || len(last.Consts) > 0 {
 			return t, nil
@@ -244,12 +244,12 @@ func elType(el El) (Type, error) {
 	switch t := el.Typ(); t.Kind {
 	case typ.KindTyp:
 		return el.(Type), nil
-	case typ.ExpSym:
+	case typ.KindSym:
 		s := el.(*Sym)
 		if s.Def != nil && s.Def.Type != typ.Void {
 			return s.Def.Type, nil
 		}
-	case typ.ExpForm, typ.ExpFunc:
+	case typ.KindForm, typ.KindFunc:
 		x := el.(*Call)
 		if t := x.Spec.Res(); t != typ.Void {
 			return t, nil

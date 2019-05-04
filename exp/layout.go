@@ -215,7 +215,7 @@ Loop:
 }
 
 func isSig(t Type) bool {
-	return (t.Kind == typ.ExpForm || t.Kind == typ.ExpFunc) &&
+	return (t.Kind == typ.KindForm || t.Kind == typ.KindFunc) &&
 		t.Info != nil && len(t.Params) > 0
 }
 

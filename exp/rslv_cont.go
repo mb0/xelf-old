@@ -297,7 +297,7 @@ var mapSpec = std.implResl("(form 'map' :a any :mut @ : @)",
 			it = typ.Any
 		}
 		switch t := cont.Typ(); t.Kind & typ.MaskElem {
-		case typ.BaseIdxr:
+		case typ.KindIdxr:
 			if it == typ.Any {
 				rt = typ.Idxer
 			} else {
@@ -305,7 +305,7 @@ var mapSpec = std.implResl("(form 'map' :a any :mut @ : @)",
 			}
 		case typ.KindList:
 			rt = typ.List(it)
-		case typ.BaseKeyr:
+		case typ.KindKeyr:
 			if it == typ.Any {
 				rt = typ.Keyer
 			} else {
