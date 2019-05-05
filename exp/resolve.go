@@ -80,6 +80,9 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	case *Dyn:
 		return c.resolveDyn(env, v, hint)
 	case *Call:
+		if v.Type == typ.Void {
+			v.Type = c.Inst(v.Spec.Type)
+		}
 		return v.Spec.Resolve(c, env, v, hint)
 	case Lit:
 		return c.checkHint(hint, v)
@@ -89,10 +92,11 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 
 func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
 	if hint != typ.Void {
-		lt := c.Inst(l.Typ())
-		_, err := typ.Unify(&c.Ctx, hint, lt)
-		if err != nil {
-			return nil, err
+		if lt := l.Typ(); lt != typ.Void {
+			_, err := typ.Unify(&c.Ctx, hint, lt)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return l, nil
@@ -240,7 +244,8 @@ func elType(el El) (Type, error) {
 		}
 	case typ.KindCall:
 		x := el.(*Call)
-		if t := x.Spec.Res(); t != typ.Void {
+		t := x.Res()
+		if t != typ.Void {
 			return t, nil
 		}
 	default:

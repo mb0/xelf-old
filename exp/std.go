@@ -58,13 +58,17 @@ func MustSig(sig string) Type {
 func Implement(sig string, resolve bool, r LayoutResolverFunc) *Spec {
 	s := MustSig(sig)
 	return &Spec{s, CallResolverFunc(func(c *Ctx, env Env, e *Call, hint Type) (El, error) {
-		lo, err := LayoutCall(e)
+		if e.Type == typ.Void {
+			e.Type = c.Inst(s)
+		}
+		lo, err := LayoutArgs(e.Type, e.Args)
 		if err != nil {
 			return nil, err
 		}
 		if resolve {
-			err = lo.Resolve(c, env)
+			err = lo.Resolve(c, env, hint)
 			if err != nil {
+				e.Type = lo.sig
 				return e, err
 			}
 		}

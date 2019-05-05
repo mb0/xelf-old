@@ -1,6 +1,8 @@
 package typ
 
 import (
+	"fmt"
+
 	"github.com/mb0/xelf/cor"
 )
 
@@ -36,21 +38,30 @@ func (c *Ctx) Bind(v Kind, t Type) error {
 }
 
 // Apply returns t with variables replaced from context.
-func (c *Ctx) Apply(t Type) Type { t, _ = c.apply(t); return Choose(c, t) }
-func (c *Ctx) apply(t Type) (s Type, ok bool) {
+func (c *Ctx) Apply(t Type) Type { t, _ = c.apply(t, nil); return Choose(c, t) }
+func (c *Ctx) apply(t Type, hist []Type) (_ Type, isvar bool) {
 	for isVar(t) {
-		if s, ok = c.binds.Get(t.Kind); ok {
+		isvar = true
+		if s, ok := c.binds.Get(t.Kind); ok {
 			t = s
 			continue
 		}
 		break
 	}
 	if !t.HasParams() {
-		return t, ok
+		return t, isvar
+	}
+	for i := 0; i < len(hist); i++ {
+		h := hist[len(hist)-1-i]
+		if t.Info == h.Info {
+			return h, isvar
+		}
 	}
 	var ps []Param
 	for i, p := range t.Params {
-		pt, ok := c.apply(p.Type)
+		if p.Type.Info != nil {
+		}
+		pt, ok := c.apply(p.Type, append(hist, t))
 		if ok && ps == nil {
 			ps = make([]Param, i, len(t.Params))
 			copy(ps, t.Params)
@@ -65,13 +76,21 @@ func (c *Ctx) apply(t Type) (s Type, ok bool) {
 		n.Params = ps
 		return Type{t.Kind, &n}, true
 	}
-	return t, ok
+	return t, isvar
 }
 
 // Inst instantiates type t for this context, replacing all type vars.
-func (c *Ctx) Inst(t Type) Type { r, _ := c.inst(t, nil); return r }
-func (c *Ctx) inst(t Type, m Binds) (Type, Binds) {
-	t, _ = c.apply(t)
+func (c *Ctx) Inst(t Type) Type { r, _ := c.inst(t, nil, nil); return r }
+func (c *Ctx) inst(t Type, m Binds, hist []Type) (Type, Binds) {
+	if t.Info != nil {
+		for i := 0; i < len(hist); i++ {
+			h := hist[len(hist)-1-i]
+			if t.Info == h.Info {
+				return h, m
+			}
+		}
+	}
+	t, _ = c.apply(t, nil)
 	if isVar(t) {
 		r, ok := m.Get(t.Kind)
 		if !ok {
@@ -88,7 +107,7 @@ func (c *Ctx) inst(t Type, m Binds) (Type, Binds) {
 		r := Type{Kind: t.Kind, Info: &n}
 		r.Params = make([]Param, 0, len(t.Params))
 		for _, p := range t.Params {
-			p.Type, m = c.inst(p.Type, m)
+			p.Type, m = c.inst(p.Type, m, append(hist, t))
 			r.Params = append(r.Params, p)
 		}
 		return r, m
@@ -147,3 +166,5 @@ func (c *Ctx) Contains(t Type, v Kind) bool {
 		return false
 	}
 }
+
+func (c Ctx) String() string { return fmt.Sprintf("%s", c.binds) }

@@ -255,6 +255,10 @@ func TestStdResolvePart(t *testing.T) {
 		{`(div 6 x 3)`, `(div 2 x)`, "~num"},
 		{`(div 6 2 x)`, `(div 3 x)`, "~num"},
 		{`(1 2 x)`, `(add 3 x)`, "~num"},
+		{`(bool x)`, `(bool x)`, "bool"},
+		{`(abs (bool x))`, `(abs (bool x))`, "bool"},
+		{`(int x)`, `(con int x)`, "int"},
+		{`(abs (int x))`, `(abs (int x))`, "int"},
 		{`(not (bool x))`, `(not x)`, "bool"},
 		{`(not (not x))`, `(bool x)`, "bool"},
 		{`(not (not (not x)))`, `(not x)`, "bool"},
@@ -271,7 +275,8 @@ func TestStdResolvePart(t *testing.T) {
 			continue
 		}
 		c := &Ctx{Exec: true, Part: true}
-		r, err := c.Resolve(NewScope(StdEnv), x, typ.Void)
+		hint := c.New()
+		r, err := c.Resolve(NewScope(StdEnv), x, hint)
 		if err != nil && err != ErrUnres {
 			t.Errorf("%s resolve err expect ErrUnres, got: %v\n%v", test.raw, err, c.Unres)
 			continue

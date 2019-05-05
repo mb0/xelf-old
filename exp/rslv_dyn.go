@@ -86,7 +86,8 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if spec != nil {
-		return spec.Resolve(c, env, &Call{Spec: spec, Args: args}, hint)
+		t := c.Inst(spec.Type)
+		return spec.Resolve(c, env, &Call{Spec: spec, Type: t, Args: args}, hint)
 	}
 	return nil, cor.Errorf("unexpected first argument %[1]T %[1]s in dynamic expression\n%s %s",
 		fst, sym, fst.Typ())
@@ -97,15 +98,18 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 //    With one literal compatible to that type it returns the converted literal.
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
-var conSpec = core.impl("(form 'con' :t ~typ :args :unis : @t)",
+var conSpec = core.impl("(form 'con' typ :args :unis : @)",
 	// typ :args :unis : @
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		// resolve all arguments
-		err := lo.Resolve(c, env)
+		err := lo.Resolve(c, env, hint)
 		if err != nil {
 			t, ok := lo.Arg(0).(Type)
-			if ok {
-				e.Type = t
+			if ok && hint != typ.Void {
+				_, err := typ.Unify(&c.Ctx, hint, t)
+				if err == nil {
+					e.Type = c.Apply(e.Type)
+				}
 			}
 			return e, err
 		}
@@ -113,8 +117,18 @@ var conSpec = core.impl("(form 'con' :t ~typ :args :unis : @t)",
 		if !ok {
 			return nil, errConType
 		}
+		if hint != typ.Void {
+			typ.Unify(&c.Ctx, hint, t)
+			e.Type = c.Apply(e.Type)
+		}
 		if t == typ.Void { // just in case we have a dynamic comment
 			return typ.Void, nil
+		}
+		if hint != typ.Void {
+			_, err = typ.Unify(&c.Ctx, hint, t)
+			if err != nil {
+				return typ.Void, err
+			}
 		}
 		args := lo.Args(1)
 		decls, err := lo.Unis(2)

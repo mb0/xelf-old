@@ -113,23 +113,35 @@ func (l *Layout) Unis(idx int) ([]*Named, error) {
 	return res, nil
 }
 
-func (l *Layout) Resolve(c *Ctx, env Env) error {
+func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 	if l == nil {
 		return nil
 	}
 	var res error
-	l.sig = c.Inst(l.sig)
+	inst := Type{l.sig.Kind, &typ.Info{Params: make([]typ.Param, 0, len(l.sig.Params))}}
+	if l.sig.HasRef() {
+		inst.Ref = l.sig.Ref
+	}
 	for i, p := range l.sig.Params[:len(l.sig.Params)-1] {
 		if i >= len(l.args) {
 			break
 		}
 		args := l.args[i]
 		if len(args) == 0 {
+			inst.Params = append(inst.Params, p)
 			continue
 		}
 		switch p.Name {
 		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
-			args, err := c.ResolveAll(env, args, p.Type.Elem())
+			v := c.New()
+			args, err := c.ResolveAll(env, args, v)
+			switch p.Name {
+			case "decls", "unis":
+				p.Type = typ.Dict(v)
+			default:
+				p.Type = typ.List(v)
+			}
+			inst.Params = append(inst.Params, p)
 			if err != nil {
 				if err == ErrUnres {
 					res = err
@@ -141,7 +153,10 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 				l.args[i] = args
 			}
 		default: // explicit param
-			el, err := c.Resolve(env, args[0], p.Type)
+			v := c.New()
+			el, err := c.Resolve(env, args[0], v)
+			p.Type = v
+			inst.Params = append(inst.Params, p)
 			if err != nil {
 				if err == ErrUnres {
 					res = err
@@ -156,14 +171,23 @@ func (l *Layout) Resolve(c *Ctx, env Env) error {
 			}
 		}
 	}
+	if hint == typ.Void {
+		hint = typ.Any // c.New()
+	}
+	inst.Params = append(inst.Params, typ.Param{Type: hint})
+	r, err := typ.Unify(&c.Ctx, l.sig, inst)
+	if err != nil {
+		return cor.Errorf("unify sig %s with %s: %v", l.sig, inst, err)
+	}
+	l.sig = r
 	return res
 }
-func LayoutCall(c *Call) (*Layout, error) {
-	return LayoutArgs(c.Spec.Type, c.Args)
+func LayoutCall(x *Call) (*Layout, error) {
+	return LayoutArgs(x.Spec.Type, x.Args)
 }
 func LayoutArgs(sig typ.Type, args []El) (*Layout, error) {
 	if !isSig(sig) {
-		return nil, cor.Errorf("invalid signature")
+		return nil, cor.Errorf("invalid signature %s", sig)
 	}
 	params := sig.Params[:len(sig.Params)-1]
 	res := make([][]El, 0, len(params))

@@ -21,6 +21,9 @@ var failSpec = core.impl("(form 'fail' :rest? : any)",
 // An empty 'or' expression resolves to true.
 var orSpec = core.impl("(form 'or' :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+		if hint != typ.Void {
+			typ.Unify(&c.Ctx, hint, typ.Bool)
+		}
 		args := lo.Args(0)
 		for i, arg := range args {
 			el, err := c.Resolve(env, arg, typ.Any)
@@ -53,6 +56,9 @@ var orSpec = core.impl("(form 'or' :plain? : bool)",
 var andSpec = core.impl("(form 'and' :plain? : bool)", resolveAnd)
 
 func resolveAnd(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+	if hint != typ.Void {
+		typ.Unify(&c.Ctx, hint, typ.Bool)
+	}
 	args := lo.Args(0)
 	for i, arg := range args {
 		el, err := c.Resolve(env, arg, typ.Any)
@@ -63,7 +69,7 @@ func resolveAnd(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 					return nil, err
 				}
 				if len(e.Args) == 1 {
-					e = &Call{Spec: boolSpec, Args: e.Args}
+					e = &Call{Spec: boolSpec, Type: e.Type, Args: e.Args}
 				}
 			}
 			return e, ErrUnres
@@ -150,7 +156,7 @@ func simplifyBool(e *Call, args []El) *Call {
 	default:
 		return e
 	}
-	return &Call{Spec: f, Args: fst.Args}
+	return &Call{Spec: f, Type: e.Type, Args: fst.Args}
 }
 
 // ifSpec resolves the arguments as condition, action pairs as part of an if-else condition.

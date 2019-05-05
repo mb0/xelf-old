@@ -57,7 +57,7 @@ func choose(c *Ctx, t Type) (min Type, ok bool) {
 	for i, p := range t.Params[1:] {
 		v, _ := choose(c, min)
 		w, _ := choose(c, p.Type)
-		tmp, err := unify(c, v, w)
+		tmp, err := Unify(c, v, w)
 		if err != nil {
 			t.Params = t.Params[i-1:]
 			t.Params[0].Type = min

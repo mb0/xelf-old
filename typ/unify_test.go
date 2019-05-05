@@ -38,8 +38,8 @@ func TestUnify(t *testing.T) {
 	}
 	for _, test := range tests {
 		c := new(Ctx)
-		a, m := c.inst(test.a, nil)
-		b, m := c.inst(test.b, m)
+		a, m := c.inst(test.a, nil, nil)
+		b, m := c.inst(test.b, m, nil)
 		r := c.New()
 		_, err := Unify(c, r, a)
 		if err != nil {
@@ -71,8 +71,8 @@ func TestUnifyError(t *testing.T) {
 	}
 	for _, test := range tests {
 		c := new(Ctx)
-		a, m := c.inst(test.a, nil)
-		b, m := c.inst(test.b, m)
+		a, m := c.inst(test.a, nil, nil)
+		b, m := c.inst(test.b, m, nil)
 		r := c.New()
 		_, err := Unify(c, r, a)
 		if err != nil {

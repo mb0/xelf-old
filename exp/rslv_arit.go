@@ -111,8 +111,7 @@ var remSpec = core.implResl("(form 'rem' :a int :b int : int)",
 	})
 
 // absSpec returns the argument with the absolute numeric value.
-var absSpec = core.implResl("(form 'abs' :a num : num)",
-	// "(form 'abs' @1:num : @1)",
+var absSpec = core.implResl("(form 'abs' @1:num : @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (fst El, err error) {
 		fst = lo.Arg(0)
 		switch v := fst.(type) {

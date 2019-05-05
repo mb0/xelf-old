@@ -1,11 +1,13 @@
 package typ
 
-import "github.com/mb0/xelf/cor"
+import (
+	"github.com/mb0/xelf/cor"
+)
 
 // Unify unifies types a and b or returns an error.
 func Unify(c *Ctx, a, b Type) (Type, error) {
-	x, av := c.apply(a)
-	y, bv := c.apply(b)
+	x, av := c.apply(a, nil)
+	y, bv := c.apply(b, nil)
 	if isVar(x) {
 		return unifyVar(c, x, y)
 	}
@@ -28,7 +30,7 @@ func Unify(c *Ctx, a, b Type) (Type, error) {
 			res = err
 		}
 	}
-	return s, res
+	return c.Apply(s), res
 }
 
 func isVar(t Type) bool { return t.Kind&MaskRef == KindVar }
@@ -115,7 +117,7 @@ func mergeHint(v, o Type) Type {
 	return v
 }
 
-func checkHint(c *Ctx, t, v Type) error {
+func checkHint(c *Ctx, t, v Type) (res error) {
 	if !v.HasParams() {
 		return nil
 	}
@@ -128,9 +130,41 @@ func checkHint(c *Ctx, t, v Type) error {
 	return cor.Errorf("cannot unify %s with constraint var %s", t, v)
 }
 
-func bindAlt(c *Ctx, a, x, w, s Type) (err error) {
-	if x.Kind&MaskRef != KindAlt && s != Void {
-		return c.Bind(a.Kind, Alt(s, x, w))
+func bindAlt(c *Ctx, a, x, w, s Type) error {
+	if isVar(a) {
+		t := w
+		if x.Kind&MaskRef != KindAlt && s != Void {
+			t = Alt(s, x, w)
+		} else if x != Void {
+			t = Alt(x, w)
+		}
+		n := a
+		for isVar(n) {
+			b, ok := c.binds.Get(n.Kind)
+			if !ok || isVar(b) || !isVar(t) {
+				err := c.Bind(n.Kind, t)
+				if err != nil {
+					return err
+				}
+			}
+			n = b
+		}
+		return nil
 	}
-	return c.Bind(a.Kind, Alt(x, w))
+	if !a.HasParams() || !w.HasParams() || len(a.Params) != len(w.Params) {
+		return nil // TODO cor.Errorf("params dont match for %s %s", a, w)
+	}
+	for i, p := range a.Params {
+		o := w.Params[i].Type
+		if isVar(o) {
+			if b, ok := c.binds.Get(o.Kind); ok {
+				o = b
+			}
+		}
+		err := bindAlt(c, p.Type, Void, o, Void)
+		if err != nil {
+			continue // TODO return err
+		}
+	}
+	return nil
 }

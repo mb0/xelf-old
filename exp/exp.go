@@ -126,6 +126,13 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 }
 func (x *Sym) Key() string { return cor.Keyed(x.Name) }
 
+// Res returns the result type or void.
+func (x *Call) Res() Type {
+	if isSig(x.Type) {
+		return x.Type.Params[len(x.Type.Params)-1].Type
+	}
+	return x.Spec.Res()
+}
 func NewNamed(name string, els ...El) *Named {
 	if len(els) == 0 {
 		return &Named{Name: name, El: nil}

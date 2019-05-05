@@ -163,7 +163,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool
 	case KindRec, KindObj:
 		for i := 0; i < len(hist); i++ {
 			h := hist[len(hist)-1-i]
-			if a.Info.Equal(h) {
+			if a.Info == h {
 				writeRef(b, pre, '~', strconv.Itoa(i), a)
 				return nil
 			}
