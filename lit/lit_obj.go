@@ -10,7 +10,7 @@ import (
 
 // MakeRec return a new abstract record literal with the given type or an error.
 func MakeRec(t typ.Type) (*Rec, error) {
-	if t.Kind&typ.MaskElem != typ.KindRec || t.Info == nil || len(t.Params) == 0 {
+	if t.Kind&typ.MaskElem != typ.KindRec || !t.HasParams() {
 		return nil, typ.ErrInvalid
 	}
 	list := make([]Keyed, 0, len(t.Params))
@@ -181,7 +181,7 @@ func (p *proxyRec) IsZero() bool {
 	return !v.IsValid() || v.Kind() == reflect.Ptr && v.IsNil() || p.typ.Info.IsZero()
 }
 func (p *proxyRec) Keys() []string {
-	if p.typ.Info != nil {
+	if p.typ.HasParams() {
 		res := make([]string, 0, len(p.typ.Params))
 		for _, f := range p.typ.Params {
 			res = append(res, f.Key())

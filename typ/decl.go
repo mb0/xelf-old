@@ -43,7 +43,17 @@ func Func(n string, ps []Param) Type { return Type{KindFunc, &Info{Ref: n, Param
 func Form(n string, ps []Param) Type { return Type{KindForm, &Info{Ref: n, Params: ps}} }
 
 func VarKind(id uint64) Kind { return KindVar | Kind(id<<SlotSize) }
-func Var(id uint64) Type     { return Type{Kind: VarKind(id)} }
+func Var(id uint64, alts ...Type) Type {
+	t := Type{VarKind(id), &Info{}}
+	if len(alts) != 0 {
+		ps := make([]Param, 0, len(alts))
+		for _, a := range alts {
+			ps = append(ps, Param{Type: a})
+		}
+		t.Params = ps
+	}
+	return t
+}
 
 // IsOpt returns whether t is an optional type and not any.
 func (t Type) IsOpt() bool {
@@ -63,7 +73,7 @@ func (t Type) Deopt() (_ Type, ok bool) {
 func (t Type) Elem() Type {
 	switch t.Kind & MaskElem {
 	case KindList, KindDict:
-		if t.Info == nil || len(t.Params) == 0 {
+		if !t.HasParams() {
 			return Any
 		}
 		return t.Params[0].Type
@@ -101,11 +111,11 @@ func (t Type) Ordered() bool {
 func (t Type) Resolved() bool {
 	switch t.Kind & SlotMask {
 	case KindBits, KindEnum: // check that consts were resolved
-		return t.Info != nil && len(t.Consts) != 0
+		return t.HasParams()
 	case KindList, KindDict: // check elem type
 		return t.Elem().Resolved()
 	case KindObj, KindRec, KindFunc, KindForm: // check that params were resolved
-		if t.Info == nil || len(t.Params) == 0 {
+		if !t.HasParams() {
 			return false
 		}
 		for _, p := range t.Params {

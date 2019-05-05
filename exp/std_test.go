@@ -28,7 +28,7 @@ func TestStdResolve(t *testing.T) {
 		raw  string
 		want El
 	}{
-		{`any`, typ.Any},
+		{`~any`, typ.Any},
 		{`bool`, typ.Bool},
 		{`void`, typ.Void},
 		{`raw`, typ.Raw},

@@ -36,16 +36,16 @@ func (c *Ctx) Bind(v Kind, t Type) error {
 }
 
 // Apply returns t with variables replaced from context.
-func (c *Ctx) Apply(t Type) Type { t, _ = c.apply(t); return Choose(t) }
+func (c *Ctx) Apply(t Type) Type { t, _ = c.apply(t); return Choose(c, t) }
 func (c *Ctx) apply(t Type) (s Type, ok bool) {
-	for t.Kind&MaskRef == KindVar {
+	for isVar(t) {
 		if s, ok = c.binds.Get(t.Kind); ok {
 			t = s
 			continue
 		}
 		break
 	}
-	if t.Info == nil || len(t.Params) == 0 {
+	if !t.HasParams() {
 		return t, ok
 	}
 	var ps []Param
@@ -72,20 +72,18 @@ func (c *Ctx) apply(t Type) (s Type, ok bool) {
 func (c *Ctx) Inst(t Type) Type { r, _ := c.inst(t, nil); return r }
 func (c *Ctx) inst(t Type, m Binds) (Type, Binds) {
 	t, _ = c.apply(t)
-	switch t.Kind & MaskRef {
-	case KindVar:
+	if isVar(t) {
 		r, ok := m.Get(t.Kind)
 		if !ok {
 			r = c.New()
-			if t.Kind != KindVar {
-				m = m.Set(t.Kind, r)
-			}
+			r.Info = t.Info
+			m = m.Set(t.Kind, r)
+		} else if t.HasParams() {
+			r = mergeHint(r, t)
+			return r, m
 		}
 		return r, m
-	default:
-		if t.Info == nil || len(t.Params) == 0 {
-			return t, m
-		}
+	} else if t.HasParams() {
 		n := *t.Info
 		r := Type{Kind: t.Kind, Info: &n}
 		r.Params = make([]Param, 0, len(t.Params))
@@ -100,11 +98,11 @@ func (c *Ctx) inst(t Type, m Binds) (Type, Binds) {
 
 // Bound returns vars with all type variables in t, that are bound to this context, appended.
 func (c *Ctx) Bound(t Type, vars Vars) Vars {
-	if t.Kind&MaskRef == KindVar {
+	if isVar(t) {
 		if _, ok := c.binds.Get(t.Kind); ok {
 			vars = vars.Add(t.Kind)
 		}
-	} else if t.Info != nil {
+	} else if t.HasParams() {
 		for _, p := range t.Params {
 			vars = c.Bound(p.Type, vars)
 		}
@@ -114,14 +112,14 @@ func (c *Ctx) Bound(t Type, vars Vars) Vars {
 
 // Free returns vars with all unbound type variables in t appended.
 func (c *Ctx) Free(t Type, vars Vars) Vars {
-	if t.Kind&MaskRef == KindVar {
+	if isVar(t) {
 		if r, ok := c.binds.Get(t.Kind); ok {
 			vars = c.Free(r, vars)
 			vars = vars.Del(t.Kind)
 		} else {
 			vars = vars.Add(t.Kind)
 		}
-	} else if t.Info != nil {
+	} else if t.HasParams() {
 		for _, p := range t.Params {
 			vars = c.Free(p.Type, vars)
 		}
@@ -132,19 +130,17 @@ func (c *Ctx) Free(t Type, vars Vars) Vars {
 // Contains returns whether t contains the type variable v.
 func (c *Ctx) Contains(t Type, v Kind) bool {
 	for {
-		switch t.Kind & MaskRef {
-		case KindVar:
+		if isVar(t) {
 			if t.Kind == v {
 				return true
 			}
 			t, _ = c.binds.Get(t.Kind)
 			continue
-		default:
-			if t.Info != nil {
-				for _, p := range t.Params {
-					if c.Contains(p.Type, v) {
-						return true
-					}
+		}
+		if t.HasParams() {
+			for _, p := range t.Params {
+				if c.Contains(p.Type, v) {
+					return true
 				}
 			}
 		}

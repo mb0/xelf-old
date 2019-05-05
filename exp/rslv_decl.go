@@ -6,6 +6,7 @@ import (
 )
 
 var withSpec = core.impl("(form 'with' :a any :rest : @)",
+	// any :rest list|expr : @
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		dot := lo.Arg(0)
 		el, err := c.Resolve(env, dot, typ.Void)
@@ -27,6 +28,7 @@ var withSpec = core.impl("(form 'with' :a any :rest : @)",
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
 var letSpec = std.impl("(form 'let' :unis :rest : @)",
+	// :unis dict|lit :rest list|expr : @
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		decls, err := lo.Unis(0)
 		if err != nil {
@@ -55,6 +57,7 @@ var letSpec = std.impl("(form 'let' :unis :rest : @)",
 
 // fnSpec declares a function literal from its arguments.
 var fnSpec = std.impl("(form 'fn' :unis :rest : @)",
+	// :unis dict|typ :rest list|expr : @
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		decls, err := lo.Unis(0)
 		if err != nil {

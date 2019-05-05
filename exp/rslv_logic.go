@@ -8,7 +8,7 @@ import (
 
 // failSpec returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
-var failSpec = core.impl("(form 'fail' :rest : any)",
+var failSpec = core.impl("(form 'fail' :rest? : any)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		if c.Exec {
 			return nil, cor.Errorf("%s", e)
@@ -19,7 +19,7 @@ var failSpec = core.impl("(form 'fail' :rest : any)",
 // orSpec resolves the arguments as short-circuiting logical or to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
-var orSpec = core.impl("(form 'or' :plain ~idxr : bool)",
+var orSpec = core.impl("(form 'or' :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		args := lo.Args(0)
 		for i, arg := range args {
@@ -50,7 +50,7 @@ var orSpec = core.impl("(form 'or' :plain ~idxr : bool)",
 // andSpec resolves the arguments as short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'and' expression resolves to true.
-var andSpec = core.impl("(form 'and' :plain ~idxr : bool)", resolveAnd)
+var andSpec = core.impl("(form 'and' :plain? : bool)", resolveAnd)
 
 func resolveAnd(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 	args := lo.Args(0)
@@ -89,7 +89,7 @@ var boolSpec *Spec
 var notSpec *Spec
 
 func init() {
-	boolSpec = core.impl("(form '(bool)' :plain ~idxr : bool)",
+	boolSpec = core.impl("(form '(bool)' :plain? : bool)", // TODO change to ':bool' ?
 		func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 			res, err := resolveAnd(c, env, e, lo, hint)
 			if err == ErrUnres {
@@ -107,7 +107,7 @@ func init() {
 			return lit.Bool(!res.(Lit).IsZero()), nil
 		})
 
-	notSpec = core.impl("(form 'not' :plain ~idxr : bool)",
+	notSpec = core.impl("(form 'not' :plain? : bool)",
 		func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 			res, err := resolveAnd(c, env, e, lo, hint)
 			if err == ErrUnres {
@@ -155,7 +155,7 @@ func simplifyBool(e *Call, args []El) *Call {
 
 // ifSpec resolves the arguments as condition, action pairs as part of an if-else condition.
 // The odd end is the else action otherwise a zero value of the first action's type is used.
-var ifSpec = core.impl("(form 'if' :cond bool :act @1 :plain : @)",
+var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		// TODO check actions to find a common type
 		var i int

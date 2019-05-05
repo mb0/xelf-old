@@ -39,19 +39,18 @@ const (
 )
 
 const (
-	MaskPrim = KindNum | KindChar            // 0000 0000 0011
-	MaskCont = KindIdxr | KindKeyr           // 0000 0000 1100
-	MaskBase = MaskPrim | MaskCont           // 0000 0000 1111
-	MaskUber = KindExpr | KindMeta           // 0000 0011 0000
-	MaskBits = 0xf00                         // 1111 0000 0000
-	MaskElem = MaskBase | MaskBits           // 1111 0000 1111
-	MaskRef  = MaskElem | MaskUber | KindCtx // 1111 0111 1111
-	MaskLit  = MaskRef | KindOpt             // 1111 1100 1111
+	MaskUber = KindExpr | KindMeta            // 0000 0011 0000
+	MaskBits = 0xf00                          // 1111 0000 0000
+	MaskElem = KindPrim | KindCont | MaskBits // 1111 0000 1111
+	MaskRef  = MaskElem | MaskUber | KindCtx  // 1111 0111 1111
+	MaskLit  = MaskRef | KindOpt              // 1111 1100 1111
 )
 
 const (
 	KindVoid = 0x00
-	KindAny  = MaskBase
+	KindPrim = KindNum | KindChar  // 0000 0000 0011
+	KindCont = KindIdxr | KindKeyr // 0000 0000 1100
+	KindAny  = KindPrim | KindCont // 0000 0000 1111
 
 	KindBool = KindNum | KindBit1 // 0x101
 	KindInt  = KindNum | KindBit2 // 0x201
@@ -65,28 +64,38 @@ const (
 
 	KindList = KindIdxr | KindBit1 // 0x104
 	KindDict = KindKeyr | KindBit2 // 0x208
-	KindRec  = MaskCont | KindBit3 // 0x30c
+	KindRec  = KindCont | KindBit3 // 0x30c
 
-	KindBits = KindCtx | KindInt
-	KindEnum = KindCtx | KindStr
-	KindObj  = KindCtx | KindRec
+	KindBits = KindCtx | KindInt // 0x241
+	KindEnum = KindCtx | KindStr // 0x142
+	KindObj  = KindCtx | KindRec // 0x34c
 
 	KindTyp   = KindExpr | KindBit1 // 0x110
 	KindFunc  = KindExpr | KindBit2 // 0x210
-	KindForm  = KindCtx | KindExpr
 	KindDyn   = KindExpr | KindBit3 // 0x410
-	KindCall  = KindCtx | KindDyn
 	KindNamed = KindExpr | KindBit4 // 0x810
-	KindSym   = KindCtx | KindNamed
+	KindForm  = KindCtx | KindFunc  // 0x250
+	KindCall  = KindCtx | KindDyn   // 0x450
+	KindSym   = KindCtx | KindNamed // 0x850
 
 	KindVar = KindMeta | KindBit1 // 0x120
 	KindRef = KindMeta | KindBit2 // 0x220
 	KindAlt = KindMeta | KindBit3 // 0x420
 )
 
+func (k Kind) Prom() bool {
+	return k == 0 || k&KindAny != 0 && k&MaskBits != 0 || k&KindFunc != 0
+}
+
 func ParseKind(str string) (Kind, error) {
 	if len(str) == 0 {
 		return KindVoid, ErrInvalid
+	}
+	// we allow the schema prefix for all types
+	// outside an explicit type context non-prominent types must use the prefix
+	pref := str[0] == '~'
+	if pref {
+		str = str[1:]
 	}
 	if len(str) > 5 && str[4] == '|' {
 		switch str[:4] {
@@ -101,27 +110,31 @@ func ParseKind(str string) (Kind, error) {
 		return KindVoid, nil
 	case "any":
 		return KindAny, nil
-	case "~typ":
+	case "typ":
 		return KindTyp, nil
-	case "~idxr":
+	case "idxr":
 		return KindIdxr, nil
-	case "~keyr":
+	case "keyr":
 		return KindKeyr, nil
+	case "cont":
+		return KindCont, nil
+	case "expr":
+		return KindExpr, nil
 	case "list":
 		return KindList, nil
 	case "dict":
 		return KindDict, nil
-	case "~sym":
+	case "sym":
 		return KindSym, nil
-	case "~dyn":
+	case "dyn":
 		return KindDyn, nil
-	case "~call":
+	case "call":
 		return KindCall, nil
 	case "form":
 		return KindForm, nil
 	case "func":
 		return KindFunc, nil
-	case "~named":
+	case "named":
 		return KindNamed, nil
 	case "alt":
 		return KindAlt, nil
@@ -135,10 +148,12 @@ func ParseKind(str string) (Kind, error) {
 		return KindVoid, ErrInvalid
 	}
 	switch str {
-	case "~num":
+	case "num":
 		return kk | KindNum, nil
-	case "~char":
+	case "char":
 		return kk | KindChar, nil
+	case "prim":
+		return kk | KindPrim, nil
 	case "bool":
 		return kk | KindBool, nil
 	case "int":
@@ -207,19 +222,19 @@ func simpleStr(k Kind) string {
 	case KindAny:
 		return "any"
 	case KindTyp:
-		return "~typ"
+		return "typ"
 	case KindForm:
 		return "form"
 	case KindFunc:
 		return "func"
 	case KindDyn:
-		return "~dyn"
+		return "dyn"
 	case KindCall:
-		return "~call"
+		return "call"
 	case KindNamed:
-		return "~named"
+		return "named"
 	case KindSym:
-		return "~sym"
+		return "sym"
 	case KindVar:
 		id := k >> SlotSize
 		if id == 0 {
@@ -228,6 +243,14 @@ func simpleStr(k Kind) string {
 		return fmt.Sprintf("@%d", k>>SlotSize)
 	case KindAlt:
 		return "alt"
+	case KindIdxr:
+		return "idxr"
+	case KindExpr:
+		return "expr"
+	case KindMeta:
+		return "meta"
+	case KindKeyr:
+		return "keyr"
 	case KindList:
 		return "list"
 	case KindDict:
@@ -237,13 +260,9 @@ func simpleStr(k Kind) string {
 	case KindRef:
 		return "@"
 	case KindNum:
-		return "~num"
+		return "num"
 	case KindChar:
-		return "~char"
-	case KindIdxr:
-		return "~idxr"
-	case KindKeyr:
-		return "~keyr"
+		return "char"
 	case KindBool:
 		return "bool"
 	case KindInt:
@@ -273,7 +292,21 @@ func simpleStr(k Kind) string {
 }
 
 var kindConsts = map[string]int64{
+	"Num":   int64(KindNum),
+	"Char":  int64(KindChar),
+	"Idxr":  int64(KindIdxr),
+	"Keyr":  int64(KindKeyr),
+	"Expr":  int64(KindExpr),
+	"Meta":  int64(KindMeta),
+	"Ctx":   int64(KindCtx),
+	"Opt":   int64(KindOpt),
+	"Bit1":  int64(KindBit1),
+	"Bit2":  int64(KindBit2),
+	"Bit3":  int64(KindBit3),
+	"Bit4":  int64(KindBit4),
 	"Void":  int64(KindVoid),
+	"Prim":  int64(KindPrim),
+	"Cont":  int64(KindCont),
 	"Any":   int64(KindAny),
 	"Bool":  int64(KindBool),
 	"Int":   int64(KindInt),

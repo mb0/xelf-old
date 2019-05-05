@@ -8,12 +8,12 @@ import (
 
 // eqSpec returns a bool whether the arguments are equivalent literals.
 // The result is negated, if the expression symbol is 'ne'.
-var eqSpec = core.impl("(form 'eq' :a any :b any :plain : bool)",
+var eqSpec = core.impl("(form 'eq' any any :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return resolveBinaryComp(c, env, e, lo, true, lit.Equiv)
 	})
 
-var neSpec = core.impl("(form 'ne' :a any :b any :plain : bool)",
+var neSpec = core.impl("(form 'ne' any any :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		res, err := resolveBinaryComp(c, env, e, lo, true, lit.Equiv)
 		if err != nil {
@@ -23,17 +23,19 @@ var neSpec = core.impl("(form 'ne' :a any :b any :plain : bool)",
 	})
 
 // equalSpec returns a bool whether the arguments are same types or same literals.
-var equalSpec = core.impl("(form 'equal' :a any :b any :plain : bool)",
+var equalSpec = core.impl("(form 'equal' any any :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return resolveBinaryComp(c, env, e, lo, true, lit.Equal)
 	})
 
-var inSpec = core.implResl("(form 'in' :a any :b list : bool)",
+var inSpec = core.implResl("(form 'in' any list : bool)",
+	// @1 list|@1 : bool
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return inOrNi(c, env, e, lo, false)
 	})
 
-var niSpec = core.implResl("(form 'ni' :a any :b list : bool)",
+var niSpec = core.implResl("(form 'ni' any list : bool)",
+	// @1 list|@1 : bool
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return inOrNi(c, env, e, lo, true)
 	})
@@ -62,7 +64,7 @@ func inOrNi(c *Ctx, env Env, e *Call, lo *Layout, neg bool) (El, error) {
 
 // ltSpec returns a bool whether the arguments are monotonic increasing literals.
 // Or the inverse, if the expression symbol is 'ge'.
-var ltSpec = core.impl("(form 'lt' :a any :b any :rest list : bool)",
+var ltSpec = core.impl("(form 'lt' any any :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return resolveBinaryComp(c, env, e, lo, false, func(a, b Lit) bool {
 			res, ok := lit.Less(a, b)
@@ -70,7 +72,7 @@ var ltSpec = core.impl("(form 'lt' :a any :b any :rest list : bool)",
 		})
 	})
 
-var geSpec = core.impl("(form 'ge' :a any :b any :rest list : bool)",
+var geSpec = core.impl("(form 'ge' any any :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return resolveBinaryComp(c, env, e, lo, false, func(a, b Lit) bool {
 			res, ok := lit.Less(a, b)
@@ -80,14 +82,14 @@ var geSpec = core.impl("(form 'ge' :a any :b any :rest list : bool)",
 
 // specGt returns a bool whether the arguments are monotonic decreasing literals.
 // Or the inverse, if the expression symbol is 'le'.
-var gtSpec = core.impl("(form 'gt' :a any :b any :rest list : bool)",
+var gtSpec = core.impl("(form 'gt' any any :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return resolveBinaryComp(c, env, e, lo, false, func(a, b Lit) bool {
 			res, ok := lit.Less(b, a)
 			return ok && res
 		})
 	})
-var leSpec = core.impl("(form 'le' :a any :b any :rest list : bool)",
+var leSpec = core.impl("(form 'le' any any :plain? : bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return resolveBinaryComp(c, env, e, lo, false, func(a, b Lit) bool {
 			res, ok := lit.Less(b, a)

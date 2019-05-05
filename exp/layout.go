@@ -172,7 +172,7 @@ Loop:
 	for _, p := range params {
 		// check kind of parameter and consume matching args
 		tmp = nil
-		switch p.Name {
+		switch p.Key() {
 		case "plain":
 			tmp, args = consumePlain(args, tmp)
 		case "rest":
@@ -215,8 +215,7 @@ Loop:
 }
 
 func isSig(t Type) bool {
-	return (t.Kind == typ.KindForm || t.Kind == typ.KindFunc) &&
-		t.Info != nil && len(t.Params) > 0
+	return (t.Kind == typ.KindForm || t.Kind == typ.KindFunc) && t.HasParams()
 }
 
 func consumeArg(es []El) (El, []El) {

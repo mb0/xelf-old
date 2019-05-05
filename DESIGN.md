@@ -182,7 +182,7 @@ cased names are usually used for declarations and are then automatically lowerca
 the resolution environment. This way we do not have to use configurable casing rules to generate
 idiomatic code for the go target.
 
-Compound names that would use either CamelCase, snake_case or kebab-case depending on the
+Compound names that would use either CamelCase, `snake_case` or kebab-case depending on the
 environment like ClientID are instead used as cased name for the go target and simply lowercased
 for all others. This avoids a lot of busy code to convert from one identifier flavor to another
 and avoids potentially even more confusion.
@@ -219,12 +219,15 @@ Type References and Variables
 -----------------------------
 
 Type references refer to any literal in scope and represent the underlying type of the literal. They
-start with the at-sign followed by any symbol '@name' and can refer to a generalized element type of
-any container with a underscore path segment '@mylist._'.
+start with the at-sign followed by a symbol '@name' and can refer to a generalized element type of
+any container with a underscore path segment `@mylist._`.
 
 Type variables represent unresolved types and are used during type inference and checking. They
 start with reference prefix followed by a numeric type variable id '@123'. The naked at-sign '@'
-without id represents a new type variable.
+without id represents a new type variable with any new id.
+
+Type variables can have one parameter acting as constraint, that is usually a base type or a type
+alternative. For example '@1:num' or '(@:alt str raw list)'.
 
 Schema types are a kind of reference and need to be resolved. The name of schema types refers to a
 global type schema and uses the schema prefix '~schema.model' for lookups from the environment.
@@ -232,10 +235,8 @@ global type schema and uses the schema prefix '~schema.model' for lookups from t
 Self and ancestor references point to the current or ancestor record type and are used for recursive
 type definitions. They use the schema prefix followed by a number '~1'.
 
-Unnamed references are inferred types and need to be inferred from context. They are mostly used in
-the resolution phase and may represent poly types by collecting candidates in the companion field
-list normally used by object types.
-
+The schema prefix also qualifies all named types in an expression context, it can generally omitted
+for prominent types or in a type context.
 
 Symbol Resolution
 -----------------
@@ -250,8 +251,8 @@ To avoid checking for prefixes in each environment the default resolution checks
 selects the appropriate environment. The environments implement a simple method to indicate whether
 they support one of the special prefixes.
 
-The tilde '~' prefix is used for schema lookups and is followed by a model name that is usually
-qualified by its schema name or needs a context that can infer a default schema.
+The tilde '~' prefix qualifies a type and must be followed by a symbol in an expression context.
+The type is either a basic type or a schema type, that needs to be looked up.
 
 Starting dots '.' are used for data lookups. The dot starts a relative path to a data scope. One dot
 represents the immediate data scope's literal, each additional dot moves one data scope up. If the
@@ -263,9 +264,8 @@ used for parameter and result paths. Both use the immediate environment supporti
 can be followed by dots to select a supporting parent. A double prefix '$$' or '//' will select the
 outermost supporting environment.
 
-The let expression starting with a plain literal argument creates a data scope. The literal argument
-can still be followed by other declarations or have nested let expression that define normal scope
-resolvers. Normal functions and loop expressions provide their arguments as a data scope as well.
+The with expression takes a literal as first argument that creates a data scope. Normal functions
+and loop expressions provide their arguments as a data scope as well.
 
 Type references not starting with dots first try to resolve as relative path symbol and after that
 as plain symbol.
@@ -273,10 +273,10 @@ as plain symbol.
 Expressions
 -----------
 
-Xelf language elements can be literals including types, symbols or expressions. Expression can
-either be named or dynamic and call expressions. All elements share a common interface, that
-includes a sting and write bfr method as well as a type method. The returned type identifies the
-kind of the language element.
+Xelf language elements can be literals including types, symbols or expressions. Expressions can
+either be named, dynamic or call expressions. All elements share a common interface, that includes a
+sting and write bfr method as well as a type method. The returned type identifies the kind of the
+language element.
 
 Named expressions start with a tag or declaration symbol and are handled by the parent's
 specification. They are formed automatically by the parser from tag and declaration tokens.
@@ -341,8 +341,8 @@ to omit and infer the function signature.
 
 If we have a full function type as hint, inferring the signature could be as simple as checking if
 all parameter references work with the declared type and whether the result type if comparable. The
-dot prefix is used and allows path to use either keys or idexes to refer to the parameters. The
-underscope refers to the first parameter which allows use to easy infer the type signatures with two
+dot prefix is used and allows path to use either keys or indices to refer to the parameters. The
+underscore refers to the first parameter which allows use to easy infer the type signatures with two
 parameters.
 
 To infer the signature without any hint we must deduce all parameter references and their order as
@@ -354,7 +354,13 @@ Type Inference
 
 After even more study over the hindley-milner type system, I come to the conclusion, that it is
 practically unavoidable when implementing type systems. However due to the involved type conversion
-rules the Xelf uses it cannot be used without without modification. Instead of involved coercions
+rules the Xelf uses it cannot be used without without modification. We allow a type constraint for
+type variables, that constraint can be a type alternative allowing multiple types. The unification
+process collects all type alternatives for a variable allowed by its constraint and chooses the
+the most specific unified type.
+
+Xelf 
+Instead of involved coercions
 using constraints or ad-hoc coercions, Xelf uses type alternatives internally. Type alternatives
 collect type options for a given base type. They are basically type classes, from what I gather.
 They are not as useful in Xelf as in Haskell, because type behaviour can only be one of the base

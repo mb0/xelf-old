@@ -33,6 +33,8 @@ func (a *Info) Key() string {
 	}
 	return ""
 }
+func (a *Info) HasRef() bool    { return a != nil && len(a.Ref) > 0 }
+func (a *Info) HasParams() bool { return a != nil && len(a.Params) > 0 }
 
 func (a *Info) ParamLen() int {
 	if a == nil {
@@ -148,14 +150,15 @@ func (a Type) WriteBfr(b *bfr.Ctx) error {
 		b.WriteString(`{"typ":"`)
 		bb := *b
 		bb.JSON = false
-		err := a.writeBfr(&bb, nil, nil)
+		err := a.writeBfr(&bb, nil, nil, false)
 		b.WriteString(`"}`)
 		return err
 	}
-	return a.writeBfr(b, nil, nil)
+	fst := !a.Kind.Prom() && (a.Kind&KindMeta == 0 || a.Kind == KindAlt)
+	return a.writeBfr(b, nil, nil, fst)
 }
 
-func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
+func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool) error {
 	switch a.Kind & MaskRef {
 	case KindRec, KindObj:
 		for i := 0; i < len(hist); i++ {
@@ -172,13 +175,34 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 			pre.WriteByte('|')
 		}
 		pre.WriteString(a.Kind.String())
-		return a.Elem().writeBfr(b, pre, hist)
+		return a.Elem().writeBfr(b, pre, hist, false)
 	}
 	var detail bool
 	switch a.Kind & MaskRef {
+	case KindVar:
+		n := a.ParamLen()
+		if n == 0 {
+			break
+		}
+		if n > 1 {
+			b.WriteByte('(')
+		}
+		err := writePre(b, pre, a, qual)
+		if err != nil {
+			return err
+		}
+		if n == 1 {
+			b.WriteByte(':')
+			c := a.Params[0].Type
+			return c.writeBfr(b, nil, nil, false)
+		}
+		b.WriteString(":alt")
+		err = a.Info.writeXelf(b, true, hist)
+		b.WriteByte(')')
+		return err
 	case KindRef:
 		ref := ""
-		if a.Info != nil {
+		if a.HasRef() {
 			ref = a.Ref
 		}
 		writeRef(b, pre, '@', ref, a)
@@ -188,7 +212,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		fallthrough
 	case KindBits, KindEnum, KindObj:
 		b.WriteByte('(')
-		err := writePre(b, pre, a)
+		err := writePre(b, pre, a, qual)
 		if err != nil {
 			return err
 		}
@@ -196,10 +220,13 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info) error {
 		b.WriteByte(')')
 		return err
 	}
-	return writePre(b, pre, a)
+	return writePre(b, pre, a, qual)
 }
 
-func writePre(b *bfr.Ctx, pre *strings.Builder, a Type) error {
+func writePre(b *bfr.Ctx, pre *strings.Builder, a Type, qual bool) error {
+	if qual {
+		b.WriteByte('~')
+	}
 	if pre != nil {
 		b.WriteString(pre.String())
 		if a == Any {
@@ -249,7 +276,7 @@ func (a *Info) writeXelf(b *bfr.Ctx, detail bool, hist []*Info) error {
 			}
 		}
 		b.WriteByte(' ')
-		err := f.Type.writeBfr(b, nil, hist)
+		err := f.Type.writeBfr(b, nil, hist, false)
 		if err != nil {
 			return err
 		}

@@ -40,7 +40,7 @@ func (f *Spec) Res() Type {
 
 func (f *Spec) Typ() typ.Type { return f.Type }
 func (f *Spec) IsZero() bool {
-	return f == nil || f.Resl == nil || f.Info == nil || len(f.Params) == 0
+	return f == nil || f.Resl == nil || !f.HasParams()
 }
 
 func (f *Spec) String() string { return bfr.String(f) }

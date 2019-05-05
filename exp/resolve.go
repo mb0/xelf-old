@@ -90,7 +90,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
 	if hint != typ.Void {
 		lt := c.Inst(l.Typ())
-		err := typ.Unify(&c.Ctx, hint, lt)
+		_, err := typ.Unify(&c.Ctx, hint, lt)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {
 		return t, nil
 	}
 	k := last.Kind
-	if last.Info == nil || last.Ref == "" {
+	if !last.HasRef() {
 		// TODO infer type
 		return t, ErrUnres
 	}

@@ -42,7 +42,7 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 		if opt {
 			ref = ref[:len(ref)-1]
 		}
-		if cor.Digit(rune(ref[0])) {
+		if len(ref) > 0 && cor.Digit(rune(ref[0])) {
 			// self reference by index
 			idx, err := strconv.Atoi(ref)
 			if err != nil {
@@ -67,14 +67,23 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 		if opt {
 			ref = ref[:len(ref)-1]
 		}
+		var cs []Type
+		if i := strings.IndexByte(ref, ':'); i >= 0 {
+			c, err := ParseKind(ref[i+1:])
+			if err != nil {
+				return Void, cor.Errorf("invalid type var constraint %s", s)
+			}
+			cs = []Type{Type{Kind: c}}
+			ref = ref[:i]
+		}
 		if len(ref) == 0 {
-			res = Var(0)
+			res = Var(0, cs...)
 		} else if cor.Digit(rune(ref[0])) {
 			id, err := strconv.ParseUint(ref, 10, 64)
 			if err != nil {
 				return Void, cor.Errorf("invalid type var %s", s)
 			}
-			res = Var(id)
+			res = Var(id, cs...)
 		} else {
 			res = Ref(ref)
 		}
@@ -99,22 +108,32 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 		}
 	}
 	k, err := ParseKind(s)
-	return Type{Kind: k}, err
+	if err != nil {
+		return Void, err
+	}
+	t := Type{Kind: k}
+	switch t.Kind & MaskRef {
+	case KindBits, KindEnum, KindObj, KindRec, KindAlt, KindFunc, KindForm:
+		t.Info = &Info{}
+	}
+	return Type{Kind: k}, nil
 }
 
 // NeedsInfo returns whether type t is missing reference or params information.
 func NeedsInfo(t Type) (ref, params bool) {
-	switch k := t.Last().Kind & MaskRef; k {
+	switch t = t.Last(); t.Kind & MaskRef {
 	case KindBits, KindEnum, KindObj:
-		ref = t.Info == nil || len(t.Ref) == 0
-		return ref, false
+		return !t.HasRef(), false
 	case KindRec, KindAlt:
-		return false, t.Info == nil || len(t.Params) == 0
+		return false, !t.HasParams()
 	case KindForm:
-		return t.Info == nil || len(t.Ref) == 0,
-			t.Info == nil || len(t.Params) == 0
+		return !t.HasRef(), !t.HasParams()
 	case KindFunc:
-		return false, t.Info == nil || len(t.Params) == 0
+		return false, !t.HasParams()
+	case KindVar:
+		if t.HasParams() {
+			return NeedsInfo(t.Params[0].Type)
+		}
 	}
 	return false, false
 }
@@ -144,9 +163,11 @@ func parse(a *lex.Tree, hist []Type) (t Type, err error) {
 func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 	needRef, needParams := NeedsInfo(t)
 	if !needRef && !needParams || len(args) == 0 {
-		return t, ErrArgCount
+		return t, cor.Errorf("for %s %d: %v", t, len(args), ErrArgCount)
 	}
-	t.Info = &Info{}
+	if t.Info == nil {
+		t.Info = &Info{}
+	}
 	if needRef {
 		ref := args[0]
 		if ref.Tok != lex.String {
@@ -162,7 +183,7 @@ func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 	if !needParams {
 		return t, nil
 	} else if len(args) == 0 {
-		return t, ErrArgCount
+		return t, cor.Errorf("for %s: %v", t, ErrArgCount)
 	}
 	dt, _ := t.Deopt()
 	hist = append(hist, dt)
@@ -194,6 +215,20 @@ func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 			}
 		}
 	}
-	t.Params = res
+	if t.Kind == KindList || t.Kind == KindDict {
+		e := t.Elem()
+		for e.Kind == KindList || e.Kind == KindDict {
+			t = e
+			e = t.Elem()
+		}
+		if e.Info != nil {
+			e.Params = res
+		} else {
+			e.Info = &Info{Params: res}
+			t.Params[0].Type = e
+		}
+	} else {
+		t.Params = res
+	}
 	return t, nil
 }

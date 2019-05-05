@@ -12,20 +12,23 @@ func opAdd(r, n float64) (float64, error) { return r + n, nil }
 func opMul(r, n float64) (float64, error) { return r * n, nil }
 
 // addSpec adds up all arguments and converts the sum to the first argument's type.
-var addSpec = core.impl("(form 'add' :plain list|~num : ~num)",
+var addSpec = core.impl("(form 'add' :plain list|num : num)",
+	// @1:num :plain? list|@2:num : @1
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return reduceNums(c, env, e, 0, true, opAdd)
 	})
 
 // mulSpec multiplies all arguments and converts the product to the first argument's type.
-var mulSpec = core.impl("(form 'mul' :plain list|~num : ~num)",
+var mulSpec = core.impl("(form 'mul' :plain list|num : num)",
+	// @1:num :plain? list|@2:num : @1
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return reduceNums(c, env, e, 1, true, opMul)
 	})
 
 // subSpec subtracts the sum of the rest from the first argument and
 // converts to the first argument's type.
-var subSpec = core.impl("(form 'sub' :a ~num :b ~num :rest list|~num : ~num)",
+var subSpec = core.impl("(form 'sub' :a num :b num :plain list|num : num)",
+	// @1:num :plain list|@2 : @1
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		fst, err := c.Resolve(env, e.Args[0], hint)
 		if err == ErrUnres {
@@ -57,7 +60,8 @@ var subSpec = core.impl("(form 'sub' :a ~num :b ~num :rest list|~num : ~num)",
 // divSpec divides the product of the rest from the first argument.
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
-var divSpec = core.impl("(form 'div' :a ~num :b ~num :rest list|~num : ~num)",
+var divSpec = core.impl("(form 'div' :a num :b num :plain list|num : num)",
+	// @1:num :plain list|@2 : @1
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		fst, err := c.Resolve(env, e.Args[0], hint)
 		if err == ErrUnres {
@@ -99,6 +103,7 @@ var divSpec = core.impl("(form 'div' :a ~num :b ~num :rest list|~num : ~num)",
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
 var remSpec = core.implResl("(form 'rem' :a int :b int : int)",
+	// @1:int @1 : @1
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		res := lo.Arg(0).(lit.Numeric).Num()
 		mod := lo.Arg(1).(lit.Numeric).Num()
@@ -106,7 +111,8 @@ var remSpec = core.implResl("(form 'rem' :a int :b int : int)",
 	})
 
 // absSpec returns the argument with the absolute numeric value.
-var absSpec = core.implResl("(form 'abs' :a ~num : ~num)",
+var absSpec = core.implResl("(form 'abs' :a num : num)",
+	// "(form 'abs' @1:num : @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (fst El, err error) {
 		fst = lo.Arg(0)
 		switch v := fst.(type) {
@@ -146,7 +152,8 @@ var absSpec = core.implResl("(form 'abs' :a ~num : ~num)",
 	})
 
 // minSpec returns the argument with the smalles numeric value or an error.
-var minSpec = core.impl("(form 'min' :a ~num :plain list|~num : ~num)",
+var minSpec = core.impl("(form 'min' :a num :plain list|num : num)",
+	// @1:num plain? list|@1 : @1
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		var i int
 		return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {
@@ -158,7 +165,8 @@ var minSpec = core.impl("(form 'min' :a ~num :plain list|~num : ~num)",
 	})
 
 // maxSpec returns the argument with the greatest numeric value or an error.
-var maxSpec = core.impl("(form 'max' :a ~num :plain list|~num : ~num)",
+var maxSpec = core.impl("(form 'max' :a num :plain list|num : num)",
+	// @1:num plain? list|@1 : @1
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		var i int
 		return reduceNums(c, env, e, 0, true, func(r, n float64) (float64, error) {

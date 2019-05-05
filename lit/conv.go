@@ -68,7 +68,7 @@ func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 }
 
 func convBase(l Lit, to typ.Type) (Lit, error) {
-	switch to.Kind & typ.MaskBase {
+	switch to.Kind & typ.KindAny {
 	case typ.KindNum:
 		if v, ok := l.(Numeric); ok {
 			return Num(v.Num()), nil

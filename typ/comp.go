@@ -140,14 +140,14 @@ func compare(src, dst Type) Cmp {
 		return CmpCheckRef
 	}
 	// we can work with flags and enums as is but rec must be resolved
-	if d == KindObj && (dst.Info == nil || len(dst.Params) == 0) {
+	if d == KindObj && !dst.HasParams() {
 		return CmpCheckRef
 	}
-	if s == KindObj && (src.Info == nil || len(src.Params) == 0) {
+	if s == KindObj && !src.HasParams() {
 		return CmpCheckRef
 	}
 	// rule out special types, which have strict equality
-	if m := Kind(MaskBase | KindOpt); s&m == 0 || d&m == 0 {
+	if m := Kind(KindAny | KindOpt); s&m == 0 || d&m == 0 {
 		return CmpNone
 	}
 	// handle any, type
