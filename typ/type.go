@@ -21,7 +21,7 @@ func (Type) Typ() Type { return Typ }
 type Info struct {
 	Ref    string  `json:"ref,omitempty"`
 	Params []Param `json:"params,omitempty"`
-	Consts []Const `json:"consts,omitempty"`
+	Consts Consts  `json:"consts,omitempty"`
 }
 
 // Key returns the lowercase ref key.
