@@ -103,10 +103,10 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 	for i, s := range p {
 		if s.Sel && (i > 0 || !subs) {
 			sub := p[i:]
-			var res Idxr
+			var res []Lit
 			switch v := Deopt(l).(type) {
 			case Indexer:
-				res = make(Idxr, 0, v.Len())
+				res = make([]Lit, 0, v.Len())
 				err = v.IterIdx(func(_ int, el Lit) error {
 					el, err = selectPath(el, sub, true)
 					if err != nil {
@@ -116,7 +116,7 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 					return nil
 				})
 			case Keyer:
-				res = make(Idxr, 0, v.Len())
+				res = make([]Lit, 0, v.Len())
 				err = v.IterKey(func(_ string, el Lit) error {
 					el, err = selectPath(el, sub, true)
 					if err != nil {
@@ -133,7 +133,7 @@ func selectPath(l Lit, p Path, subs bool) (_ Lit, err error) {
 			if err != nil {
 				return nil, err
 			}
-			return res, nil
+			return &List{Data: res}, nil
 		} else if s.Key != "" {
 			l, err = getKey(l, s.Key)
 		} else {
@@ -227,7 +227,7 @@ func setKey(l Lit, el Lit, key string, rest Path, create bool) (Lit, error) {
 	t := l.Typ()
 	v, ok := l.(Keyer)
 	if !ok && create && (t.Kind == typ.KindAny || t.Kind&typ.KindKeyr != 0) {
-		v, ok = &Keyr{}, true
+		v, ok = &Dict{}, true
 	}
 	if !ok {
 		return l, cor.Errorf("key segment %q expects keyer got %s", key, l.Typ())
@@ -255,11 +255,11 @@ func setIdx(l Lit, el Lit, idx int, rest Path, create bool) (Lit, error) {
 	v, ok := l.(Indexer)
 	if !ok && create && (t.Kind == typ.KindAny ||
 		t.Kind&typ.KindIdxr != 0) {
-		res := make(Idxr, idx+1)
+		res := make([]Lit, idx+1)
 		for i := range res {
 			res[i] = Nil
 		}
-		v, ok = &res, true
+		v, ok = &List{Data: res}, true
 	}
 	if !ok {
 		return nil, cor.Errorf("idx segment expects idxer got %s", l.Typ())

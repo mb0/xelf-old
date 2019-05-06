@@ -48,9 +48,9 @@ func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 	case typ.CmpCompSpec, typ.CmpCheckSpec:
 		l, err = checkSpec(l, dst)
 	case typ.CmpCheckList:
-		return checkList(l.(Idxr), dst)
+		return checkList(l.(*List), dst)
 	case typ.CmpCheckDict:
-		return checkDict(l.(*Keyr), dst)
+		return checkDict(l.(*Dict), dst)
 	case typ.CmpConvArr, typ.CmpCheckArr:
 		return checkArr(l, dst)
 	case typ.CmpConvMap, typ.CmpCheckMap:
@@ -82,7 +82,7 @@ func convBase(l Lit, to typ.Type) (Lit, error) {
 }
 func convList(l Lit) (Lit, error) {
 	if v, ok := l.(Indexer); ok {
-		res := make(Idxr, v.Len())
+		res := make([]Lit, v.Len())
 		for i := range res {
 			el, err := v.Idx(i)
 			if err != nil {
@@ -90,7 +90,7 @@ func convList(l Lit) (Lit, error) {
 			}
 			res[i] = el
 		}
-		return res, nil
+		return &List{Data: res}, nil
 	}
 	return nil, cor.Errorf("%v %T to list", ErrUnconv, l)
 }
@@ -104,7 +104,7 @@ func convDict(l Lit) (Lit, error) {
 			}
 			res[i] = Keyed{k, el}
 		}
-		return &Keyr{res}, nil
+		return &Dict{List: res}, nil
 	}
 	return nil, cor.Errorf("%v %T to dict", ErrUnconv, l)
 }
@@ -178,10 +178,10 @@ func checkSpec(l Lit, to typ.Type) (res Lit, err error) {
 	}
 	return res, nil
 }
-func checkList(l Idxr, to typ.Type) (res Indexer, err error) {
+func checkList(l *List, to typ.Type) (res Indexer, err error) {
 	switch to.Kind & typ.MaskElem {
 	case typ.KindList:
-		res, err = MakeList(to, len(l))
+		res, err = MakeList(to, len(l.Data))
 	case typ.KindRec:
 		res, err = MakeRec(to)
 	default:
@@ -190,7 +190,7 @@ func checkList(l Idxr, to typ.Type) (res Indexer, err error) {
 	if err != nil {
 		return nil, err
 	}
-	for i, e := range l {
+	for i, e := range l.Data {
 		_, err := res.SetIdx(i, e)
 		if err != nil {
 			return nil, err
@@ -198,7 +198,7 @@ func checkList(l Idxr, to typ.Type) (res Indexer, err error) {
 	}
 	return res, nil
 }
-func checkDict(l *Keyr, to typ.Type) (res Keyer, err error) {
+func checkDict(l *Dict, to typ.Type) (res Keyer, err error) {
 	switch to.Kind & typ.MaskElem {
 	case typ.KindDict:
 		res, err = MakeDictCap(to, l.Len())

@@ -117,19 +117,19 @@ func TestStdResolve(t *testing.T) {
 		{`(max 3 2 1)`, lit.Num(3)},
 		{`(cat 'a' 'b' 'c')`, lit.Str("abc")},
 		{`(cat (raw 'a') 'b' 'c')`, lit.Raw("abc")},
-		{`(cat [1] [2] [3])`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
-		{`(apd [] 1 2 3)`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
-		{`([] 1 2 3)`, lit.Idxr{lit.Num(1), lit.Num(2), lit.Num(3)}},
-		{`(~idxr (list|int 1 2 3))`, lit.Idxr{lit.Int(1), lit.Int(2), lit.Int(3)}},
-		{`(set {} +x +y 3)`, &lit.Keyr{List: []lit.Keyed{
+		{`(cat [1] [2] [3])`, &lit.List{Data: []Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
+		{`(apd [] 1 2 3)`, &lit.List{Data: []Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
+		{`([] 1 2 3)`, &lit.List{Data: []Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
+		{`(list (list|int 1 2 3))`, &lit.List{Data: []Lit{lit.Int(1), lit.Int(2), lit.Int(3)}}},
+		{`(set {} +x +y 3)`, &lit.Dict{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
 		}}},
-		{`({} +x +y 3)`, &lit.Keyr{List: []lit.Keyed{
+		{`({} +x +y 3)`, &lit.Dict{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
 		}}},
-		{`(~keyr (dict|int +x +y 3))`, &lit.Keyr{List: []lit.Keyed{
+		{`(dict (dict|int +x +y 3))`, &lit.Dict{List: []lit.Keyed{
 			{"x", lit.Int(3)},
 			{"y", lit.Int(3)},
 		}}},
@@ -157,14 +157,14 @@ func TestStdResolve(t *testing.T) {
 		{`(nth [1 2 3 4 5] -3)`, lit.Num(3)},
 		{`(fst [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Num(2)},
 		{`(lst [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Num(4)},
-		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Idxr{
+		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, &lit.List{typ.Any, []Lit{
 			lit.Num(2), lit.Num(4),
-		}},
-		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 1)))`, lit.Idxr{
+		}}},
+		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 1)))`, &lit.List{typ.Any, []Lit{
 			lit.Num(1), lit.Num(3), lit.Num(5),
-		}},
-		{`(map [1 2 3 4] (fn +a ~num - ~num (mul _ _)))`, lit.List{Elem: typ.Num,
-			Idxr: lit.Idxr{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
+		}}},
+		{`(map [1 2 3 4] (fn +a ~num - ~num (mul _ _)))`, &lit.List{Elem: typ.Num,
+			Data: []Lit{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
 		}},
 		{`(fold ['alice' 'bob' 'calvin'] 'hello'` +
 			`(fn +a +v str +i int - str (cat _ (if .i ',') ' ' .v)))`,
@@ -198,8 +198,8 @@ func TestStdResolve(t *testing.T) {
 			(eq (filter . even) [2 4])
 			(eq (map . even) [false true false true false])
 			(eq (fold . 0 (fn +a +v - ~num (add _ .v))) 15)
-			(eq (fold  . [0] (fn +a ~idxr +v ~num - ~idxr (apd _ .v))) [0 1 2 3 4 5])
-			(eq (foldr . [0] (fn +a ~idxr +v ~num - ~idxr (apd _ .v))) [0 5 4 3 2 1])
+			(eq (fold  . [0] (fn +a list +v ~num - list (apd _ .v))) [0 1 2 3 4 5])
+			(eq (foldr . [0] (fn +a list +v ~num - list (apd _ .v))) [0 5 4 3 2 1])
 		)))`, lit.True},
 	}
 	for _, test := range tests {

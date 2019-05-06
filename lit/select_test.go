@@ -12,10 +12,10 @@ func TestSetPath(t *testing.T) {
 		el   Lit
 		res  Lit
 	}{
-		{&Keyr{}, "a.1.b", True, &Keyr{List: []Keyed{
-			{"a", &Idxr{Nil, &Keyr{List: []Keyed{
+		{&Dict{}, "a.1.b", True, &Dict{List: []Keyed{
+			{"a", &List{Data: []Lit{Nil, &Dict{List: []Keyed{
 				{"b", True},
-			}}}},
+			}}}}},
 		}}},
 	}
 	for _, test := range tests {

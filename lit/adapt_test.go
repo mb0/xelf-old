@@ -41,14 +41,14 @@ func TestAdapt(t *testing.T) {
 		{myUUID{}, ZeroUUID},
 		{time.Time{}, ZeroTime},
 		{myTime{}, ZeroTime},
-		{[]int{1, 2}, &List{typ.Int, Idxr{Int(1), Int(2)}}},
+		{[]int{1, 2}, &List{typ.Int, []Lit{Int(1), Int(2)}}},
 		{[]*int64{cor.Int(1), cor.Int(2)},
-			&List{typ.Opt(typ.Int), Idxr{Some{Int(1)}, Some{Int(2)}}},
+			&List{typ.Opt(typ.Int), []Lit{Some{Int(1)}, Some{Int(2)}}},
 		},
 		{myPoint{1, 2, 3}, &Rec{typ.Rec([]typ.Param{
 			{Name: "X", Type: typ.Int},
 			{Name: "Y", Type: typ.Int},
-		}), Keyr{[]Keyed{
+		}), Dict{List: []Keyed{
 			{Key: "x", Lit: Int(1)},
 			{Key: "y", Lit: Int(2)},
 		}}}},

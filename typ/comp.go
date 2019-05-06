@@ -177,19 +177,19 @@ func compare(src, dst Type) Cmp {
 		return CmpCompSpec
 	}
 	// handle container base type list and dict
-	if d == KindIdxr {
+	if d == KindList && !dst.HasParams() {
 		if s&KindIdxr == 0 {
 			return CmpNone
 		}
 		return CmpCompList
 	}
-	if d == KindKeyr {
+	if d == KindDict && !dst.HasParams() {
 		if s&KindKeyr == 0 {
 			return CmpNone
 		}
 		return CmpCompDict
 	}
-	if s == KindIdxr {
+	if s == KindList && !src.HasParams() {
 		switch d & MaskElem {
 		case KindList, KindRec:
 		default:
@@ -197,7 +197,7 @@ func compare(src, dst Type) Cmp {
 		}
 		return CmpCheckList
 	}
-	if s == KindKeyr {
+	if s == KindDict && !src.HasParams() {
 		switch d & MaskElem {
 		case KindDict, KindRec:
 		default:

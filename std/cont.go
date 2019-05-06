@@ -107,7 +107,7 @@ func nth(c *Ctx, env Env, e *Call, hint Type, cont El, pred El, idx int) (_ El, 
 			return nil, err
 		}
 		return v.Idx(idx)
-	case *lit.Keyr:
+	case *lit.Dict:
 		idx, err = checkIdx(idx, v.Len())
 		if err != nil {
 			return nil, err

@@ -6,27 +6,43 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Keyr is a generic container implementing the keyer type.
-type Keyr struct {
-	List []Keyed
-}
-
 // Keyed is a key associated with a literal.
 type Keyed struct {
 	Key string
 	Lit
 }
 
-func (*Keyr) Typ() typ.Type  { return typ.Keyer }
-func (d *Keyr) IsZero() bool { return d == nil || len(d.List) == 0 }
+// Dict is a generic container implementing the dict type.
+type Dict struct {
+	Elem typ.Type
+	List []Keyed
+}
 
-func (d *Keyr) Len() int {
+// MakeDict returns a new abstract dict literal with the given type or an error.
+func MakeDict(t typ.Type) (*Dict, error) {
+	return MakeDictCap(t, 0)
+}
+
+// MakeDictCap returns a new abstract dict literal with the given type and cap or an error.
+func MakeDictCap(t typ.Type, cap int) (*Dict, error) {
+	if t.Kind&typ.MaskElem != typ.KindDict {
+		return nil, typ.ErrInvalid
+	}
+	list := make([]Keyed, 0, cap)
+	return &Dict{t.Elem(), list}, nil
+}
+
+func (d *Dict) Typ() typ.Type     { return typ.Dict(d.Elem) }
+func (d *Dict) Element() typ.Type { return d.Elem }
+func (d *Dict) IsZero() bool      { return d == nil || len(d.List) == 0 }
+
+func (d *Dict) Len() int {
 	if d == nil {
 		return 0
 	}
 	return len(d.List)
 }
-func (d *Keyr) Keys() []string {
+func (d *Dict) Keys() []string {
 	if d == nil {
 		return nil
 	}
@@ -36,7 +52,7 @@ func (d *Keyr) Keys() []string {
 	}
 	return res
 }
-func (d *Keyr) Key(k string) (Lit, error) {
+func (d *Dict) Key(k string) (Lit, error) {
 	if d == nil {
 		return Nil, nil
 	}
@@ -45,11 +61,23 @@ func (d *Keyr) Key(k string) (Lit, error) {
 			return v.Lit, nil
 		}
 	}
+	if d.Elem != typ.Void {
+		return Null(d.Elem), nil
+	}
 	return Nil, nil
 }
-func (d *Keyr) SetKey(k string, el Lit) (Keyer, error) {
+func (d *Dict) SetKey(k string, el Lit) (_ Keyer, err error) {
 	if d == nil {
-		d = &Keyr{}
+		return &Dict{List: []Keyed{{k, el}}}, nil
+	}
+	if el == nil {
+		el = Nil
+	}
+	if d.Elem != typ.Void && d.Elem != typ.Any {
+		el, err = Convert(el, d.Elem, 0)
+		if err != nil {
+			return d, err
+		}
 	}
 	for i, v := range d.List {
 		if v.Key == k {
@@ -65,7 +93,7 @@ func (d *Keyr) SetKey(k string, el Lit) (Keyer, error) {
 	return d, nil
 }
 
-func (d *Keyr) IterKey(it func(string, Lit) error) error {
+func (d *Dict) IterKey(it func(string, Lit) error) error {
 	if d == nil {
 		return nil
 	}
@@ -80,11 +108,11 @@ func (d *Keyr) IterKey(it func(string, Lit) error) error {
 	return nil
 }
 
-func (v *Keyr) String() string               { return bfr.String(v) }
-func (v *Keyr) MarshalJSON() ([]byte, error) { return bfr.JSON(v) }
-func (v *Keyr) WriteBfr(b *bfr.Ctx) error {
+func (d *Dict) String() string               { return bfr.String(d) }
+func (d *Dict) MarshalJSON() ([]byte, error) { return bfr.JSON(d) }
+func (d *Dict) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
-	for i, e := range v.List {
+	for i, e := range d.List {
 		if i > 0 {
 			writeSep(b)
 		}
@@ -94,26 +122,26 @@ func (v *Keyr) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
-func (v *Keyr) Ptr() interface{} { return v }
-func (v *Keyr) Assign(l Lit) error {
-	if v == nil {
+func (d *Dict) Ptr() interface{} { return d }
+func (d *Dict) Assign(l Lit) error {
+	if d == nil {
 		return cor.Errorf("nil keyer")
 	}
-	switch lv := Deopt(l).(type) {
-	case *Keyr:
-		*v = *lv
+	switch ld := Deopt(l).(type) {
+	case *Dict:
+		*d = *ld
 	case Keyer:
-		res := v.List[:0]
-		err := lv.IterKey(func(k string, e Lit) error {
+		res := d.List[:0]
+		err := ld.IterKey(func(k string, e Lit) error {
 			res = append(res, Keyed{k, e})
 			return nil
 		})
 		if err != nil {
 			return err
 		}
-		v.List = res
+		d.List = res
 	default:
-		return cor.Errorf("%q %T not assignable to %q", l.Typ(), l, v.Typ())
+		return cor.Errorf("%q %T not assignable to %q", l.Typ(), l, d.Typ())
 	}
 	return nil
 }

@@ -45,9 +45,9 @@ func Zero(t typ.Type) Lit {
 	case typ.KindSpan:
 		return ZeroSpan
 	case typ.KindIdxr:
-		return (Idxr)(nil)
+		return &List{}
 	case typ.KindKeyr:
-		return &Keyr{}
+		return &Dict{}
 	case typ.KindList:
 		a, _ := MakeList(t, 0)
 		return a
@@ -84,9 +84,9 @@ func ZeroProxy(tt typ.Type) (res Assignable) {
 	case typ.KindSpan:
 		res = new(Span)
 	case typ.KindIdxr:
-		res = new(Idxr)
+		res = &List{}
 	case typ.KindKeyr:
-		res = &Keyr{}
+		res = &Dict{}
 	case typ.KindList:
 		res, _ = MakeList(t, 0)
 	case typ.KindDict:

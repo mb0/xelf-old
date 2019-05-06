@@ -17,7 +17,7 @@ func MakeRec(t typ.Type) (*Rec, error) {
 	for _, f := range t.Params {
 		list = append(list, Keyed{f.Key(), ZeroProxy(f.Type)})
 	}
-	return &Rec{t, Keyr{list}}, nil
+	return &Rec{t, Dict{List: list}}, nil
 }
 
 // RecFromKeyed creates a new abstract record literal from the given list of keyed literals.
@@ -26,13 +26,13 @@ func RecFromKeyed(list []Keyed) *Rec {
 	for _, d := range list {
 		fs = append(fs, typ.Param{d.Key, d.Lit.Typ()})
 	}
-	return &Rec{typ.Rec(fs), Keyr{list}}
+	return &Rec{typ.Rec(fs), Dict{List: list}}
 }
 
 type (
 	Rec struct {
 		Type typ.Type
-		Keyr
+		Dict
 	}
 	proxyRec struct {
 		proxy
@@ -42,7 +42,7 @@ type (
 
 func (a *Rec) Typ() typ.Type { return a.Type }
 func (a *Rec) IsZero() bool {
-	if a.Keyr.IsZero() {
+	if a.Dict.IsZero() {
 		return true
 	}
 	for _, k := range a.List {
@@ -57,14 +57,14 @@ func (a *Rec) Idx(i int) (Lit, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.Keyr.List[i].Lit, nil
+	return a.Dict.List[i].Lit, nil
 }
 func (a *Rec) Key(key string) (Lit, error) {
 	_, _, err := a.Type.ParamByKey(key)
 	if err != nil {
 		return nil, err
 	}
-	return a.Keyr.Key(key)
+	return a.Dict.Key(key)
 }
 func (a *Rec) SetIdx(i int, el Lit) (Indexer, error) {
 	f, err := a.Type.ParamByIdx(i)
@@ -79,7 +79,7 @@ func (a *Rec) SetIdx(i int, el Lit) (Indexer, error) {
 			return a, err
 		}
 	}
-	a.Keyr.List[i].Lit = el
+	a.Dict.List[i].Lit = el
 	return a, nil
 }
 func (a *Rec) SetKey(key string, el Lit) (Keyer, error) {
@@ -95,15 +95,15 @@ func (a *Rec) SetKey(key string, el Lit) (Keyer, error) {
 			return a, err
 		}
 	}
-	res, err := a.Keyr.SetKey(key, el)
+	res, err := a.Dict.SetKey(key, el)
 	if err != nil {
 		return a, err
 	}
-	a.Keyr = *res.(*Keyr)
+	a.Dict = *res.(*Dict)
 	return a, nil
 }
 func (a *Rec) IterIdx(it func(int, Lit) error) error {
-	for i, el := range a.Keyr.List {
+	for i, el := range a.Dict.List {
 		if err := it(i, el.Lit); err != nil {
 			if err == BreakIter {
 				return nil

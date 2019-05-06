@@ -93,7 +93,7 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 			return (*Raw)(v.Interface().(*[]byte)), nil
 		}
 		if v, ok := ptrRef(et, refList, ptr); ok {
-			return v.Interface().(*Idxr), nil
+			return v.Interface().(*List), nil
 		}
 	case reflect.Array:
 		if v, ok := ptrRef(et, refUUID, ptr); ok {
@@ -107,13 +107,13 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 			return typProxy{v.Interface().(*typ.Type)}, nil
 		}
 		if v, ok := toRef(ptr.Type(), refDict, ptr); ok {
-			return v.Interface().(*Keyr), nil
+			return v.Interface().(*Dict), nil
 		}
 	case reflect.Ptr:
 		if v, ok := ptrRef(et, refDict, ptr); ok {
-			dptr := v.Interface().(**Keyr)
+			dptr := v.Interface().(**Dict)
 			if *dptr == nil {
-				*dptr = &Keyr{}
+				*dptr = &Dict{}
 			}
 			return *dptr, nil
 		}

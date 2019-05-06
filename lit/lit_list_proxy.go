@@ -8,56 +8,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeList returns a new abstract list literal with the given type and len or an error.
-func MakeList(t typ.Type, len int) (*List, error) {
-	return MakeListCap(t, len, len)
-}
-
-// MakeListCap returns a new abstract list literal with the given type, len and cap or an error.
-func MakeListCap(t typ.Type, len, cap int) (*List, error) {
-	if t.Kind&typ.MaskElem != typ.KindList {
-		return nil, typ.ErrInvalid
-	}
-	res := List{t.Elem(), make(Idxr, len, cap)}
-	for i := range res.Idxr {
-		res.Idxr[i] = Null(res.Elem)
-	}
-	return &res, nil
-}
-
-type (
-	List struct {
-		Elem typ.Type
-		Idxr
-	}
-	proxyList struct{ proxy }
-)
-
-func (a List) Typ() typ.Type     { return typ.List(a.Elem) }
-func (a List) Element() typ.Type { return a.Elem }
-func (a List) SetIdx(i int, el Lit) (_ Indexer, err error) {
-	if el == nil {
-		el = Null(a.Elem)
-	} else {
-		el, err = Convert(el, a.Elem, 0)
-		if err != nil {
-			return a, err
-		}
-	}
-	_, err = a.Idxr.SetIdx(i, el)
-	return a, err
-}
-
-func (a List) Append(ls ...Lit) (Appender, error) {
-	for _, e := range ls {
-		e, err := Convert(e, a.Elem, 0)
-		if err != nil {
-			return nil, err
-		}
-		a.Idxr = append(a.Idxr, e)
-	}
-	return a, nil
-}
+type proxyList struct{ proxy }
 
 func (p *proxyList) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {

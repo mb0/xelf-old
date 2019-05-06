@@ -62,7 +62,7 @@ func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint Type) (El, error) {
 	}
 	s := DataScope{env, lit.Nil}
 	if len(keyed) > 0 {
-		s.Dot = &lit.Rec{Type: typ.Rec(ps), Keyr: lit.Keyr{List: keyed}}
+		s.Dot = &lit.Rec{Type: typ.Rec(ps), Dict: lit.Dict{List: keyed}}
 	}
 	// switch the function scope's parent to the declaration environment
 	env = NewScope(&FuncScope{s})

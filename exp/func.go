@@ -88,7 +88,7 @@ func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.List, error) 
 	if err != nil {
 		return nil, err
 	}
-	res := make(lit.Idxr, 0, len(els))
+	res := make([]lit.Lit, 0, len(els))
 	for _, el := range els {
 		l := el.(Lit)
 		if et != typ.Any {

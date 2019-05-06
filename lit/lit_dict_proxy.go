@@ -8,54 +8,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// MakeDict returns a new abstract dict literal with the given type or an error.
-func MakeDict(t typ.Type) (*Dict, error) {
-	return MakeDictCap(t, 0)
-}
-
-// MakeDictCap returns a new abstract dict literal with the given type and cap or an error.
-func MakeDictCap(t typ.Type, cap int) (*Dict, error) {
-	if t.Kind&typ.MaskElem != typ.KindDict {
-		return nil, typ.ErrInvalid
-	}
-	list := make([]Keyed, 0, cap)
-	return &Dict{t.Elem(), Keyr{list}}, nil
-}
-
-type (
-	Dict struct {
-		Elem typ.Type
-		Keyr
-	}
-	proxyDict struct{ proxy }
-)
-
-func (a *Dict) Typ() typ.Type     { return typ.Dict(a.Elem) }
-func (a *Dict) Element() typ.Type { return a.Elem }
-func (a *Dict) Key(k string) (Lit, error) {
-	l, err := a.Keyr.Key(k)
-	if err != nil {
-		return nil, err
-	}
-	if l == Nil {
-		l = Null(a.Elem)
-	}
-	return l, nil
-}
-func (a *Dict) SetKey(key string, el Lit) (res Keyer, err error) {
-	if el != nil {
-		el, err = Convert(el, a.Elem, 0)
-		if err != nil {
-			return a, err
-		}
-	}
-	res, err = a.Keyr.SetKey(key, el)
-	if err != nil {
-		return a, err
-	}
-	a.Keyr = *res.(*Keyr)
-	return a, nil
-}
+type proxyDict struct{ proxy }
 
 func (p *proxyDict) Assign(l Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
@@ -87,6 +40,7 @@ func (p *proxyDict) Assign(l Lit) error {
 		return nil
 	})
 }
+
 func (p *proxyDict) Element() typ.Type { return p.typ.Elem() }
 func (p *proxyDict) Len() int {
 	if v, ok := p.elem(reflect.Map); ok {

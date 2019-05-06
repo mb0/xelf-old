@@ -108,9 +108,9 @@ func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := make(lit.Idxr, 0, len(args))
+	res := &lit.List{Data: make([]lit.Lit, 0, len(args))}
 	for _, arg := range args {
-		res = append(res, arg.(lit.Lit))
+		res.Data = append(res.Data, arg.(lit.Lit))
 	}
 	return res, nil
 }

@@ -56,8 +56,9 @@ func Parse(a *lex.Tree) (Lit, error) {
 	return nil, a.Err(lex.ErrUnexpected)
 }
 
-func parseList(tree *lex.Tree) (res Idxr, _ error) {
+func parseList(tree *lex.Tree) (*List, error) {
 	var last bool
+	res := make([]Lit, 0, len(tree.Seq))
 	for _, t := range tree.Seq {
 		if last && t.Tok == ',' {
 			last = false
@@ -70,10 +71,10 @@ func parseList(tree *lex.Tree) (res Idxr, _ error) {
 		}
 		res = append(res, el)
 	}
-	return res, nil
+	return &List{Data: res}, nil
 }
 
-func parseDict(tree *lex.Tree) (*Keyr, error) {
+func parseDict(tree *lex.Tree) (*Dict, error) {
 	var res []Keyed
 	for i := 0; i < len(tree.Seq); i++ {
 		var key string
@@ -112,5 +113,5 @@ func parseDict(tree *lex.Tree) (*Keyr, error) {
 			i++
 		}
 	}
-	return &Keyr{res}, nil
+	return &Dict{List: res}, nil
 }

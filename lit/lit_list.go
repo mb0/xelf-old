@@ -8,28 +8,75 @@ import (
 
 var ErrIdxBounds = cor.StrError("idx out of bounds")
 
-// Idxr is a generic container implementing the indexer type.
-type Idxr []Lit
-
-func (Idxr) Typ() typ.Type  { return typ.Idxer }
-func (l Idxr) IsZero() bool { return len(l) == 0 }
-
-func (l Idxr) Len() int { return len(l) }
-func (l Idxr) Idx(i int) (Lit, error) {
-	if i < 0 || i >= len(l) {
-		return nil, ErrIdxBounds
-	}
-	return l[i], nil
+// List is a generic container implementing the indexer type.
+type List struct {
+	Elem typ.Type
+	Data []Lit
 }
-func (l Idxr) SetIdx(i int, el Lit) (Indexer, error) {
-	if i < 0 || i >= len(l) {
+
+// MakeList returns a new abstract list literal with the given type and len or an error.
+func MakeList(t typ.Type, len int) (*List, error) {
+	return MakeListCap(t, len, len)
+}
+
+// MakeListCap returns a new abstract list literal with the given type, len and cap or an error.
+func MakeListCap(t typ.Type, len, cap int) (*List, error) {
+	if t.Kind&typ.MaskElem != typ.KindList {
+		return nil, typ.ErrInvalid
+	}
+	res := List{t.Elem(), make([]Lit, len, cap)}
+	for i := range res.Data {
+		res.Data[i] = Null(res.Elem)
+	}
+	return &res, nil
+}
+
+func (l *List) Typ() typ.Type     { return typ.List(l.Elem) }
+func (l *List) IsZero() bool      { return l == nil || len(l.Data) == 0 }
+func (l *List) Element() typ.Type { return l.Elem }
+func (l *List) SetIdx(i int, el Lit) (_ Indexer, err error) {
+	if l == nil || i < 0 || i >= len(l.Data) {
 		return l, ErrIdxBounds
 	}
-	l[i] = el
+	if el == nil {
+		el = Nil
+	}
+	if l.Elem != typ.Void && l.Elem != typ.Any {
+		el, err = Convert(el, l.Elem, 0)
+		if err != nil {
+			return l, err
+		}
+	}
+	l.Data[i] = el
 	return l, nil
 }
-func (l Idxr) IterIdx(it func(int, Lit) error) error {
-	for i, el := range l {
+
+func (l *List) Ptr() interface{} { return l }
+func (l *List) Append(ls ...Lit) (_ Appender, err error) {
+	for _, el := range ls {
+		if el == nil {
+			el = Nil
+		}
+		if l.Elem != typ.Void && l.Elem != typ.Any {
+			el, err = Convert(el, l.Elem, 0)
+			if err != nil {
+				return l, err
+			}
+		}
+		l.Data = append(l.Data, el)
+	}
+	return l, nil
+}
+func (l *List) Len() int { return len(l.Data) }
+
+func (l *List) Idx(i int) (Lit, error) {
+	if i < 0 || i >= len(l.Data) {
+		return nil, ErrIdxBounds
+	}
+	return l.Data[i], nil
+}
+func (l *List) IterIdx(it func(int, Lit) error) error {
+	for i, el := range l.Data {
 		if err := it(i, el); err != nil {
 			if err == BreakIter {
 				return nil
@@ -40,11 +87,11 @@ func (l Idxr) IterIdx(it func(int, Lit) error) error {
 	return nil
 }
 
-func (l Idxr) String() string               { return bfr.String(l) }
-func (l Idxr) MarshalJSON() ([]byte, error) { return bfr.JSON(l) }
-func (l Idxr) WriteBfr(b *bfr.Ctx) error {
+func (l *List) String() string               { return bfr.String(l) }
+func (l *List) MarshalJSON() ([]byte, error) { return bfr.JSON(l) }
+func (l *List) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('[')
-	for i, e := range l {
+	for i, e := range l.Data {
 		if i > 0 {
 			writeSep(b)
 		}
@@ -53,15 +100,12 @@ func (l Idxr) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte(']')
 }
 
-func (v *Idxr) Ptr() interface{} { return v }
-func (l *Idxr) Assign(val Lit) error {
+func (l *List) Assign(val Lit) error {
 	switch v := Deopt(val).(type) {
-	case *Idxr:
+	case *List:
 		*l = *v
-	case Idxr:
-		*l = v
 	case Indexer:
-		res := (*l)[:0]
+		res := l.Data[:0]
 		err := v.IterIdx(func(i int, e Lit) error {
 			res = append(res, e)
 			return nil
@@ -69,17 +113,12 @@ func (l *Idxr) Assign(val Lit) error {
 		if err != nil {
 			return err
 		}
-		*l = res
+		l.Data = res
 	default:
 		return cor.Errorf("%q not assignable to %q", val.Typ(), l.Typ())
 	}
 	return nil
 }
-
-func (l Idxr) Append(vals ...Lit) (Appender, error) {
-	return append(l, vals...), nil
-}
-func (l Idxr) Element() typ.Type { return typ.Any }
 
 func writeSep(b *bfr.Ctx) error {
 	if b.JSON {

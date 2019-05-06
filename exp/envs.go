@@ -134,7 +134,7 @@ func (p *ParamScope) Get(s string) *Def {
 // ProgScope wraps a param scope and provides global result resolution.
 type ProgScope struct {
 	ParamScope
-	Result *lit.Keyr
+	Result *lit.Dict
 }
 
 func (*ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
