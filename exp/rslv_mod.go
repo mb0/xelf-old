@@ -94,7 +94,7 @@ var apdSpec = core.impl("(form 'apd' :a ~idxr :rest list : @)",
 	})
 
 // setSpec sets the first keyer literal with the following declaration arguments.
-var setSpec = core.impl("(form 'set' :a ~keyr :plain list :unis dict : @)",
+var setSpec = core.impl("(form 'set' :a ~keyr :plain? list :unis? dict : @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		err := lo.Resolve(c, env, hint)
 		if err != nil {
@@ -116,7 +116,7 @@ var setSpec = core.impl("(form 'set' :a ~keyr :plain list :unis dict : @)",
 		for _, d := range decls {
 			el, ok := d.Arg().(Lit)
 			if !ok {
-				return nil, cor.Errorf("want literal in declaration got %s", d.El)
+				return nil, cor.Errorf("want literal in declaration got %v", d.El)
 			}
 			_, err = res.SetKey(d.Key(), el)
 			if err != nil {

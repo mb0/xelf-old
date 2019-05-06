@@ -27,14 +27,13 @@ func (c *Ctx) ResolveAll(env Env, els []El, hint Type) ([]El, error) {
 	}
 	for i, x := range els {
 		r, err := c.Resolve(env, x, hint)
-		xs[i] = r
 		if err != nil {
-			if !c.Exec && err == ErrUnres {
-				res = err
-				continue
+			if err != ErrUnres {
+				return nil, err
 			}
-			return nil, err
+			res = err
 		}
+		xs[i] = r
 	}
 	return xs, res
 }

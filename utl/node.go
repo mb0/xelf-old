@@ -90,7 +90,7 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type)
 	// associate to arguments using using rules
 	fps := x.Spec.Arg()
 	for i, fp := range fps {
-		switch fp.Name {
+		switch fp.Key() {
 		case "plain", "tags", "args":
 			tags, err := lo.Tags(i)
 			if err != nil {

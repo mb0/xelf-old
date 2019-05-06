@@ -131,10 +131,16 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 			inst.Params = append(inst.Params, p)
 			continue
 		}
-		switch p.Name {
+		switch p.Key() {
 		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
 			v := c.New()
 			args, err := c.ResolveAll(env, args, v)
+			if err != nil {
+				if err != ErrUnres {
+					return err
+				}
+				res = err
+			}
 			switch p.Name {
 			case "decls", "unis":
 				p.Type = typ.Dict(v)
@@ -142,28 +148,20 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 				p.Type = typ.List(v)
 			}
 			inst.Params = append(inst.Params, p)
-			if err != nil {
-				if err == ErrUnres {
-					res = err
-					continue
-				}
-				return err
-			}
 			if !c.Part {
 				l.args[i] = args
 			}
 		default: // explicit param
 			v := c.New()
 			el, err := c.Resolve(env, args[0], v)
+			if err != nil {
+				if err != ErrUnres {
+					return err
+				}
+				res = err
+			}
 			p.Type = v
 			inst.Params = append(inst.Params, p)
-			if err != nil {
-				if err == ErrUnres {
-					res = err
-					continue
-				}
-				return err
-			}
 			if c.Part {
 				args[0] = el
 			} else {
@@ -215,19 +213,18 @@ Loop:
 		case "unis":
 			tmp, args = consumeUnis(args)
 		default: // explicit param
-			if len(args) == 0 {
-				if !p.Opt() {
-					return nil, cor.Errorf("missing argument for %s", p)
+			if len(args) > 0 {
+				if _, _, _, ok := isSpecial(args[0], ":+-;"); ok {
+					if !p.Opt() {
+						break Loop
+					}
+				} else {
+					tmp, args = args[:1], args[1:]
 				}
-				continue
 			}
-			if _, _, _, ok := isSpecial(args[0], ":+-;"); ok {
-				if !p.Opt() {
-					break Loop
-				}
-			} else {
-				tmp, args = args[:1], args[1:]
-			}
+		}
+		if len(tmp) == 0 && !p.Opt() {
+			return nil, cor.Errorf("missing argument for %s %s", p.Name, p)
 		}
 		res = append(res, tmp)
 	}
