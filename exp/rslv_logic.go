@@ -8,7 +8,7 @@ import (
 
 // failSpec returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
-var failSpec = core.impl("(form 'fail' :rest? : any)",
+var failSpec = core.impl("(form 'fail' :rest? list any)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		if c.Exec {
 			return nil, cor.Errorf("%s", e)
@@ -19,7 +19,7 @@ var failSpec = core.impl("(form 'fail' :rest? : any)",
 // orSpec resolves the arguments as short-circuiting logical or to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
-var orSpec = core.impl("(form 'or' :plain? : bool)",
+var orSpec = core.impl("(form 'or' :plain? list bool)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		if hint != typ.Void {
 			typ.Unify(&c.Ctx, hint, typ.Bool)
@@ -53,7 +53,7 @@ var orSpec = core.impl("(form 'or' :plain? : bool)",
 // andSpec resolves the arguments as short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'and' expression resolves to true.
-var andSpec = core.impl("(form 'and' :plain? : bool)", resolveAnd)
+var andSpec = core.impl("(form 'and' :plain? list bool)", resolveAnd)
 
 func resolveAnd(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 	if hint != typ.Void {
@@ -95,7 +95,7 @@ var boolSpec *Spec
 var notSpec *Spec
 
 func init() {
-	boolSpec = core.impl("(form '(bool)' :plain? : bool)", // TODO change to ':bool' ?
+	boolSpec = core.impl("(form '(bool)' :plain? list bool)", // TODO change to ':bool' ?
 		func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 			res, err := resolveAnd(c, env, e, lo, hint)
 			if err == ErrUnres {
@@ -113,7 +113,7 @@ func init() {
 			return lit.Bool(!res.(Lit).IsZero()), nil
 		})
 
-	notSpec = core.impl("(form 'not' :plain? : bool)",
+	notSpec = core.impl("(form 'not' :plain? list bool)",
 		func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 			res, err := resolveAnd(c, env, e, lo, hint)
 			if err == ErrUnres {

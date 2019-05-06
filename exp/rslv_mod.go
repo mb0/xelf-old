@@ -16,7 +16,7 @@ var (
 )
 
 // catSpec concatenates one or more arguments to a str, raw or idxer literal.
-var catSpec = core.impl("(form 'cat' :a any :rest list : @)",
+var catSpec = core.impl("(form 'cat' (@:alt str raw idxr) :rest list @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		err := lo.Resolve(c, env, hint)
 		if err != nil {
@@ -70,7 +70,7 @@ var catSpec = core.impl("(form 'cat' :a any :rest list : @)",
 	})
 
 // apdSpec appends the rest literal arguments to the first literal appender argument.
-var apdSpec = core.impl("(form 'apd' :a ~idxr :rest list : @)",
+var apdSpec = core.impl("(form 'apd' @1:list|@2 :rest list|@2 @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		err := lo.Resolve(c, env, hint)
 		if err != nil {
@@ -94,7 +94,7 @@ var apdSpec = core.impl("(form 'apd' :a ~idxr :rest list : @)",
 	})
 
 // setSpec sets the first keyer literal with the following declaration arguments.
-var setSpec = core.impl("(form 'set' :a ~keyr :plain? list :unis? dict : @)",
+var setSpec = core.impl("(form 'set' @1:keyr|@2 :plain? list|keyr|@2 :unis? dict|@2 @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		err := lo.Resolve(c, env, hint)
 		if err != nil {

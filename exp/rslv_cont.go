@@ -60,8 +60,7 @@ type litLener interface {
 	Len() int
 }
 
-var lenSpec = std.implResl("(form 'len' any : int)",
-	// (@:alt cont str raw) : int
+var lenSpec = std.implResl("(form 'len' (@:alt cont str raw) int)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		fst := lo.Arg(0)
 		if v, ok := deopt(fst).(litLener); ok {
@@ -70,20 +69,17 @@ var lenSpec = std.implResl("(form 'len' any : int)",
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 	})
 
-var fstSpec = std.implResl("(form 'fst' :a list :pred? @ : @)",
-	// cont|@1 :pred? (func @1 : bool) : @1
+var fstSpec = std.implResl("(form 'fst' cont|@1 :pred? (func @ bool) @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), 0)
 	})
 
-var lstSpec = std.implResl("(form 'lst' :a any :pred? @ : @)",
-	// cont|@1 :pred? (func @1 : bool) : @1
+var lstSpec = std.implResl("(form 'lst' cont|@1 :pred? (func @1 bool) @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), -1)
 	})
 
-var nthSpec = std.implResl("(form 'nth' :a any :i int :pred? @ : @)",
-	// cont|@1 int :pred? (func @1 : bool) : @1
+var nthSpec = std.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		l, ok := lo.Arg(1).(lit.Numeric)
 		if !ok {
@@ -274,8 +270,7 @@ func (r *fIter) filter(c *Ctx, env Env, cont El) (Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
-var filterSpec = std.implResl("(form 'filter' any @ : @)",
-	// @1:cont|@2 (func @2 : bool) : @1
+var filterSpec = std.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		cont := lo.Arg(0)
 		iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
@@ -289,8 +284,7 @@ var filterSpec = std.implResl("(form 'filter' any @ : @)",
 		return res, nil
 	})
 
-var mapSpec = std.implResl("(form 'map' any @ : @)",
-	// @1:cont|@2 (func @2 : @3) : @1|@3
+var mapSpec = std.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		cont := lo.Arg(0)
 		iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
@@ -366,8 +360,7 @@ var mapSpec = std.implResl("(form 'map' any @ : @)",
 		return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
 	})
 
-var foldSpec = std.implResl("(form 'fold' any any @ : @)",
-	// cont|@1 @2 (func @2 @1 : @2) : @2
+var foldSpec = std.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		cont := lo.Arg(0)
 		acc := lo.Arg(1).(Lit)
@@ -409,8 +402,7 @@ var foldSpec = std.implResl("(form 'fold' any any @ : @)",
 		return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
 	})
 
-var foldrSpec = std.implResl("(form 'foldr' any any @ : @)",
-	// cont|@1 @2 (func @2 @1 : @2) : @2
+var foldrSpec = std.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		cont := lo.Arg(0)
 		acc := lo.Arg(1).(Lit)
