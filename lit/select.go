@@ -8,14 +8,14 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Seg is one segment of a path it can either be a non-empty key or an index.
-type Seg struct {
+// PathSeg is one segment of a path it can either be a non-empty key or an index.
+type PathSeg struct {
 	Key string
 	Idx int
 	Sel bool
 }
 
-func (s Seg) String() string {
+func (s PathSeg) String() string {
 	if s.Key != "" {
 		return s.Key
 	}
@@ -25,7 +25,7 @@ func (s Seg) String() string {
 // Path consists of non-empty segments separated by dots '.'. Segments starting with a digit or
 // minus sign are idx segments that try to select into an idxer container literal, otherwise the
 // segment represents a key used to select into a keyer container literal.
-type Path []Seg
+type Path []PathSeg
 
 func (p Path) String() string {
 	var b strings.Builder
@@ -51,9 +51,9 @@ func addSeg(p Path, s string, sel bool) (Path, error) {
 		if err != nil {
 			return nil, err
 		}
-		p = append(p, Seg{Idx: i, Sel: sel})
+		p = append(p, PathSeg{Idx: i, Sel: sel})
 	} else {
-		p = append(p, Seg{Key: s, Sel: sel})
+		p = append(p, PathSeg{Key: s, Sel: sel})
 	}
 	return p, nil
 }
