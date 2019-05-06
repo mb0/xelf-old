@@ -36,9 +36,11 @@ import (
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
 type Layout struct {
-	sig  Type
+	Sig  Type
 	args [][]El
 }
+
+func (l *Layout) All() [][]El { return l.args }
 
 func (l *Layout) Args(idx int) []El {
 	if l == nil || idx < 0 || idx >= len(l.args) {
@@ -118,11 +120,11 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 		return nil
 	}
 	var res error
-	inst := Type{l.sig.Kind, &typ.Info{Params: make([]typ.Param, 0, len(l.sig.Params))}}
-	if l.sig.HasRef() {
-		inst.Ref = l.sig.Ref
+	inst := Type{l.Sig.Kind, &typ.Info{Params: make([]typ.Param, 0, len(l.Sig.Params))}}
+	if l.Sig.HasRef() {
+		inst.Ref = l.Sig.Ref
 	}
-	for i, p := range l.sig.Params[:len(l.sig.Params)-1] {
+	for i, p := range l.Sig.Params[:len(l.Sig.Params)-1] {
 		if i >= len(l.args) {
 			break
 		}
@@ -173,11 +175,11 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 		hint = typ.Any // c.New()
 	}
 	inst.Params = append(inst.Params, typ.Param{Type: hint})
-	r, err := typ.Unify(&c.Ctx, l.sig, inst)
+	r, err := typ.Unify(&c.Ctx, l.Sig, inst)
 	if err != nil {
-		return cor.Errorf("unify sig %s with %s: %v", l.sig, inst, err)
+		return cor.Errorf("unify sig %s with %s: %v", l.Sig, inst, err)
 	}
-	l.sig = r
+	l.Sig = r
 	return res
 }
 func LayoutCall(x *Call) (*Layout, error) {

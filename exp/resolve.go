@@ -102,10 +102,16 @@ func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
 }
 
 func (c *Ctx) resolveDyn(env Env, d *Dyn, hint Type) (El, error) {
-	if c.Dyn != nil {
-		return c.Dyn.ResolveDyn(c, env, d, hint)
+	if c.Dyn == nil {
+		def := Lookup(env, "dyn")
+		if def != nil {
+			c.Dyn, _ = def.Lit.(*Spec)
+		}
 	}
-	return defaultDyn(c, env, d, hint)
+	if c.Dyn == nil {
+		return d, ErrUnres
+	}
+	return c.Dyn.Resolve(c, env, &Call{Args: d.Els}, hint)
 }
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {

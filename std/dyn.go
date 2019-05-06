@@ -1,7 +1,8 @@
-package exp
+package std
 
 import (
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -11,15 +12,15 @@ var errConType = cor.StrError("the 'con' expression must start with a type")
 // dynSpec resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'con' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
-var dynSpec = core.impl("(form 'dyn' @ :rest? @)",
+var dynSpec = core.impl("(form 'dyn' @ :rest? list @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (_ El, err error) {
 		if len(e.Args) == 0 {
 			return typ.Void, nil
 		}
-		return defaultDyn(c, env, &Dyn{Els: e.Args}, hint)
+		return defaultDyn(c, env, &exp.Dyn{Els: e.Args}, hint)
 	})
 
-func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
+func defaultDyn(c *Ctx, env Env, d *exp.Dyn, hint Type) (_ El, err error) {
 	if len(d.Els) == 0 {
 		return typ.Void, nil
 	}
@@ -28,7 +29,7 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 	case typ.KindSym, typ.KindCall:
 		fst, err = c.Resolve(env, fst, typ.Void)
 	case typ.KindDyn:
-		v, _ := fst.(*Dyn)
+		v, _ := fst.(*exp.Dyn)
 		if len(v.Els) == 0 {
 			return typ.Void, nil
 		}
@@ -37,12 +38,12 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 	if err != nil {
 		return d, err
 	}
-	var spec *Spec
+	var spec *exp.Spec
 	var sym string
 	args := d.Els
 	switch t := fst.Typ(); t.Kind & typ.MaskRef {
 	case typ.KindTyp:
-		if a, ok := fst.(*Atom); ok {
+		if a, ok := fst.(*exp.Atom); ok {
 			fst = a.Lit
 		}
 		tt := fst.(Type)
@@ -55,13 +56,13 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 			sym = "con"
 		}
 	case typ.KindFunc, typ.KindForm:
-		r, ok := fst.(*Spec)
+		r, ok := fst.(*exp.Spec)
 		if ok {
 			spec, args = r, args[1:]
 		}
 	default:
 		if len(d.Els) == 1 && t.Kind&typ.KindAny != 0 {
-			if a, ok := fst.(*Atom); ok {
+			if a, ok := fst.(*exp.Atom); ok {
 				fst = a.Lit
 			}
 			return fst, nil
@@ -80,9 +81,9 @@ func defaultDyn(c *Ctx, env Env, d *Dyn, hint Type) (_ El, err error) {
 		}
 	}
 	if sym != "" {
-		def := LookupSupports(env, sym, '~')
+		def := exp.LookupSupports(env, sym, '~')
 		if def != nil {
-			spec, _ = def.Lit.(*Spec)
+			spec, _ = def.Lit.(*exp.Spec)
 		}
 	}
 	if spec != nil {

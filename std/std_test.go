@@ -1,24 +1,25 @@
-package exp
+package std
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
 func TestStdFail(t *testing.T) {
-	x, err := ParseString(StdEnv, `(fail 'oops')`)
+	x, err := exp.ParseString(Std, `(fail 'oops')`)
 	if err != nil {
 		t.Fatalf("parse err: %v", err)
 	}
 	c := &Ctx{Exec: true}
-	_, err = c.Resolve(StdEnv, x, typ.Void)
+	_, err = c.Resolve(Std, x, typ.Void)
 	if err == nil {
 		t.Fatalf("want err got nothing")
 	}
-	_, err = c.WithExec(false).Resolve(StdEnv, x, typ.Void)
+	_, err = c.WithExec(false).Resolve(Std, x, typ.Void)
 	if err != ErrUnres {
 		t.Fatalf("want err unres got %v", err)
 	}
@@ -202,13 +203,13 @@ func TestStdResolve(t *testing.T) {
 		)))`, lit.True},
 	}
 	for _, test := range tests {
-		x, err := ParseString(StdEnv, test.raw)
+		x, err := exp.ParseString(Std, test.raw)
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
 		c := &Ctx{Exec: true}
-		r, err := c.Resolve(NewScope(StdEnv), x, typ.Void)
+		r, err := c.Resolve(exp.NewScope(Std), x, typ.Void)
 		if err != nil {
 			t.Errorf("%s resolve err: %+v\n%v", test.raw, err, c.Unres)
 			continue
@@ -269,14 +270,14 @@ func TestStdResolvePart(t *testing.T) {
 		{`(bool (not (bool (not x))))`, `(bool x)`, "bool"},
 	}
 	for _, test := range tests {
-		x, err := ParseString(StdEnv, test.raw)
+		x, err := exp.ParseString(Std, test.raw)
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
 		c := &Ctx{Exec: true, Part: true}
 		hint := c.New()
-		r, err := c.Resolve(NewScope(StdEnv), x, hint)
+		r, err := c.Resolve(exp.NewScope(Std), x, hint)
 		if err != nil && err != ErrUnres {
 			t.Errorf("%s resolve err expect ErrUnres, got: %v\n%v", test.raw, err, c.Unres)
 			continue

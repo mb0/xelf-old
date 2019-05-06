@@ -1,7 +1,8 @@
-package exp
+package std
 
 import (
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -12,7 +13,7 @@ var withSpec = core.impl("(form 'with' any :rest list|expr @)",
 		if err != nil {
 			return e, err
 		}
-		env = &DataScope{env, el.(Lit)}
+		env = &exp.DataScope{env, el.(Lit)}
 		rest := lo.Args(1)
 		if len(rest) == 0 {
 			return nil, cor.Errorf("with must have body expressions")
@@ -26,7 +27,7 @@ var withSpec = core.impl("(form 'with' any :rest list|expr @)",
 
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-var letSpec = std.impl("(form 'let' :unis dict|any :rest list|expr @)",
+var letSpec = decl.impl("(form 'let' :unis dict|any :rest list|expr @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		decls, err := lo.Unis(0)
 		if err != nil {
@@ -36,7 +37,7 @@ var letSpec = std.impl("(form 'let' :unis dict|any :rest list|expr @)",
 		if len(rest) == 0 || len(decls) == 0 {
 			return nil, cor.Errorf("let must have declarations and a body")
 		}
-		s := NewScope(env)
+		s := exp.NewScope(env)
 		if len(decls) > 0 {
 			res, err := letDecls(c, s, decls)
 			if err != nil {
@@ -54,7 +55,7 @@ var letSpec = std.impl("(form 'let' :unis dict|any :rest list|expr @)",
 	})
 
 // fnSpec declares a function literal from its arguments.
-var fnSpec = std.impl("(form 'fn' :unis? dict|typ :rest list|expr @)",
+var fnSpec = decl.impl("(form 'fn' :unis? dict|typ :rest list|expr @)",
 	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 		decls, err := lo.Unis(0)
 		if err != nil {
@@ -81,10 +82,10 @@ var fnSpec = std.impl("(form 'fn' :unis? dict|typ :rest list|expr @)",
 			}
 			sig = typ.Type{Kind: typ.KindFunc, Info: &typ.Info{Params: fs}}
 		}
-		return &Spec{sig, &ExprBody{rest, env}}, nil
+		return &exp.Spec{sig, &exp.ExprBody{rest, env}}, nil
 	})
 
-func letDecls(c *Ctx, env *Scope, decls []*Named) (res El, err error) {
+func letDecls(c *Ctx, env *exp.Scope, decls []*exp.Named) (res El, err error) {
 	for _, d := range decls {
 		if len(d.Name) < 2 {
 			return nil, cor.Error("unnamed declaration")
@@ -98,10 +99,10 @@ func letDecls(c *Ctx, env *Scope, decls []*Named) (res El, err error) {
 		}
 		switch l := res.(type) {
 		case Lit:
-			if r, ok := l.(*Spec); ok {
-				err = env.Def(d.Key(), NewDef(r))
+			if r, ok := l.(*exp.Spec); ok {
+				err = env.Def(d.Key(), exp.NewDef(r))
 			} else {
-				err = env.Def(d.Key(), NewDef(l))
+				err = env.Def(d.Key(), exp.NewDef(l))
 			}
 		default:
 			return nil, cor.Errorf("unexpected element as declaration value %v", res)

@@ -1,7 +1,8 @@
-package exp
+package std
 
 import (
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -87,12 +88,12 @@ func resolveAnd(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
 // boolSpec resolves the arguments similar to short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'bool' expression resolves to false.
-var boolSpec *Spec
+var boolSpec *exp.Spec
 
 // notSpec will resolve the arguments similar to short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if a zero value.
 // An empty 'not' expression resolves to true.
-var notSpec *Spec
+var notSpec *exp.Spec
 
 func init() {
 	boolSpec = core.impl("(form '(bool)' :plain? list bool)", // TODO change to ':bool' ?
@@ -141,7 +142,7 @@ func simplifyBool(e *Call, args []El) *Call {
 	if !ok {
 		return e
 	}
-	var f *Spec
+	var f *exp.Spec
 	switch fst.Spec {
 	case boolSpec:
 		if e.Spec == boolSpec {
@@ -191,3 +192,24 @@ var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
 		}
 		return lit.Zero(et), nil
 	})
+
+func elType(el El) (Type, error) {
+	switch t := el.Typ(); t.Kind {
+	case typ.KindTyp:
+		return el.(Type), nil
+	case typ.KindSym:
+		s := el.(*exp.Sym)
+		if s.Type != typ.Void {
+			return s.Type, nil
+		}
+	case typ.KindCall:
+		x := el.(*Call)
+		t := x.Res()
+		if t != typ.Void {
+			return t, nil
+		}
+	default:
+		return t, nil
+	}
+	return typ.Void, ErrUnres
+}

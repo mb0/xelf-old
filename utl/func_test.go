@@ -8,6 +8,7 @@ import (
 
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/std"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -83,7 +84,7 @@ func TestFuncResolver(t *testing.T) {
 		}
 		ctx := &exp.Ctx{Exec: true}
 		call := &exp.Call{Spec: r, Args: test.args}
-		res, err := r.Resolve(ctx, exp.StdEnv, call, typ.Void)
+		res, err := r.Resolve(ctx, std.Std, call, typ.Void)
 		if err != nil {
 			if test.err == nil || test.err.Error() != err.Error() {
 				t.Errorf("for %T want err %v got %v", test.fun, test.err, err)

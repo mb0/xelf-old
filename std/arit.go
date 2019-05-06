@@ -1,5 +1,6 @@
-package exp
+package std
 
+//*
 import (
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
@@ -33,7 +34,7 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 				return e, err
 			}
 		}
-		e.Type = lo.sig
+		e.Type = lo.Sig
 		fst := lo.Arg(0)
 		n := getNumer(fst)
 		ctx := numCtx{}
@@ -74,7 +75,7 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 				return e, err
 			}
 		}
-		e.Type = lo.sig
+		e.Type = lo.Sig
 		fst := lo.Arg(0)
 		n := getNumer(fst)
 		ctx := numCtx{res: 1}
@@ -223,7 +224,7 @@ func resNums(c *Ctx, env Env, e *Call, lo *Layout, h Type, res float64, f numOp)
 			return e, err
 		}
 	}
-	e.Type = lo.sig
+	e.Type = lo.Sig
 	part := err != nil
 	ctx := numCtx{res: res, idx: -1}
 	fst := lo.Arg(0)
@@ -277,3 +278,5 @@ func redNums(args []El, c *numCtx, f numOp) (err error) {
 	}
 	return nil
 }
+
+//*/

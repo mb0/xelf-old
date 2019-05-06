@@ -26,7 +26,7 @@ type Ctx struct {
 
 	// Dyn is a configurable resolver for dynamic expressions. A default resolver is
 	// used if this field is nil.
-	Dyn DynResolver
+	Dyn *Spec
 
 	typ.Ctx
 }

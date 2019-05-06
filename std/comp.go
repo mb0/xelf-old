@@ -1,4 +1,4 @@
-package exp
+package std
 
 import (
 	"github.com/mb0/xelf/cor"
