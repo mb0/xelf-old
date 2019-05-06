@@ -69,11 +69,11 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 		}
 		var cs []Type
 		if i := strings.IndexByte(ref, ':'); i >= 0 {
-			c, err := ParseKind(ref[i+1:])
+			c, err := ParseSym(ref[i+1:], nil)
 			if err != nil {
 				return Void, cor.Errorf("invalid type var constraint %s", s)
 			}
-			cs = []Type{Type{Kind: c}}
+			cs = []Type{c}
 			ref = ref[:i]
 		}
 		if len(ref) == 0 {
@@ -101,10 +101,16 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 			}
 		}
 		switch s[:4] {
+		case "cont":
+			return cont(KindCont, t), nil
+		case "idxr":
+			return cont(KindIdxr, t), nil
+		case "keyr":
+			return cont(KindKeyr, t), nil
 		case "list":
-			return List(t), err
+			return List(t), nil
 		case "dict":
-			return Dict(t), err
+			return Dict(t), nil
 		}
 	}
 	k, err := ParseKind(s)

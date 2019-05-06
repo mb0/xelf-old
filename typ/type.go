@@ -168,7 +168,7 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool
 				return nil
 			}
 		}
-	case KindList, KindDict:
+	case KindCont, KindIdxr, KindKeyr, KindList, KindDict:
 		if pre == nil {
 			pre = &strings.Builder{}
 		} else {

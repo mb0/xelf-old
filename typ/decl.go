@@ -30,9 +30,16 @@ var (
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | KindOpt, t.Info} }
-func List(t Type) Type    { return Type{KindList, &Info{Params: []Param{{Type: t}}}} }
-func Dict(t Type) Type    { return Type{KindDict, &Info{Params: []Param{{Type: t}}}} }
+func List(t Type) Type    { return cont(KindList, t) }
+func Dict(t Type) Type    { return cont(KindDict, t) }
 func Rec(fs []Param) Type { return Type{KindRec, &Info{Params: fs}} }
+
+func cont(k Kind, el Type) Type {
+	if el == Void || el == Any {
+		return Type{Kind: k}
+	}
+	return Type{k, &Info{Params: []Param{{Type: el}}}}
+}
 
 func Ref(n string) Type  { return Type{KindRef, &Info{Ref: n}} }
 func Flag(n string) Type { return Type{KindBits, &Info{Ref: n}} }
