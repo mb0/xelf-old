@@ -13,14 +13,14 @@ var errConType = cor.StrError("the 'con' expression must start with a type")
 // resolves as the 'con' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
 var dynSpec = core.impl("(form 'dyn' @ :rest? list @)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (_ El, err error) {
-		if len(e.Args) == 0 {
+	func(x exp.ReslReq) (_ exp.El, err error) {
+		if len(x.Call.Args) == 0 {
 			return typ.Void, nil
 		}
-		return defaultDyn(c, env, &exp.Dyn{Els: e.Args}, hint)
+		return defaultDyn(x.Ctx, x.Env, &exp.Dyn{Els: x.Call.Args}, x.Hint)
 	})
 
-func defaultDyn(c *Ctx, env Env, d *exp.Dyn, hint Type) (_ El, err error) {
+func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, err error) {
 	if len(d.Els) == 0 {
 		return typ.Void, nil
 	}
@@ -46,7 +46,7 @@ func defaultDyn(c *Ctx, env Env, d *exp.Dyn, hint Type) (_ El, err error) {
 		if a, ok := fst.(*exp.Atom); ok {
 			fst = a.Lit
 		}
-		tt := fst.(Type)
+		tt := fst.(typ.Type)
 		if tt == typ.Void {
 			return fst, nil
 		}
@@ -88,7 +88,7 @@ func defaultDyn(c *Ctx, env Env, d *exp.Dyn, hint Type) (_ El, err error) {
 	}
 	if spec != nil {
 		t := c.Inst(spec.Type)
-		return spec.Resolve(c, env, &Call{Spec: spec, Type: t, Args: args}, hint)
+		return spec.Resolve(c, env, &exp.Call{Spec: spec, Type: t, Args: args}, hint)
 	}
 	return nil, cor.Errorf("unexpected first argument %[1]T %[1]s in dynamic expression\n%s %s",
 		fst, sym, fst.Typ())
@@ -100,38 +100,32 @@ func defaultDyn(c *Ctx, env Env, d *exp.Dyn, hint Type) (_ El, err error) {
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
 var conSpec = core.impl("(form 'con' typ :args? list :unis? dict @)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+	func(x exp.ReslReq) (exp.El, error) {
 		// resolve all arguments
-		err := lo.Resolve(c, env, hint)
+		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			t, ok := lo.Arg(0).(Type)
-			if ok && hint != typ.Void {
-				_, err := typ.Unify(&c.Ctx, hint, t)
+			t, ok := x.Arg(0).(typ.Type)
+			if ok && x.Hint != typ.Void {
+				_, err := typ.Unify(&x.Ctx.Ctx, x.Hint, t)
 				if err == nil {
-					e.Type = c.Apply(e.Type)
+					x.Call.Type = x.Apply(x.Call.Type)
 				}
 			}
-			return e, err
+			return x.Call, err
 		}
-		t, ok := lo.Arg(0).(Type)
+		t, ok := x.Arg(0).(typ.Type)
 		if !ok {
 			return nil, errConType
 		}
-		if hint != typ.Void {
-			typ.Unify(&c.Ctx, hint, t)
-			e.Type = c.Apply(e.Type)
+		if x.Hint != typ.Void {
+			typ.Unify(&x.Ctx.Ctx, x.Hint, t)
+			x.Call.Type = x.Apply(x.Call.Type)
 		}
 		if t == typ.Void { // just in case we have a dynamic comment
 			return typ.Void, nil
 		}
-		if hint != typ.Void {
-			_, err = typ.Unify(&c.Ctx, hint, t)
-			if err != nil {
-				return typ.Void, err
-			}
-		}
-		args := lo.Args(1)
-		decls, err := lo.Unis(2)
+		args := x.Args(1)
+		decls, err := x.Unis(2)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +135,7 @@ var conSpec = core.impl("(form 'con' typ :args? list :unis? dict @)",
 		}
 		// second rule: convert compatible literals
 		if len(args) == 1 && len(decls) == 0 {
-			fst := args[0].(Lit)
+			fst := args[0].(lit.Lit)
 			res, err := lit.Convert(fst, t, 0)
 			if err == nil {
 				return res, nil
@@ -151,7 +145,7 @@ var conSpec = core.impl("(form 'con' typ :args? list :unis? dict @)",
 		if t.Kind&typ.KindKeyr != 0 {
 			res := deopt(lit.Zero(t)).(lit.Keyer)
 			for _, d := range decls {
-				el, ok := d.Arg().(Lit)
+				el, ok := d.Arg().(lit.Lit)
 				if !ok {
 					return nil, cor.Errorf("want literal in declaration got %s", d.El)
 				}
@@ -167,7 +161,7 @@ var conSpec = core.impl("(form 'con' typ :args? list :unis? dict @)",
 			res := deopt(lit.Zero(t)).(lit.Indexer)
 			apd, _ := res.(lit.Appender)
 			for i, a := range args {
-				el, ok := a.(Lit)
+				el, ok := a.(lit.Lit)
 				if !ok {
 					return nil, cor.Error("want literal in argument list")
 				}

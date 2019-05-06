@@ -3,24 +3,25 @@ package std
 import (
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
+	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
 var withSpec = core.impl("(form 'with' any :rest list|expr @)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		dot := lo.Arg(0)
-		el, err := c.Resolve(env, dot, typ.Void)
+	func(x exp.ReslReq) (exp.El, error) {
+		dot := x.Arg(0)
+		el, err := x.Ctx.Resolve(x.Env, dot, typ.Void)
 		if err != nil {
-			return e, err
+			return x.Call, err
 		}
-		env = &exp.DataScope{env, el.(Lit)}
-		rest := lo.Args(1)
+		env := &exp.DataScope{x.Env, el.(lit.Lit)}
+		rest := x.Args(1)
 		if len(rest) == 0 {
 			return nil, cor.Errorf("with must have body expressions")
 		}
-		rest, err = c.ResolveAll(env, rest, typ.Void)
+		rest, err = x.ResolveAll(env, rest, typ.Void)
 		if err != nil {
-			return e, err
+			return x.Call, err
 		}
 		return rest[len(rest)-1], nil
 	})
@@ -28,40 +29,40 @@ var withSpec = core.impl("(form 'with' any :rest list|expr @)",
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
 var letSpec = decl.impl("(form 'let' :unis dict|any :rest list|expr @)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		decls, err := lo.Unis(0)
+	func(x exp.ReslReq) (exp.El, error) {
+		decls, err := x.Unis(0)
 		if err != nil {
 			return nil, err
 		}
-		rest := lo.Args(1)
+		rest := x.Args(1)
 		if len(rest) == 0 || len(decls) == 0 {
 			return nil, cor.Errorf("let must have declarations and a body")
 		}
-		s := exp.NewScope(env)
+		s := exp.NewScope(x.Env)
 		if len(decls) > 0 {
-			res, err := letDecls(c, s, decls)
+			res, err := letDecls(x.Ctx, s, decls)
 			if err != nil {
-				return e, err
+				return x.Call, err
 			}
 			if len(rest) == 0 {
 				return res, nil
 			}
 		}
-		rest, err = c.ResolveAll(s, rest, typ.Void)
+		rest, err = x.ResolveAll(s, rest, typ.Void)
 		if err != nil {
-			return e, err
+			return x.Call, err
 		}
 		return rest[len(rest)-1], nil
 	})
 
 // fnSpec declares a function literal from its arguments.
 var fnSpec = decl.impl("(form 'fn' :unis? dict|typ :rest list|expr @)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		decls, err := lo.Unis(0)
+	func(x exp.ReslReq) (exp.El, error) {
+		decls, err := x.Unis(0)
 		if err != nil {
 			return nil, err
 		}
-		rest := lo.Args(1)
+		rest := x.Args(1)
 		var sig typ.Type
 		if len(decls) == 0 {
 			// TODO infer signature
@@ -70,11 +71,11 @@ var fnSpec = decl.impl("(form 'fn' :unis? dict|typ :rest list|expr @)",
 			// construct sig from decls
 			fs := make([]typ.Param, 0, len(decls))
 			for _, d := range decls {
-				l, err := c.Resolve(env, d.El, typ.Void)
+				l, err := x.Ctx.Resolve(x.Env, d.El, typ.Void)
 				if err != nil {
-					return e, err
+					return x.Call, err
 				}
-				dt, ok := l.(Type)
+				dt, ok := l.(typ.Type)
 				if !ok {
 					return nil, cor.Errorf("want type in func parameters got %T", l)
 				}
@@ -82,10 +83,10 @@ var fnSpec = decl.impl("(form 'fn' :unis? dict|typ :rest list|expr @)",
 			}
 			sig = typ.Type{Kind: typ.KindFunc, Info: &typ.Info{Params: fs}}
 		}
-		return &exp.Spec{sig, &exp.ExprBody{rest, env}}, nil
+		return &exp.Spec{sig, &exp.ExprBody{rest, x.Env}}, nil
 	})
 
-func letDecls(c *Ctx, env *exp.Scope, decls []*exp.Named) (res El, err error) {
+func letDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
 	for _, d := range decls {
 		if len(d.Name) < 2 {
 			return nil, cor.Error("unnamed declaration")
@@ -98,7 +99,7 @@ func letDecls(c *Ctx, env *exp.Scope, decls []*exp.Named) (res El, err error) {
 			return nil, err
 		}
 		switch l := res.(type) {
-		case Lit:
+		case lit.Lit:
 			if r, ok := l.(*exp.Spec); ok {
 				err = env.Def(d.Key(), exp.NewDef(r))
 			} else {

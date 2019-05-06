@@ -10,41 +10,41 @@ import (
 // failSpec returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
 var failSpec = core.impl("(form 'fail' :rest? list any)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		if c.Exec {
-			return nil, cor.Errorf("%s", e)
+	func(x exp.ReslReq) (exp.El, error) {
+		if x.Exec {
+			return nil, cor.Errorf("%s", x.Call)
 		}
-		return e, ErrUnres
+		return x.Call, exp.ErrUnres
 	})
 
 // orSpec resolves the arguments as short-circuiting logical or to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
 var orSpec = core.impl("(form 'or' :plain? list bool)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		if hint != typ.Void {
-			typ.Unify(&c.Ctx, hint, typ.Bool)
+	func(x exp.ReslReq) (exp.El, error) {
+		if x.Hint != typ.Void {
+			typ.Unify(&x.Ctx.Ctx, x.Hint, typ.Bool)
 		}
-		args := lo.Args(0)
+		args := x.Args(0)
 		for i, arg := range args {
-			el, err := c.Resolve(env, arg, typ.Any)
-			if err == ErrUnres {
-				if c.Part {
-					cc := c.WithExec(false)
-					e.Args, err = cc.ResolveAll(env, args[i:], typ.Any)
-					if err != nil && err != ErrUnres {
+			el, err := x.Ctx.Resolve(x.Env, arg, typ.Any)
+			if err == exp.ErrUnres {
+				if x.Part {
+					cc := x.WithExec(false)
+					x.Call.Args, err = cc.ResolveAll(x.Env, args[i:], typ.Any)
+					if err != nil && err != exp.ErrUnres {
 						return nil, err
 					}
-					if len(e.Args) == 1 {
-						e = &Call{Spec: boolSpec, Args: e.Args}
+					if len(x.Call.Args) == 1 {
+						x.Call = &exp.Call{Spec: boolSpec, Args: x.Call.Args}
 					}
 				}
-				return e, ErrUnres
+				return x.Call, exp.ErrUnres
 			}
 			if err != nil {
 				return nil, err
 			}
-			if !el.(Lit).IsZero() {
+			if !el.(lit.Lit).IsZero() {
 				return lit.True, nil
 			}
 		}
@@ -56,29 +56,34 @@ var orSpec = core.impl("(form 'or' :plain? list bool)",
 // An empty 'and' expression resolves to true.
 var andSpec = core.impl("(form 'and' :plain? list bool)", resolveAnd)
 
-func resolveAnd(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-	if hint != typ.Void {
-		typ.Unify(&c.Ctx, hint, typ.Bool)
+func resolveAnd(x exp.ReslReq) (exp.El, error) {
+	if x.Hint != typ.Void {
+		typ.Unify(&x.Ctx.Ctx, x.Hint, typ.Bool)
 	}
-	args := lo.Args(0)
+	args := x.Layout.Args(0)
 	for i, arg := range args {
-		el, err := c.Resolve(env, arg, typ.Any)
-		if err == ErrUnres {
-			if c.Part {
-				e.Args, err = c.WithExec(false).ResolveAll(env, args[i:], typ.Any)
-				if err != nil && err != ErrUnres {
+		el, err := x.Ctx.Resolve(x.Env, arg, typ.Any)
+		if err == exp.ErrUnres {
+			if x.Part {
+				c := x.WithExec(false)
+				x.Call.Args, err = c.ResolveAll(x.Env, args[i:], typ.Any)
+				if err != nil && err != exp.ErrUnres {
 					return nil, err
 				}
-				if len(e.Args) == 1 {
-					e = &Call{Spec: boolSpec, Type: e.Type, Args: e.Args}
+				if len(x.Call.Args) == 1 {
+					x.Call = &exp.Call{
+						Spec: boolSpec,
+						Type: x.Call.Type,
+						Args: x.Call.Args,
+					}
 				}
 			}
-			return e, ErrUnres
+			return x.Call, exp.ErrUnres
 		}
 		if err != nil {
 			return nil, err
 		}
-		if el.(Lit).IsZero() {
+		if el.(lit.Lit).IsZero() {
 			return lit.False, nil
 		}
 	}
@@ -97,48 +102,48 @@ var notSpec *exp.Spec
 
 func init() {
 	boolSpec = core.impl("(form '(bool)' :plain? list bool)", // TODO change to ':bool' ?
-		func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-			res, err := resolveAnd(c, env, e, lo, hint)
-			if err == ErrUnres {
-				if c.Part {
-					e = simplifyBool(e, res.(*Call).Args)
+		func(x exp.ReslReq) (exp.El, error) {
+			res, err := resolveAnd(x)
+			if err == exp.ErrUnres {
+				if x.Part {
+					x.Call = simplifyBool(x.Call, res.(*exp.Call).Args)
 				}
-				return e, err
+				return x.Call, err
 			}
 			if err != nil {
 				return nil, err
 			}
-			if len(e.Args) == 0 {
+			if len(x.Call.Args) == 0 {
 				return lit.False, nil
 			}
-			return lit.Bool(!res.(Lit).IsZero()), nil
+			return lit.Bool(!res.(lit.Lit).IsZero()), nil
 		})
 
 	notSpec = core.impl("(form 'not' :plain? list bool)",
-		func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-			res, err := resolveAnd(c, env, e, lo, hint)
-			if err == ErrUnres {
-				if c.Part {
-					e = simplifyBool(e, res.(*Call).Args)
+		func(x exp.ReslReq) (exp.El, error) {
+			res, err := resolveAnd(x)
+			if err == exp.ErrUnres {
+				if x.Part {
+					x.Call = simplifyBool(x.Call, res.(*exp.Call).Args)
 				}
-				return e, err
+				return x.Call, err
 			}
 			if err != nil {
 				return nil, err
 			}
-			if len(e.Args) == 0 {
+			if len(x.Call.Args) == 0 {
 				return lit.True, nil
 			}
-			return lit.Bool(res.(Lit).IsZero()), nil
+			return lit.Bool(res.(lit.Lit).IsZero()), nil
 		})
 }
 
-func simplifyBool(e *Call, args []El) *Call {
+func simplifyBool(e *exp.Call, args []exp.El) *exp.Call {
 	e.Args = args
 	if len(args) != 1 {
 		return e
 	}
-	fst, ok := args[0].(*Call)
+	fst, ok := args[0].(*exp.Call)
 	if !ok {
 		return e
 	}
@@ -157,35 +162,35 @@ func simplifyBool(e *Call, args []El) *Call {
 	default:
 		return e
 	}
-	return &Call{Spec: f, Type: e.Type, Args: fst.Args}
+	return &exp.Call{Spec: f, Type: e.Type, Args: fst.Args}
 }
 
 // ifSpec resolves the arguments as condition, action pairs as part of an if-else condition.
 // The odd end is the else action otherwise a zero value of the first action's type is used.
 var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+	func(x exp.ReslReq) (exp.El, error) {
 		// TODO check actions to find a common type
 		var i int
-		for i = 0; i+1 < len(e.Args); i += 2 {
-			cond, err := c.Resolve(env, e.Args[i], typ.Any)
-			if err == ErrUnres {
-				if c.Part {
+		for i = 0; i+1 < len(x.Call.Args); i += 2 {
+			cond, err := x.Ctx.Resolve(x.Env, x.Call.Args[i], typ.Any)
+			if err == exp.ErrUnres {
+				if x.Part {
 					// previous condition turned out false
-					e.Args = e.Args[i:]
+					x.Call.Args = x.Call.Args[i:]
 				}
-				return e, err
+				return x.Call, err
 			}
 			if err != nil {
 				return nil, err
 			}
-			if !cond.(Lit).IsZero() {
-				return c.Resolve(env, e.Args[i+1], hint)
+			if !cond.(lit.Lit).IsZero() {
+				return x.Ctx.Resolve(x.Env, x.Call.Args[i+1], x.Hint)
 			}
 		}
-		if i < len(e.Args) {
-			return c.Resolve(env, e.Args[i], hint)
+		if i < len(x.Call.Args) {
+			return x.Ctx.Resolve(x.Env, x.Call.Args[i], x.Hint)
 		}
-		act, _ := c.WithExec(false).Resolve(env, e.Args[1], hint)
+		act, _ := x.WithExec(false).Resolve(x.Env, x.Call.Args[1], x.Hint)
 		et, err := elType(act)
 		if err != nil || et == typ.Void {
 			return nil, cor.Errorf("when else action is omitted then must provide type information")
@@ -193,17 +198,17 @@ var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
 		return lit.Zero(et), nil
 	})
 
-func elType(el El) (Type, error) {
+func elType(el exp.El) (typ.Type, error) {
 	switch t := el.Typ(); t.Kind {
 	case typ.KindTyp:
-		return el.(Type), nil
+		return el.(typ.Type), nil
 	case typ.KindSym:
 		s := el.(*exp.Sym)
 		if s.Type != typ.Void {
 			return s.Type, nil
 		}
 	case typ.KindCall:
-		x := el.(*Call)
+		x := el.(*exp.Call)
 		t := x.Res()
 		if t != typ.Void {
 			return t, nil
@@ -211,5 +216,5 @@ func elType(el El) (Type, error) {
 	default:
 		return t, nil
 	}
-	return typ.Void, ErrUnres
+	return typ.Void, exp.ErrUnres
 }

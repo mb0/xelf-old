@@ -62,8 +62,8 @@ type litLener interface {
 }
 
 var lenSpec = core.implResl("(form 'len' (@:alt cont str raw) int)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		fst := lo.Arg(0)
+	func(x exp.ReslReq) (exp.El, error) {
+		fst := x.Arg(0)
 		if v, ok := deopt(fst).(litLener); ok {
 			return lit.Int(v.Len()), nil
 		}
@@ -71,31 +71,31 @@ var lenSpec = core.implResl("(form 'len' (@:alt cont str raw) int)",
 	})
 
 var fstSpec = core.implResl("(form 'fst' cont|@1 :pred? (func @ bool) @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), 0)
+	func(x exp.ReslReq) (exp.El, error) {
+		return nth(x, x.Arg(0), x.Arg(1), 0)
 	})
 
 var lstSpec = core.implResl("(form 'lst' cont|@1 :pred? (func @1 bool) @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(1), -1)
+	func(x exp.ReslReq) (exp.El, error) {
+		return nth(x, x.Arg(0), x.Arg(1), -1)
 	})
 
 var nthSpec = core.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		l, ok := lo.Arg(1).(lit.Numeric)
+	func(x exp.ReslReq) (exp.El, error) {
+		l, ok := x.Arg(1).(lit.Numeric)
 		if !ok {
-			return nil, cor.Errorf("want number got %s", lo.Arg(1))
+			return nil, cor.Errorf("want number got %s", x.Arg(1))
 		}
-		return nth(c, env, e, hint, lo.Arg(0), lo.Arg(2), int(l.Num()))
+		return nth(x, x.Arg(0), x.Arg(2), int(l.Num()))
 	})
 
-func nth(c *Ctx, env Env, e *Call, hint Type, cont El, pred El, idx int) (_ El, err error) {
+func nth(x exp.ReslReq, cont, pred exp.El, idx int) (_ exp.El, err error) {
 	if pred != nil {
-		iter, err := getIter(c, env, pred, cont.Typ(), false)
+		iter, err := getIter(x, pred, cont.Typ(), false)
 		if err != nil {
 			return nil, err
 		}
-		cont, err = iter.filter(c, env, cont)
+		cont, err = iter.filter(x, cont)
 		if err != nil {
 			return nil, err
 		}
@@ -130,13 +130,13 @@ func checkIdx(idx, l int) (int, error) {
 type fIter struct {
 	*exp.Spec
 	n, a, v, i, k int
-	args          []El
+	args          []exp.El
 	ator          bool
 }
 
-func getIter(c *Ctx, env Env, e El, ct Type, ator bool) (r *fIter, _ error) {
-	e, err := exp.Resolve(env, e)
-	if err != nil && err != ErrUnres {
+func getIter(x exp.ReslReq, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error) {
+	e, err := exp.Resolve(x.Env, e)
+	if err != nil && err != exp.ErrUnres {
 		return nil, err
 	}
 	if s, ok := e.(*exp.Spec); ok {
@@ -187,11 +187,11 @@ func getIter(c *Ctx, env Env, e El, ct Type, ator bool) (r *fIter, _ error) {
 			return nil, cor.Errorf("unexpected parameter %s", args[r.n])
 		}
 	}
-	r.args = make([]El, r.n)
+	r.args = make([]exp.El, r.n)
 	return r, nil
 }
 
-func (r *fIter) resolve(c *Ctx, env Env, el El, idx int, key string) (Lit, error) {
+func (r *fIter) resolve(x exp.ReslReq, el exp.El, idx int, key string) (lit.Lit, error) {
 	r.args[0] = el
 	if r.i > 0 {
 		r.args[r.i] = lit.Int(idx)
@@ -199,14 +199,14 @@ func (r *fIter) resolve(c *Ctx, env Env, el El, idx int, key string) (Lit, error
 	if r.k > 0 {
 		r.args[r.k] = lit.Str(key)
 	}
-	call := &Call{Spec: r.Spec, Args: r.args}
-	res, err := r.Resolve(c, env, call, typ.Void)
+	call := &exp.Call{Spec: r.Spec, Args: r.args}
+	res, err := r.Resolve(x.Ctx, x.Env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
-	return res.(Lit), nil
+	return res.(lit.Lit), nil
 }
-func (r *fIter) accumulate(c *Ctx, env Env, acc, el El, idx int, key string) (Lit, error) {
+func (r *fIter) accumulate(x exp.ReslReq, acc, el exp.El, idx int, key string) (lit.Lit, error) {
 	r.args[0] = acc
 	if r.v > 0 {
 		r.args[r.v] = el
@@ -217,21 +217,21 @@ func (r *fIter) accumulate(c *Ctx, env Env, acc, el El, idx int, key string) (Li
 	if r.k > 0 {
 		r.args[r.k] = lit.Str(key)
 	}
-	call := &Call{Spec: r.Spec, Args: r.args}
-	res, err := r.Resolve(c, env, call, typ.Void)
+	call := &exp.Call{Spec: r.Spec, Args: r.args}
+	res, err := r.Resolve(x.Ctx, x.Env, call, typ.Void)
 	if err != nil {
 		return nil, cor.Errorf("accumulate: %w", err)
 	}
-	return res.(Lit), nil
+	return res.(lit.Lit), nil
 }
 
-func (r *fIter) filter(c *Ctx, env Env, cont El) (Lit, error) {
+func (r *fIter) filter(x exp.ReslReq, cont exp.El) (lit.Lit, error) {
 	switch v := deopt(cont).(type) {
 	case lit.Keyer:
 		out := lit.Zero(v.Typ()).(lit.Keyer)
 		idx := 0
-		err := v.IterKey(func(key string, el Lit) error {
-			res, err := r.resolve(c, env, el, idx, key)
+		err := v.IterKey(func(key string, el lit.Lit) error {
+			res, err := r.resolve(x, el, idx, key)
 			if err != nil {
 				return err
 			}
@@ -250,8 +250,8 @@ func (r *fIter) filter(c *Ctx, env Env, cont El) (Lit, error) {
 			return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
 		}
 		out := lit.Zero(v.Typ()).(lit.Appender)
-		err := v.IterIdx(func(idx int, el Lit) error {
-			res, err := r.resolve(c, env, el, idx, "")
+		err := v.IterIdx(func(idx int, el lit.Lit) error {
+			res, err := r.resolve(x, el, idx, "")
 			if err != nil {
 				return err
 			}
@@ -272,13 +272,13 @@ func (r *fIter) filter(c *Ctx, env Env, cont El) (Lit, error) {
 }
 
 var filterSpec = core.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		cont := lo.Arg(0)
-		iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
+	func(x exp.ReslReq) (exp.El, error) {
+		cont := x.Arg(0)
+		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
 			return nil, err
 		}
-		res, err := iter.filter(c, env, cont)
+		res, err := iter.filter(x, cont)
 		if err != nil {
 			return nil, err
 		}
@@ -286,13 +286,13 @@ var filterSpec = core.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
 	})
 
 var mapSpec = core.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		cont := lo.Arg(0)
-		iter, err := getIter(c, env, lo.Arg(1), cont.Typ(), false)
+	func(x exp.ReslReq) (exp.El, error) {
+		cont := x.Arg(0)
+		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
 			return nil, err
 		}
-		var rt Type
+		var rt typ.Type
 		it := iter.Res()
 		if it == typ.Void || it == typ.Infer {
 			it = typ.Any
@@ -321,8 +321,8 @@ var mapSpec = core.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
 		case lit.Keyer:
 			out := lit.Zero(rt).(lit.Keyer)
 			idx := 0
-			err := v.IterKey(func(key string, el Lit) error {
-				res, err := iter.resolve(c, env, el, idx, key)
+			err := v.IterKey(func(key string, el lit.Lit) error {
+				res, err := iter.resolve(x, el, idx, key)
 				if err != nil {
 					return err
 				}
@@ -342,8 +342,8 @@ var mapSpec = core.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
 			if iter.k > 0 {
 				return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
 			}
-			err := v.IterIdx(func(idx int, el Lit) error {
-				res, err := iter.resolve(c, env, el, idx, "")
+			err := v.IterIdx(func(idx int, el lit.Lit) error {
+				res, err := iter.resolve(x, el, idx, "")
 				if err != nil {
 					return err
 				}
@@ -362,18 +362,18 @@ var mapSpec = core.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
 	})
 
 var foldSpec = core.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		cont := lo.Arg(0)
-		acc := lo.Arg(1).(Lit)
-		iter, err := getIter(c, env, lo.Arg(2), acc.Typ(), true)
+	func(x exp.ReslReq) (exp.El, error) {
+		cont := x.Arg(0)
+		acc := x.Arg(1).(lit.Lit)
+		iter, err := getIter(x, x.Arg(2), acc.Typ(), true)
 		if err != nil {
 			return nil, err
 		}
 		switch v := deopt(cont).(type) {
 		case lit.Keyer:
 			idx := 0
-			err := v.IterKey(func(key string, el Lit) error {
-				acc, err = iter.accumulate(c, env, acc, el, idx, key)
+			err := v.IterKey(func(key string, el lit.Lit) error {
+				acc, err = iter.accumulate(x, acc, el, idx, key)
 				if err != nil {
 					return err
 				}
@@ -388,8 +388,8 @@ var foldSpec = core.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 			if iter.k > 0 {
 				return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
 			}
-			err := v.IterIdx(func(idx int, el Lit) error {
-				acc, err = iter.accumulate(c, env, acc, el, idx, "")
+			err := v.IterIdx(func(idx int, el lit.Lit) error {
+				acc, err = iter.accumulate(x, acc, el, idx, "")
 				if err != nil {
 					return err
 				}
@@ -404,10 +404,10 @@ var foldSpec = core.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 	})
 
 var foldrSpec = core.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		cont := lo.Arg(0)
-		acc := lo.Arg(1).(Lit)
-		iter, err := getIter(c, env, lo.Arg(2), acc.Typ(), true)
+	func(x exp.ReslReq) (exp.El, error) {
+		cont := x.Arg(0)
+		acc := x.Arg(1).(lit.Lit)
+		iter, err := getIter(x, x.Arg(2), acc.Typ(), true)
 		if err != nil {
 			return nil, err
 		}
@@ -420,7 +420,7 @@ var foldrSpec = core.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 				if err != nil {
 					return nil, err
 				}
-				acc, err = iter.accumulate(c, env, acc, el, idx, key)
+				acc, err = iter.accumulate(x, acc, el, idx, key)
 				if err != nil {
 					return nil, err
 				}
@@ -436,7 +436,7 @@ var foldrSpec = core.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 				if err != nil {
 					return nil, err
 				}
-				acc, err = iter.accumulate(c, env, acc, el, idx, "")
+				acc, err = iter.accumulate(x, acc, el, idx, "")
 				if err != nil {
 					return nil, err
 				}

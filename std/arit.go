@@ -3,6 +3,7 @@ package std
 //*
 import (
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -14,34 +15,34 @@ func opMul(r, n float64) (float64, error) { return r * n, nil }
 
 // addSpec adds up all arguments and converts the sum to the first argument's type.
 var addSpec = core.impl("(form 'add' @1:num :plain list|num : @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		return resNums(c, env, e, lo, hint, 0, opAdd)
+	func(x exp.ReslReq) (exp.El, error) {
+		return resNums(x, 0, opAdd)
 	})
 
 // mulSpec multiplies all arguments and converts the product to the first argument's type.
 var mulSpec = core.impl("(form 'mul' @1:num :plain list|num : @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		return resNums(c, env, e, lo, hint, 1, opMul)
+	func(x exp.ReslReq) (exp.El, error) {
+		return resNums(x, 1, opMul)
 	})
 
 // subSpec subtracts the sum of the rest from the first argument and
 // converts to the first argument's type.
 var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, h Type) (El, error) {
-		err := lo.Resolve(c, env, h)
+	func(x exp.ReslReq) (exp.El, error) {
+		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			if err != ErrUnres || !c.Part {
-				return e, err
+			if err != exp.ErrUnres || !x.Part {
+				return x.Call, err
 			}
 		}
-		e.Type = lo.Sig
-		fst := lo.Arg(0)
+		x.Call.Type = x.Layout.Sig
+		fst := x.Layout.Arg(0)
 		n := getNumer(fst)
 		ctx := numCtx{}
 		if n == nil {
 			ctx.idx = -1
 		}
-		err = redNums(lo.Args(1), &ctx, opAdd)
+		err = redNums(x.Args(1), &ctx, opAdd)
 		if err != nil {
 			return nil, err
 		}
@@ -49,17 +50,17 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 			if ctx.idx >= 0 {
 				ctx.unres[ctx.idx] = lit.Num(ctx.res)
 			}
-			e.Args = append(e.Args[:1], ctx.unres...)
-			return e, ErrUnres
+			x.Call.Args = append(x.Call.Args[:1], ctx.unres...)
+			return x.Call, exp.ErrUnres
 		}
 		var l lit.Lit = lit.Num(n.Num() - ctx.res)
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
 		}
 		if len(ctx.unres) != 0 {
-			e.Args = append(e.Args[:0], l)
-			e.Args = append(e.Args, ctx.unres...)
-			return e, ErrUnres
+			x.Call.Args = append(x.Call.Args[:0], l)
+			x.Call.Args = append(x.Call.Args, ctx.unres...)
+			return x.Call, exp.ErrUnres
 		}
 		return l, nil
 	})
@@ -68,21 +69,21 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
 var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, h Type) (El, error) {
-		err := lo.Resolve(c, env, h)
+	func(x exp.ReslReq) (exp.El, error) {
+		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			if err != ErrUnres || !c.Part {
-				return e, err
+			if err != exp.ErrUnres || !x.Part {
+				return x.Call, err
 			}
 		}
-		e.Type = lo.Sig
-		fst := lo.Arg(0)
+		x.Call.Type = x.Sig
+		fst := x.Arg(0)
 		n := getNumer(fst)
 		ctx := numCtx{res: 1}
 		if n == nil {
 			ctx.idx = -1
 		}
-		err = redNums(lo.Args(1), &ctx, opMul)
+		err = redNums(x.Args(1), &ctx, opMul)
 		if err != nil {
 			return nil, err
 		}
@@ -90,8 +91,8 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 			if ctx.idx >= 0 {
 				ctx.unres[ctx.idx] = lit.Num(ctx.res)
 			}
-			e.Args = append(e.Args[:1], ctx.unres...)
-			return e, ErrUnres
+			x.Call.Args = append(x.Call.Args[:1], ctx.unres...)
+			return x.Call, exp.ErrUnres
 		}
 		if ctx.res == 0 {
 			return nil, cor.Error("zero devision")
@@ -107,35 +108,35 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 			l, err = lit.Convert(l, fst.Typ(), 0)
 		}
 		if len(ctx.unres) != 0 {
-			e.Args = append(e.Args[:0], l)
-			e.Args = append(e.Args, ctx.unres...)
-			return e, ErrUnres
+			x.Call.Args = append(x.Call.Args[:0], l)
+			x.Call.Args = append(x.Call.Args, ctx.unres...)
+			return x.Call, exp.ErrUnres
 		}
 		return l, nil
 	})
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
 var remSpec = core.implResl("(form 'rem' @1:int @:int @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		res := lo.Arg(0).(lit.Numeric).Num()
-		mod := lo.Arg(1).(lit.Numeric).Num()
+	func(x exp.ReslReq) (exp.El, error) {
+		res := x.Arg(0).(lit.Numeric).Num()
+		mod := x.Arg(1).(lit.Numeric).Num()
 		return lit.Int(res) % lit.Int(mod), nil
 	})
 
 // absSpec returns the argument with the absolute numeric value.
 var absSpec = core.implResl("(form 'abs' @1:num @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (fst El, err error) {
-		return sign(c, env, e, lo, hint, false)
+	func(x exp.ReslReq) (fst exp.El, err error) {
+		return sign(x, false)
 	})
 
 // negSpec returns the argument with the negated numeric value.
 var negSpec = core.implResl("(form 'neg' @1:num @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (fst El, err error) {
-		return sign(c, env, e, lo, hint, true)
+	func(x exp.ReslReq) (fst exp.El, err error) {
+		return sign(x, true)
 	})
 
-func sign(c *Ctx, env Env, e *Call, lo *Layout, hint Type, neg bool) (fst El, err error) {
-	fst = lo.Arg(0)
+func sign(x exp.ReslReq, neg bool) (fst exp.El, err error) {
+	fst = x.Arg(0)
 	switch v := fst.(type) {
 	case lit.Int:
 		if neg || v < 0 {
@@ -174,9 +175,9 @@ func sign(c *Ctx, env Env, e *Call, lo *Layout, hint Type, neg bool) (fst El, er
 
 // minSpec returns the argument with the smalles numeric value or an error.
 var minSpec = core.impl("(form 'min' @1:num :plain? list|@1 @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+	func(x exp.ReslReq) (exp.El, error) {
 		var i int
-		return resNums(c, env, e, lo, hint, 0, func(r, n float64) (float64, error) {
+		return resNums(x, 0, func(r, n float64) (float64, error) {
 			if i++; i > 0 && r < n {
 				return r, nil
 			}
@@ -187,9 +188,9 @@ var minSpec = core.impl("(form 'min' @1:num :plain? list|@1 @1)",
 // maxSpec returns the argument with the greatest numeric value or an error.
 var maxSpec = core.impl("(form 'max' @1:num :plain? list|@1 @1)",
 	// @1:num plain? list|@1 : @1
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
+	func(x exp.ReslReq) (exp.El, error) {
 		var i int
-		return resNums(c, env, e, lo, hint, 0, func(r, n float64) (float64, error) {
+		return resNums(x, 0, func(r, n float64) (float64, error) {
 			if i++; i > 0 && r > n {
 				return r, nil
 			}
@@ -197,15 +198,15 @@ var maxSpec = core.impl("(form 'max' @1:num :plain? list|@1 @1)",
 		})
 	})
 
-func getNumer(e El) lit.Numeric {
+func getNumer(e exp.El) lit.Numeric {
 	v, _ := deopt(e).(lit.Numeric)
 	return v
 }
 
 type numOp = func(r, e float64) (float64, error)
 
-func deopt(el El) Lit {
-	if l, ok := el.(Lit); ok {
+func deopt(el exp.El) lit.Lit {
+	if l, ok := el.(lit.Lit); ok {
 		if o, ok := l.(lit.Opter); ok {
 			if l = o.Some(); l == nil {
 				t, _ := o.Typ().Deopt()
@@ -217,26 +218,26 @@ func deopt(el El) Lit {
 	return nil
 }
 
-func resNums(c *Ctx, env Env, e *Call, lo *Layout, h Type, res float64, f numOp) (El, error) {
-	err := lo.Resolve(c, env, h)
+func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
+	err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 	if err != nil {
-		if err != ErrUnres || !c.Part {
-			return e, err
+		if err != exp.ErrUnres || !x.Part {
+			return x.Call, err
 		}
 	}
-	e.Type = lo.Sig
+	x.Call.Type = x.Sig
 	part := err != nil
 	ctx := numCtx{res: res, idx: -1}
-	fst := lo.Arg(0)
+	fst := x.Arg(0)
 	if part {
-		ctx.unres = []El{fst}
+		ctx.unres = []exp.El{fst}
 	}
 	n := getNumer(fst)
 	if n != nil {
 		ctx.idx = 0
 		ctx.res = n.Num()
 	}
-	err = redNums(lo.Args(1), &ctx, f)
+	err = redNums(x.Args(1), &ctx, f)
 	if err != nil {
 		return nil, err
 	}
@@ -250,17 +251,17 @@ func resNums(c *Ctx, env Env, e *Call, lo *Layout, h Type, res float64, f numOp)
 	if ctx.idx >= 0 {
 		ctx.unres[ctx.idx] = lit.Num(ctx.res)
 	}
-	e.Args = ctx.unres
-	return e, ErrUnres
+	x.Call.Args = ctx.unres
+	return x.Call, exp.ErrUnres
 }
 
 type numCtx struct {
 	res   float64
 	idx   int
-	unres []El
+	unres []exp.El
 }
 
-func redNums(args []El, c *numCtx, f numOp) (err error) {
+func redNums(args []exp.El, c *numCtx, f numOp) (err error) {
 	for _, arg := range args {
 		v := getNumer(arg)
 		if v == nil {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -17,25 +18,25 @@ var (
 
 // catSpec concatenates one or more arguments to a str, raw or idxer literal.
 var catSpec = core.impl("(form 'cat' (@:alt str raw idxr) :rest list @)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		err := lo.Resolve(c, env, hint)
+	func(x exp.ReslReq) (exp.El, error) {
+		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			return e, err
+			return x.Call, err
 		}
-		fst := lo.Arg(0).(Lit)
+		fst := x.Arg(0).(lit.Lit)
 		t, opt := fst.Typ().Deopt()
-		var res Lit
+		var res lit.Lit
 		switch t.Kind & typ.MaskRef {
 		case typ.KindChar, typ.KindStr:
 			var b strings.Builder
-			err = catChar(&b, false, fst, lo.Args(1))
+			err = catChar(&b, false, fst, x.Args(1))
 			if err != nil {
 				return nil, err
 			}
 			res = lit.Str(b.String())
 		case typ.KindRaw:
 			var b bytes.Buffer
-			err = catChar(&b, true, fst, lo.Args(1))
+			err = catChar(&b, true, fst, x.Args(1))
 			if err != nil {
 				return nil, err
 			}
@@ -45,12 +46,12 @@ var catSpec = core.impl("(form 'cat' (@:alt str raw idxr) :rest list @)",
 			if !ok {
 				break
 			}
-			for _, arg := range lo.Args(1) {
+			for _, arg := range x.Args(1) {
 				idxr, ok := arg.(lit.Indexer)
 				if !ok {
 					return nil, errCatLit
 				}
-				err = idxr.IterIdx(func(i int, l Lit) error {
+				err = idxr.IterIdx(func(i int, l lit.Lit) error {
 					apd, err = apd.Append(l)
 					return err
 				})
@@ -71,17 +72,17 @@ var catSpec = core.impl("(form 'cat' (@:alt str raw idxr) :rest list @)",
 
 // apdSpec appends the rest literal arguments to the first literal appender argument.
 var apdSpec = core.impl("(form 'apd' @1:list|@2 :rest list|@2 @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		err := lo.Resolve(c, env, hint)
+	func(x exp.ReslReq) (exp.El, error) {
+		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			return e, err
+			return x.Call, err
 		}
-		apd, ok := lo.Arg(0).(lit.Appender)
+		apd, ok := x.Arg(0).(lit.Appender)
 		if !ok {
-			return nil, cor.Errorf("cannot append to %T", lo.Arg(0))
+			return nil, cor.Errorf("cannot append to %T", x.Arg(0))
 		}
-		for _, arg := range lo.Args(1) {
-			if l, ok := arg.(Lit); ok {
+		for _, arg := range x.Args(1) {
+			if l, ok := arg.(lit.Lit); ok {
 				apd, err = apd.Append(l)
 				if err != nil {
 					return nil, err
@@ -95,26 +96,26 @@ var apdSpec = core.impl("(form 'apd' @1:list|@2 :rest list|@2 @1)",
 
 // setSpec sets the first keyer literal with the following declaration arguments.
 var setSpec = core.impl("(form 'set' @1:keyr|@2 :plain? list|keyr|@2 :unis? dict|@2 @1)",
-	func(c *Ctx, env Env, e *Call, lo *Layout, hint Type) (El, error) {
-		err := lo.Resolve(c, env, hint)
+	func(x exp.ReslReq) (exp.El, error) {
+		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			return e, err
+			return x.Call, err
 		}
-		fst := lo.Arg(0)
+		fst := x.Arg(0)
 		res, ok := deopt(fst).(lit.Keyer)
 		if !ok {
 			return nil, errSetKeyer
 		}
 		opt := res != fst
-		if len(e.Args) == 1 {
+		if len(x.Call.Args) == 1 {
 			return fst, nil
 		}
-		decls, err := lo.Unis(2)
+		decls, err := x.Unis(2)
 		if err != nil {
 			return nil, err
 		}
 		for _, d := range decls {
-			el, ok := d.Arg().(Lit)
+			el, ok := d.Arg().(lit.Lit)
 			if !ok {
 				return nil, cor.Errorf("want literal in declaration got %v", d.El)
 			}
@@ -129,13 +130,13 @@ var setSpec = core.impl("(form 'set' @1:keyr|@2 :plain? list|keyr|@2 :unis? dict
 		return res, nil
 	})
 
-func catChar(b bfr.B, raw bool, fst Lit, args []El) error {
+func catChar(b bfr.B, raw bool, fst lit.Lit, args []exp.El) error {
 	err := writeChar(b, fst)
 	if err != nil {
 		return err
 	}
 	for _, arg := range args {
-		l, ok := arg.(Lit)
+		l, ok := arg.(lit.Lit)
 		if !ok {
 			return cor.Errorf("%s not a literal: %w", arg, errCatLit)
 		}
@@ -146,7 +147,7 @@ func catChar(b bfr.B, raw bool, fst Lit, args []El) error {
 	}
 	return nil
 }
-func writeChar(b bfr.B, l Lit) (err error) {
+func writeChar(b bfr.B, l lit.Lit) (err error) {
 	l = deopt(l)
 	c, ok := l.(lit.Character)
 	if ok {

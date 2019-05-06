@@ -14,20 +14,20 @@ func TestStdFail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse err: %v", err)
 	}
-	c := &Ctx{Exec: true}
+	c := &exp.Ctx{Exec: true}
 	_, err = c.Resolve(Std, x, typ.Void)
 	if err == nil {
 		t.Fatalf("want err got nothing")
 	}
 	_, err = c.WithExec(false).Resolve(Std, x, typ.Void)
-	if err != ErrUnres {
+	if err != exp.ErrUnres {
 		t.Fatalf("want err unres got %v", err)
 	}
 }
 func TestStdResolve(t *testing.T) {
 	tests := []struct {
 		raw  string
-		want El
+		want exp.El
 	}{
 		{`~any`, typ.Any},
 		{`bool`, typ.Bool},
@@ -117,10 +117,10 @@ func TestStdResolve(t *testing.T) {
 		{`(max 3 2 1)`, lit.Num(3)},
 		{`(cat 'a' 'b' 'c')`, lit.Str("abc")},
 		{`(cat (raw 'a') 'b' 'c')`, lit.Raw("abc")},
-		{`(cat [1] [2] [3])`, &lit.List{Data: []Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
-		{`(apd [] 1 2 3)`, &lit.List{Data: []Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
-		{`([] 1 2 3)`, &lit.List{Data: []Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
-		{`(list (list|int 1 2 3))`, &lit.List{Data: []Lit{lit.Int(1), lit.Int(2), lit.Int(3)}}},
+		{`(cat [1] [2] [3])`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
+		{`(apd [] 1 2 3)`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
+		{`([] 1 2 3)`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
+		{`(list (list|int 1 2 3))`, &lit.List{Data: []lit.Lit{lit.Int(1), lit.Int(2), lit.Int(3)}}},
 		{`(set {} +x +y 3)`, &lit.Dict{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
@@ -157,14 +157,14 @@ func TestStdResolve(t *testing.T) {
 		{`(nth [1 2 3 4 5] -3)`, lit.Num(3)},
 		{`(fst [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Num(2)},
 		{`(lst [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, lit.Num(4)},
-		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, &lit.List{typ.Any, []Lit{
+		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 0)))`, &lit.List{typ.Any, []lit.Lit{
 			lit.Num(2), lit.Num(4),
 		}}},
-		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 1)))`, &lit.List{typ.Any, []Lit{
+		{`(filter [1 2 3 4 5] (fn +a ~num - bool (eq (rem _ 2) 1)))`, &lit.List{typ.Any, []lit.Lit{
 			lit.Num(1), lit.Num(3), lit.Num(5),
 		}}},
 		{`(map [1 2 3 4] (fn +a ~num - ~num (mul _ _)))`, &lit.List{Elem: typ.Num,
-			Data: []Lit{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
+			Data: []lit.Lit{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
 		}},
 		{`(fold ['alice' 'bob' 'calvin'] 'hello'` +
 			`(fn +a +v str +i int - str (cat _ (if .i ',') ' ' .v)))`,
@@ -208,7 +208,7 @@ func TestStdResolve(t *testing.T) {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
-		c := &Ctx{Exec: true}
+		c := &exp.Ctx{Exec: true}
 		r, err := c.Resolve(exp.NewScope(Std), x, typ.Void)
 		if err != nil {
 			t.Errorf("%s resolve err: %+v\n%v", test.raw, err, c.Unres)
@@ -275,10 +275,10 @@ func TestStdResolvePart(t *testing.T) {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
-		c := &Ctx{Exec: true, Part: true}
+		c := &exp.Ctx{Exec: true, Part: true}
 		hint := c.New()
 		r, err := c.Resolve(exp.NewScope(Std), x, hint)
-		if err != nil && err != ErrUnres {
+		if err != nil && err != exp.ErrUnres {
 			t.Errorf("%s resolve err expect ErrUnres, got: %v\n%v", test.raw, err, c.Unres)
 			continue
 		}
