@@ -15,7 +15,7 @@ type Type struct {
 	*Info
 }
 
-func (Type) Typ() Type { return Typ }
+func (t Type) Typ() Type { return Typ }
 
 // Info represents the reference name and type parameters or constants.
 type Info struct {
@@ -68,21 +68,21 @@ type Param struct {
 }
 
 // Opt returns true if the param is optional, indicated by its name ending in a question mark.
-func (a Param) Opt() bool { n := a.Name; return n != "" && n[len(n)-1] == '?' }
+func (p Param) Opt() bool { n := p.Name; return n != "" && n[len(n)-1] == '?' }
 
 // Key returns the lowercase param key.
-func (a Param) Key() string { return cor.LastKey(a.Name) }
+func (p Param) Key() string { return cor.LastKey(p.Name) }
 
-func (a Type) IsZero() bool { return a.Kind == 0 && a.Info.IsZero() }
+func (t Type) IsZero() bool { return t.Kind == 0 && t.Info.IsZero() }
 func (a *Info) IsZero() bool {
 	return a == nil || a.Ref == "" && len(a.Params) == 0 && len(a.Consts) == 0
 }
 
 type infoPair = struct{ a, b *Info }
 
-func (a Type) Equal(b Type) bool { return a.equal(b, nil) }
-func (a Type) equal(b Type, hist []infoPair) bool {
-	return a.Kind == b.Kind && a.Info.equal(b.Info, a.Kind&KindCtx != 0, hist)
+func (t Type) Equal(o Type) bool { return t.equal(o, nil) }
+func (t Type) equal(o Type, hist []infoPair) bool {
+	return t.Kind == o.Kind && t.Info.equal(o.Info, t.Kind&KindCtx != 0, hist)
 }
 func (a *Info) Equal(b *Info) bool { return a.equal(b, false, nil) }
 func (a *Info) equal(b *Info, ref bool, hist []infoPair) bool {
@@ -122,47 +122,47 @@ func (a *Info) equal(b *Info, ref bool, hist []infoPair) bool {
 	return true
 }
 
-func (a Param) Equal(b Param) bool { return a.equal(b, nil) }
-func (a Param) equal(b Param, hist []infoPair) bool {
-	return (a.Name == b.Name || a.Key() == b.Key()) && a.Type.equal(b.Type, hist)
+func (p Param) Equal(o Param) bool { return p.equal(o, nil) }
+func (p Param) equal(o Param, hist []infoPair) bool {
+	return (p.Name == o.Name || p.Key() == o.Key()) && p.Type.equal(o.Type, hist)
 }
 
-func (a Type) String() string               { return bfr.String(a) }
-func (a Type) MarshalJSON() ([]byte, error) { return bfr.JSON(a) }
-func (a *Type) UnmarshalJSON(raw []byte) error {
+func (t Type) String() string               { return bfr.String(t) }
+func (t Type) MarshalJSON() ([]byte, error) { return bfr.JSON(t) }
+func (t *Type) UnmarshalJSON(raw []byte) error {
 	var tmp struct{ Typ string }
 	err := json.Unmarshal(raw, &tmp)
 	if err != nil {
 		return err
 	}
-	t, err := ParseString(tmp.Typ)
+	r, err := ParseString(tmp.Typ)
 	if err != nil {
 		return err
 	}
-	*a = t
+	*t = r
 	return nil
 }
 
-func (a Type) WriteBfr(b *bfr.Ctx) error {
+func (t Type) WriteBfr(b *bfr.Ctx) error {
 	if b.JSON {
 		b.WriteString(`{"typ":"`)
 		bb := *b
 		bb.JSON = false
-		err := a.writeBfr(&bb, nil, nil, false)
+		err := t.writeBfr(&bb, nil, nil, false)
 		b.WriteString(`"}`)
 		return err
 	}
-	fst := !a.Kind.Prom() && (a.Kind&KindMeta == 0 || a.Kind == KindAlt)
-	return a.writeBfr(b, nil, nil, fst)
+	fst := !t.Kind.Prom() && (t.Kind&KindMeta == 0 || t.Kind == KindAlt)
+	return t.writeBfr(b, nil, nil, fst)
 }
 
-func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool) error {
-	switch a.Kind & MaskRef {
+func (t Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool) error {
+	switch t.Kind & MaskRef {
 	case KindRec, KindObj:
 		for i := 0; i < len(hist); i++ {
 			h := hist[len(hist)-1-i]
-			if a.Info == h {
-				writeRef(b, pre, '~', strconv.Itoa(i), a)
+			if t.Info == h {
+				writeRef(b, pre, '~', strconv.Itoa(i), t)
 				return nil
 			}
 		}
@@ -172,77 +172,77 @@ func (a Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool
 		} else {
 			pre.WriteByte('|')
 		}
-		pre.WriteString(a.Kind.String())
-		return a.Elem().writeBfr(b, pre, hist, false)
+		pre.WriteString(t.Kind.String())
+		return t.Elem().writeBfr(b, pre, hist, false)
 	}
 	var detail bool
-	switch a.Kind & MaskRef {
+	switch t.Kind & MaskRef {
 	case KindVar:
-		n := a.ParamLen()
+		n := t.ParamLen()
 		if n == 0 {
 			break
 		}
 		if n > 1 {
 			b.WriteByte('(')
 		}
-		err := writePre(b, pre, a, qual)
+		err := writePre(b, pre, t, qual)
 		if err != nil {
 			return err
 		}
 		if n == 1 {
 			b.WriteByte(':')
-			c := a.Params[0].Type
+			c := t.Params[0].Type
 			return c.writeBfr(b, nil, nil, false)
 		}
 		b.WriteString(":alt")
-		err = a.Info.writeXelf(b, true, hist)
+		err = t.Info.writeXelf(b, true, hist)
 		b.WriteByte(')')
 		return err
 	case KindRef:
 		ref := ""
-		if a.HasRef() {
-			ref = a.Ref
+		if t.HasRef() {
+			ref = t.Ref
 		}
-		writeRef(b, pre, '@', ref, a)
+		writeRef(b, pre, '@', ref, t)
 		return nil
 	case KindRec, KindFunc, KindForm, KindAlt:
 		detail = true
 		fallthrough
 	case KindBits, KindEnum, KindObj:
 		b.WriteByte('(')
-		err := writePre(b, pre, a, qual)
+		err := writePre(b, pre, t, qual)
 		if err != nil {
 			return err
 		}
-		err = a.Info.writeXelf(b, detail, append(hist, a.Info))
+		err = t.Info.writeXelf(b, detail, append(hist, t.Info))
 		b.WriteByte(')')
 		return err
 	}
-	return writePre(b, pre, a, qual)
+	return writePre(b, pre, t, qual)
 }
 
-func writePre(b *bfr.Ctx, pre *strings.Builder, a Type, qual bool) error {
+func writePre(b *bfr.Ctx, pre *strings.Builder, t Type, qual bool) error {
 	if qual {
 		b.WriteByte('~')
 	}
 	if pre != nil {
 		b.WriteString(pre.String())
-		if a == Any {
+		if t == Any {
 			return nil
 		}
 		b.WriteByte('|')
 	}
-	return a.Kind.WriteBfr(b)
+	return t.Kind.WriteBfr(b)
 }
 
-func writeRef(b *bfr.Ctx, pre *strings.Builder, x byte, ref string, a Type) {
+func writeRef(b *bfr.Ctx, pre *strings.Builder, x byte, ref string, t Type) {
 	if pre != nil {
 		b.WriteString(pre.String())
 		b.WriteByte('|')
 	}
 	b.WriteByte(x)
 	b.WriteString(ref)
-	if a.Kind&KindOpt != 0 {
+	if t.Kind&KindOpt != 0 {
 		b.WriteByte('?')
 	}
 }

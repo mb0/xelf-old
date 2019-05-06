@@ -13,10 +13,10 @@ type (
 	UUID [16]byte
 )
 
-func (Char) Typ() typ.Type { return typ.Char }
-func (Str) Typ() typ.Type  { return typ.Str }
-func (Raw) Typ() typ.Type  { return typ.Raw }
-func (UUID) Typ() typ.Type { return typ.UUID }
+func (v Char) Typ() typ.Type { return typ.Char }
+func (v Str) Typ() typ.Type  { return typ.Str }
+func (v Raw) Typ() typ.Type  { return typ.Raw }
+func (v UUID) Typ() typ.Type { return typ.UUID }
 
 func (v Char) IsZero() bool { return v == "" }
 func (v Str) IsZero() bool  { return v == "" }

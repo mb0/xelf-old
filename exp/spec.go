@@ -23,37 +23,37 @@ type Resl interface {
 }
 
 // Arg returns the argument parameters or nil.
-func (f *Spec) Arg() []typ.Param {
-	if f.IsZero() {
+func (sp *Spec) Arg() []typ.Param {
+	if sp.IsZero() {
 		return nil
 	}
-	return f.Params[:len(f.Params)-1]
+	return sp.Params[:len(sp.Params)-1]
 }
 
 // Res returns the result type or void.
-func (f *Spec) Res() Type {
-	if f.IsZero() {
+func (sp *Spec) Res() Type {
+	if sp.IsZero() {
 		return typ.Void
 	}
-	return f.Params[len(f.Params)-1].Type
+	return sp.Params[len(sp.Params)-1].Type
 }
 
-func (f *Spec) Typ() typ.Type { return f.Type }
-func (f *Spec) IsZero() bool {
-	return f == nil || f.Resl == nil || !f.HasParams()
+func (sp *Spec) Typ() typ.Type { return sp.Type }
+func (sp *Spec) IsZero() bool {
+	return sp == nil || sp.Resl == nil || !sp.HasParams()
 }
 
-func (f *Spec) String() string { return bfr.String(f) }
-func (f *Spec) WriteBfr(b *bfr.Ctx) error {
+func (sp *Spec) String() string { return bfr.String(sp) }
+func (sp *Spec) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('(')
-	err := f.Type.WriteBfr(b)
+	err := sp.Type.WriteBfr(b)
 	if err != nil {
 		return err
 	}
-	if f.Resl == nil {
+	if sp.Resl == nil {
 		b.WriteString("()")
 	} else {
-		if v, ok := f.Resl.(bfr.Writer); ok {
+		if v, ok := sp.Resl.(bfr.Writer); ok {
 			b.WriteByte(' ')
 			if err = v.WriteBfr(b); err != nil {
 				return err

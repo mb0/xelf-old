@@ -17,10 +17,10 @@ type (
 	proxyNum struct{ proxy }
 )
 
-func (Num) Typ() typ.Type  { return typ.Num }
-func (Bool) Typ() typ.Type { return typ.Bool }
-func (Int) Typ() typ.Type  { return typ.Int }
-func (Real) Typ() typ.Type { return typ.Real }
+func (v Num) Typ() typ.Type  { return typ.Num }
+func (v Bool) Typ() typ.Type { return typ.Bool }
+func (v Int) Typ() typ.Type  { return typ.Int }
+func (v Real) Typ() typ.Type { return typ.Real }
 
 func (v Num) IsZero() bool  { return v == 0 }
 func (v Bool) IsZero() bool { return v == false }

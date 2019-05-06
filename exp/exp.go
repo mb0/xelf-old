@@ -72,8 +72,8 @@ type (
 	}
 )
 
-func (*Sym) Typ() Type     { return typ.Sym }
-func (Dyn) Typ() Type      { return typ.Dyn }
+func (x *Sym) Typ() Type   { return typ.Sym }
+func (x Dyn) Typ() Type    { return typ.Dyn }
 func (x *Call) Typ() Type  { return typ.Call }
 func (x *Named) Typ() Type { return typ.Named }
 

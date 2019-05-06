@@ -21,10 +21,10 @@ type LookupFunc = func(sym string) *Spec
 type Builtin []LookupFunc
 
 // Parent always returns nil for the built-in lookups
-func (Builtin) Parent() Env { return nil }
+func (b Builtin) Parent() Env { return nil }
 
 // Supports returns true for built-in schema type lookups
-func (Builtin) Supports(x byte) bool { return x == '~' }
+func (b Builtin) Supports(x byte) bool { return x == '~' }
 
 // Get returns a resolver for the given sym
 func (b Builtin) Get(sym string) *Def {
@@ -58,25 +58,25 @@ func NewScope(parent Env) *Scope {
 	return &Scope{parent: parent}
 }
 
-func (c *Scope) Parent() Env { return c.parent }
+func (s *Scope) Parent() Env { return s.parent }
 
 // Supports returns always false for simple scopes.
-func (*Scope) Supports(byte) bool { return false }
+func (s *Scope) Supports(byte) bool { return false }
 
 // Def defines a symbol resolver binding for s and d or returns an error.
-func (c *Scope) Def(s string, d *Def) error {
-	if c.decl == nil {
-		c.decl = make(map[string]*Def, 8)
-	} else if _, ok := c.decl[s]; ok {
+func (s *Scope) Def(sym string, d *Def) error {
+	if s.decl == nil {
+		s.decl = make(map[string]*Def, 8)
+	} else if _, ok := s.decl[sym]; ok {
 		return ErrRedefine
 	}
-	c.decl[s] = d
+	s.decl[sym] = d
 	return nil
 }
 
 // Get returns a resolver with symbol s defined in this scope or nil.
-func (c *Scope) Get(s string) *Def {
-	d, ok := c.decl[s]
+func (s *Scope) Get(sym string) *Def {
+	d, ok := s.decl[sym]
 	if ok {
 		return d
 	}
@@ -94,15 +94,15 @@ func NewDataScope(parent Env) *DataScope {
 	return &DataScope{Par: parent}
 }
 
-func (c *DataScope) Parent() Env { return c.Par }
+func (ds *DataScope) Parent() Env { return ds.Par }
 
 // Supports returns true for '.', false otherwise.
-func (*DataScope) Supports(x byte) bool { return x == '.' }
+func (ds *DataScope) Supports(x byte) bool { return x == '.' }
 
 // Get returns a literal resolver for the relative path s or nil.
-func (c *DataScope) Get(s string) *Def {
+func (ds *DataScope) Get(s string) *Def {
 	if s[0] == '.' {
-		l, err := lit.Select(c.Dot, s[1:])
+		l, err := lit.Select(ds.Dot, s[1:])
 		if err != nil {
 			return nil
 		}
@@ -118,17 +118,17 @@ type ParamScope struct {
 	Param *lit.Rec
 }
 
-func (*ParamScope) Supports(x byte) bool { return x == '$' }
+func (ps *ParamScope) Supports(x byte) bool { return x == '$' }
 
-func (p *ParamScope) Get(s string) *Def {
+func (ps *ParamScope) Get(s string) *Def {
 	if s[0] == '$' {
-		l, err := lit.Select(p.Param, s[1:])
+		l, err := lit.Select(ps.Param, s[1:])
 		if err != nil {
 			return nil
 		}
 		return NewDef(l)
 	}
-	return p.Scope.Get(s)
+	return ps.Scope.Get(s)
 }
 
 // ProgScope wraps a param scope and provides global result resolution.
@@ -137,15 +137,15 @@ type ProgScope struct {
 	Result *lit.Dict
 }
 
-func (*ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
+func (ps *ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
 
-func (p *ProgScope) Get(s string) *Def {
+func (ps *ProgScope) Get(s string) *Def {
 	if s[0] == '/' {
-		l, err := lit.Select(p.Result, s[1:])
+		l, err := lit.Select(ps.Result, s[1:])
 		if err != nil {
 			return nil
 		}
 		return NewDef(l)
 	}
-	return p.ParamScope.Get(s)
+	return ps.ParamScope.Get(s)
 }

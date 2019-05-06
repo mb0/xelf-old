@@ -13,8 +13,8 @@ type (
 	Span time.Duration
 )
 
-func (Time) Typ() typ.Type { return typ.Time }
-func (Span) Typ() typ.Type { return typ.Span }
+func (v Time) Typ() typ.Type { return typ.Time }
+func (v Span) Typ() typ.Type { return typ.Span }
 
 func (v Time) IsZero() bool { return v == ZeroTime }
 func (v Span) IsZero() bool { return v == ZeroSpan }

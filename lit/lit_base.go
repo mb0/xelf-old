@@ -9,12 +9,12 @@ import (
 type Null typ.Type
 
 func (n Null) Typ() typ.Type { return typ.Type(n) }
-func (Null) IsZero() bool    { return true }
-func (Null) Some() Lit       { return nil }
+func (n Null) IsZero() bool  { return true }
+func (n Null) Some() Lit     { return nil }
 
-func (Null) String() string               { return "null" }
-func (Null) MarshalJSON() ([]byte, error) { return []byte("null"), nil }
-func (Null) WriteBfr(b *bfr.Ctx) error    { _, err := b.WriteString("null"); return err }
+func (n Null) String() string               { return "null" }
+func (n Null) MarshalJSON() ([]byte, error) { return []byte("null"), nil }
+func (n Null) WriteBfr(b *bfr.Ctx) error    { _, err := b.WriteString("null"); return err }
 
 // Some represents non-null option.
 type Some struct{ Lit }
@@ -31,8 +31,8 @@ func (s SomeAssignable) Some() Lit     { return s.Assignable }
 // Any represents a non-null, any-typed literal.
 type Any struct{ Lit }
 
-func (Any) Typ() typ.Type { return typ.Any }
-func (a Any) Some() Lit   { return a.Lit }
+func (a Any) Typ() typ.Type { return typ.Any }
+func (a Any) Some() Lit     { return a.Lit }
 
 // FlagInt represents a flag int constant
 type FlagInt struct {
