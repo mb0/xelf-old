@@ -1,8 +1,10 @@
-package cor
+package typ
 
 import (
 	"sort"
 	"strings"
+
+	"github.com/mb0/xelf/cor"
 )
 
 func Consts(m map[string]int64) []Const {
@@ -20,8 +22,8 @@ type Const struct {
 	Val  int64  `json:"val"`
 }
 
-func (c Const) Key() string   { return LastKey(c.Name) }
-func (c Const) Cased() string { return Cased(c.Name) }
+func (c Const) Key() string   { return cor.LastKey(c.Name) }
+func (c Const) Cased() string { return cor.Cased(c.Name) }
 
 // ConstByKey finds and returns a constant with key in s. If a const was found, ok is true.
 func ConstByKey(s []Const, key string) (c Const, ok bool) {

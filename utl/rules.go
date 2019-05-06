@@ -162,7 +162,7 @@ func ExtraMapSetter(mapkey string) KeySetter {
 }
 
 // FlagPrepper returns a key prepper that tries to resolve a flag constant.
-func FlagPrepper(consts []cor.Const) KeyPrepper {
+func FlagPrepper(consts []typ.Const) KeyPrepper {
 	return func(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 		l, err := DynPrepper(c, env, n)
 		if err != nil {

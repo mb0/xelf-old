@@ -17,8 +17,6 @@ type Type struct {
 
 func (Type) Typ() Type { return Typ }
 
-type Const = cor.Const
-
 // Info represents the reference name and type parameters or constants.
 type Info struct {
 	Ref    string  `json:"ref,omitempty"`
