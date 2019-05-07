@@ -12,21 +12,20 @@ Container operations
 
 The len form returns the length of a str, raw, container literal, or the field count of a record.
 
-The fst, lst and nth are a short-circuiting loops that optionally accept a iterator predicate and
-return the first match from the start for fst, end for lst or the nth match from the end if the
-given index is negative or the start otherwise:
+The fst, lst and nth are a short-circuiting loops that optionally accept a predicate and return the
+first match from the start for fst, end for lst or the nth match from the start if the given index
+is positive or from the end otherwise:
 
-The filter and map loops accept any container and an iterator function. The each loop resolves to
-the given container, while filter returns a new container of the same type and map a new one with
-another element type.
+The filter and map loops accept any container and an predicate or mapper function. The each loop
+resolves to the given container, while filter returns a new container of the same type and map a new
+one with another element type.
 
-A iterator function's first parameter must accept the element type and can optionally be followed by
-a int and str parameter for idx or key parameters. The key parameter can only be used for keyer
-literals. Iterators for the each loop can returns anything as their result is ignored. The filter
-and map loops iterator expects a literal of any type. Filter usually expects a boolean but falls
-back on a zero check.
-s
-	(form iterator +val @el +idx? int +key? str - any)
+A predicate or mapper function's first parameter must accept the element type and can optionally
+be followed by a int and str parameter for idx or key parameters. The key parameter can only be used
+for keyer literals. The filter predicate must return bool and mapper a literal of any type.
+
+	(form 'pred' :val @1 :idx? int :key? str bool)
+	(form 'mapr' :val @1 :idx? int :key? str @2)
 
 The fold and foldr forms accumulate a container into a given literal. They accept any container and
 a reducer function with a compatible accumulator parameter followed by iterator parameters. Fold
@@ -34,11 +33,10 @@ accumulates from first to last and foldr in reverse. Fold is technically a left 
 right fold, but as the difference of cons lists and mostly linear xelf containers might lead to
 confusion foldr should be thought of as reverse.
 
-	(form accumulator +a @ +val @el +idx? int +key? str - @a)
+	(form 'accu' :a @1 :val @2 :idx? int :key? str @1)
 
 The list, dict constructor forms accept any container with an appropriate iterator
 to construct a new container literal by effectively using each or foldr.
-
 
 (with [1 2 3 4 5] +even (fn (eq (rem _ 2) 0)) (and
 	(eq (len "test") 4)
@@ -70,17 +68,17 @@ var lenSpec = core.implResl("(form 'len' (@:alt cont str raw) int)",
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 	})
 
-var fstSpec = core.implResl("(form 'fst' cont|@1 :pred? (func @ bool) @1)",
+var fstSpec = decl.implResl("(form 'fst' cont|@1 :pred? (func @ bool) @1)",
 	func(x exp.ReslReq) (exp.El, error) {
 		return nth(x, x.Arg(0), x.Arg(1), 0)
 	})
 
-var lstSpec = core.implResl("(form 'lst' cont|@1 :pred? (func @1 bool) @1)",
+var lstSpec = decl.implResl("(form 'lst' cont|@1 :pred? (func @1 bool) @1)",
 	func(x exp.ReslReq) (exp.El, error) {
 		return nth(x, x.Arg(0), x.Arg(1), -1)
 	})
 
-var nthSpec = core.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @1)",
+var nthSpec = decl.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @1)",
 	func(x exp.ReslReq) (exp.El, error) {
 		l, ok := x.Arg(1).(lit.Numeric)
 		if !ok {
@@ -271,7 +269,7 @@ func (r *fIter) filter(x exp.ReslReq, cont exp.El) (lit.Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
-var filterSpec = core.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
+var filterSpec = decl.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
 	func(x exp.ReslReq) (exp.El, error) {
 		cont := x.Arg(0)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
@@ -285,7 +283,7 @@ var filterSpec = core.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
 		return res, nil
 	})
 
-var mapSpec = core.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
+var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		cont := x.Arg(0)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
@@ -361,7 +359,7 @@ var mapSpec = core.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
 		return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
 	})
 
-var foldSpec = core.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
+var foldSpec = decl.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		cont := x.Arg(0)
 		acc := x.Arg(1).(lit.Lit)
@@ -403,7 +401,7 @@ var foldSpec = core.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 		return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
 	})
 
-var foldrSpec = core.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
+var foldrSpec = decl.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		cont := x.Arg(0)
 		acc := x.Arg(1).(lit.Lit)

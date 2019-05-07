@@ -15,13 +15,17 @@ Overview [![GoDoc](https://godoc.org/github.com/mb0/xelf?status.svg)](https://go
  * [bfr](https://godoc.org/github.com/mb0/xelf/bfr):
    common interface for buffered writers and bytes buffer pool
  * [lex](https://godoc.org/github.com/mb0/xelf/lex):
-   token and tree lexer as well as string quoting code
+   token lexer and tree scanner
  * [typ](https://godoc.org/github.com/mb0/xelf/typ):
-   composable type system and a parser, reflection and comparison
+   composable type system and a parser, comparison and unification
  * [lit](https://godoc.org/github.com/mb0/xelf/lit):
    literal parser, adapters and support for comparison and conversion
  * [exp](https://godoc.org/github.com/mb0/xelf/exp):
-   simple expression language, standard built-ins and resolvers
+   simple extensible expression language
+ * [std](https://godoc.org/github.com/mb0/xelf/std):
+   built-in expression resolvers
+ * [utl](https://godoc.org/github.com/mb0/xelf/utl):
+   extra utilities and resolvers
 
 Motivation
 ----------
@@ -51,11 +55,11 @@ easy to work with, all whilst repeating similar data validation and manipulation
 bug-prone permutations.
 
 JSON was the minimal go-to data format used by the author. While not elegant or comfortable, every
-environment supports it well. Using JSON, however, is not ergonomic when used as a product label
-layout language or any other more complex situation.
+environment supports it well. Using JSON, however, is not ergonomic, when used as a product label
+layout language or in any other more involved situation.
 
 After about two years of experiments of varying degree I naturally arrived at a Lisp-style syntax,
-using a simple, yet powerful type system in combination with JSON compatible literals, a tiny set
+using a simple, yet powerful type system in combination with JSON compatible literals, a small set
 of built-in operators and expressions and an extensible evaluation process, that can be used to
 liberally change or extend the language.
 
