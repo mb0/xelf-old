@@ -23,6 +23,7 @@ func TestString(t *testing.T) {
 		{List(Var(1, Num, Str)), `(list|@1:alt num str)`, ``},
 		{Alt(Num, Str), `(alt num str)`, `(~alt num str)`},
 		{Opt(Ref("b")), `@b?`, ``},
+		{Opt(Sch("a.b")), `~a.b?`, ``},
 		{Opt(Enum("kind")), `(enum? 'kind')`, ``},
 		{List(Any), `list`, ``},
 		{List(Int), `list|int`, ``},

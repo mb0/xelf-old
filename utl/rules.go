@@ -152,7 +152,7 @@ func ExtraMapSetter(mapkey string) KeySetter {
 	return func(n Node, key string, el lit.Lit) error {
 		err := PathSetter(n, key, el)
 		if err != nil && key != mapkey {
-			if el == lit.Nil {
+			if el == nil || el == lit.Nil {
 				el = lit.True
 			}
 			err = PathSetter(n, mapkey+"."+key, el)

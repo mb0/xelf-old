@@ -1,8 +1,6 @@
 package exp
 
 import (
-	"log"
-
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
@@ -29,7 +27,7 @@ func Sig(sig string) (Type, error) {
 func MustSig(sig string) Type {
 	s, err := Sig(sig)
 	if err != nil {
-		log.Fatalf("implement spec error: %v", err)
+		panic(cor.Errorf("implement spec error: %v", err))
 	}
 	return s
 }

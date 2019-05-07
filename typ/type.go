@@ -33,6 +33,7 @@ func (a *Info) Key() string {
 }
 func (a *Info) HasRef() bool    { return a != nil && len(a.Ref) > 0 }
 func (a *Info) HasParams() bool { return a != nil && len(a.Params) > 0 }
+func (a *Info) HasConsts() bool { return a != nil && len(a.Consts) > 0 }
 
 func (a *Info) ParamLen() int {
 	if a == nil {

@@ -115,9 +115,9 @@ func (t Type) Ordered() bool {
 
 // Resolved returns whether t is fully resolved
 func (t Type) Resolved() bool {
-	switch t.Kind & SlotMask {
+	switch t.Kind & MaskRef {
 	case KindBits, KindEnum: // check that consts were resolved
-		return t.HasParams()
+		return t.HasConsts()
 	case KindList, KindDict: // check elem type
 		return t.Elem().Resolved()
 	case KindObj, KindRec, KindFunc, KindForm: // check that params were resolved
@@ -129,7 +129,7 @@ func (t Type) Resolved() bool {
 				return false
 			}
 		}
-	case KindRef, KindVar, KindAlt:
+	case KindSch, KindRef, KindVar, KindAlt:
 		return false
 	}
 	return true

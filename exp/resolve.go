@@ -69,11 +69,19 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 		return c.resolveSym(env, v, hint)
 	case *Named:
 		if v.El != nil {
-			el, err := c.Resolve(env, v.El, typ.Void)
-			if err != nil {
-				return nil, err
+			if d, ok := v.El.(*Dyn); ok {
+				els, err := c.ResolveAll(env, d.Els, typ.Void)
+				if err != nil {
+					return nil, err
+				}
+				d.Els = els
+			} else {
+				el, err := c.Resolve(env, v.El, typ.Void)
+				if err != nil {
+					return nil, err
+				}
+				v.El = el
 			}
-			v.El = el
 		}
 		return v, nil
 	case *Dyn:
@@ -115,7 +123,7 @@ func (c *Ctx) resolveDyn(env Env, d *Dyn, hint Type) (El, error) {
 }
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
-	r, _, path, err := findResolver(env, ref.Name)
+	r, _, path, err := findDef(env, ref.Name)
 	if r == nil || r.Lit == nil || err == ErrUnres {
 		c.Unres = append(c.Unres, ref)
 		return ref, ErrUnres
@@ -135,39 +143,41 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 
 func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {
 	last := t.Last()
-	if last.Kind&typ.KindExpr != 0 {
-		if last.Kind&typ.KindFunc != 0 {
-			// TODO resolve func signatures
-		}
-		return t, nil
-	}
-	k := last.Kind
 	if !last.HasRef() {
-		// TODO infer type
 		return t, ErrUnres
 	}
-	key := last.Ref
-	switch k {
-	case typ.KindBits, typ.KindEnum, typ.KindObj:
+	key := last.Key()
+	switch last.Kind {
+	case typ.KindSch, typ.KindBits, typ.KindEnum, typ.KindObj:
 		// return already resolved schema types, otherwise add schema prefix '~'
 		if len(last.Params) > 0 || len(last.Consts) > 0 {
 			return t, nil
 		}
 		key = "~" + key
 	}
-	res, err := c.resolveSym(env, &Sym{Name: key}, typ.Void)
-	if err != nil {
-		return t, err
+	def, _, path, err := findDef(env, key)
+	if def == nil {
+		return t, ErrUnres
 	}
-	et, err := elType(res)
-	if err != nil {
-		return t, err
+	s := def.Type
+	if def.Lit != nil && s == typ.Typ {
+		s = def.Lit.(Type)
 	}
-	t, _ = replaceRef(t, et)
+	if path != "" {
+		res, err := lit.Select(s, path)
+		if err != nil {
+			return typ.Void, err
+		}
+		s = res.(Type)
+	}
+	if last.Kind&typ.KindOpt != 0 {
+		s = typ.Opt(s)
+	}
+	t, _ = replaceRef(t, s)
 	return t, nil
 }
 
-func findResolver(env Env, sym string) (r *Def, name, path string, err error) {
+func findDef(env Env, sym string) (r *Def, name, path string, err error) {
 	if sym == "" {
 		return nil, "", "", cor.Error("empty symbol")
 	}

@@ -216,7 +216,7 @@ Loop:
 			tmp, args = consumeUnis(args)
 		default: // explicit param
 			if len(args) > 0 {
-				if _, _, _, ok := isSpecial(args[0], ":+-;"); ok {
+				if _, _, _, ok := isSpecial(args[0], ":+-"); ok {
 					if !p.Opt() {
 						break Loop
 					}
@@ -244,7 +244,7 @@ func isSig(t Type) bool {
 func consumeArg(es []El) (El, []El) {
 	if len(es) != 0 {
 		e := es[0]
-		if _, _, _, ok := isSpecial(e, ":+-;"); !ok {
+		if _, _, _, ok := isSpecial(e, ":+-"); !ok {
 			return e, es[1:]
 		}
 	}
@@ -264,8 +264,8 @@ func consumeDecl(es []El, uni bool) (El, []El) {
 		return nil, nil
 	}
 	e := es[0]
-	if t, s, a, ok := isSpecial(e, "+-;"); ok {
-		if s[0] == ';' {
+	if t, s, a, ok := isSpecial(e, "+-"); ok {
+		if s == "-" {
 			return nil, es[1:]
 		}
 		d := &Named{Name: s}

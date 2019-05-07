@@ -109,7 +109,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 			if !ptr {
 				return typ.Void, typ.ErrInvalid
 			}
-			return typ.Keyer, nil
+			return typ.Dict(typ.Any), nil
 		}
 		nfo, _, err := reflectFields(t, nfos)
 		if err != nil {
