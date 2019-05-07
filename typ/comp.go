@@ -43,10 +43,10 @@ const (
 )
 
 const (
-	// convert from arr to another arr
-	CmpConvArr = LvlConv | (1 << iota)
-	// convert from map to another map
-	CmpConvMap
+	// convert from one to another list
+	CmpConvList = LvlConv | (1 << iota)
+	// convert from one to another dict
+	CmpConvDict
 	// convert from rec to another rec
 	CmpConvRec
 )
@@ -59,13 +59,13 @@ const (
 	// parse base to spec type
 	CmpCheckSpec
 	// compare list element value types to dst arr or rec
-	CmpCheckList
+	CmpCheckListAny
 	// compare dict element value types to dst map or rec
-	CmpCheckDict
+	CmpCheckDictAny
 	// try to convert arr to another arr
-	CmpCheckArr
+	CmpCheckList
 	// try to convert map to another map
-	CmpCheckMap
+	CmpCheckDict
 	// try to convert rec to another rec
 	CmpCheckRec
 )
@@ -102,16 +102,16 @@ func (c Cmp) Mirror() (m Cmp) {
 	case CmpCompSpec:
 		m = CmpCompBase
 	case CmpCompList:
-		m = CmpCheckList
+		m = CmpCheckListAny
 	case CmpCompDict:
-		m = CmpCheckDict
+		m = CmpCheckDictAny
 	case CmpCheckAny:
 		m = CmpCompAny
 	case CmpCheckSpec:
 		m = CmpCompBase
-	case CmpCheckList:
+	case CmpCheckListAny:
 		m = CmpCompList
-	case CmpCheckDict:
+	case CmpCheckDictAny:
 		m = CmpCompDict
 	}
 	if c&BitWrap != 0 {
@@ -125,29 +125,41 @@ func (c Cmp) Mirror() (m Cmp) {
 
 func compare(src, dst Type) Cmp {
 	s, d := src.Kind, dst.Kind
-	if s == d && s&KindMeta == 0 {
+	if s == KindVoid || d == KindVoid {
+		return CmpNone
+	}
+	if s == KindRef || d == KindRef {
+		// ref always need to be resolved first @a != @a
+		return CmpCheckRef
+	}
+	if s == d { // same kind
+		// type constraints not relevant to var identity
+		if s&SlotMask == KindVar {
+			return CmpSame
+		}
+		// otherwise an equal type is the same same
 		if src.Info.equal(dst.Info, s&KindCtx != 0, nil) {
 			return CmpSame
 		}
 	}
-	s, d = s&SlotMask, d&SlotMask
-	if d == KindVar {
-		// infer dst type from src
-		return CmpInfer
-	}
-	if s&KindMeta != 0 || d&KindMeta != 0 {
-		// ref needs to be resolved first
+	if s == KindSch || d == KindSch {
+		// schema refs need to be resolved if not the same
 		return CmpCheckRef
 	}
+	s, d = s&SlotMask, d&SlotMask
+	// always infer variable destination
+	if d == KindVar {
+		return CmpInfer
+	}
 	// we can work with flags and enums as is but rec must be resolved
-	if d == KindObj && !dst.HasParams() {
+	if s == KindObj && !dst.HasParams() {
 		return CmpCheckRef
 	}
 	if s == KindObj && !src.HasParams() {
 		return CmpCheckRef
 	}
 	// rule out special types, which have strict equality
-	if m := Kind(KindAny | KindOpt); s&m == 0 || d&m == 0 {
+	if s&KindAny == 0 || d&KindAny == 0 {
 		return CmpNone
 	}
 	// handle any, type
@@ -177,57 +189,58 @@ func compare(src, dst Type) Cmp {
 		return CmpCompSpec
 	}
 	// handle container base type list and dict
-	if d == KindList && !dst.HasParams() {
+	if d == KindList {
 		if s&KindIdxr == 0 {
 			return CmpNone
 		}
-		return CmpCompList
+		el := dst.Elem()
+		if el == Any {
+			return CmpCompList
+		}
+		se := src.Elem()
+		if se == Any {
+			return CmpCheckListAny
+		}
+		sub := Compare(src.Elem(), dst.Elem())
+		if sub > LvlConv {
+			return CmpConvList
+		}
+		if sub > LvlCheck {
+			return CmpCheckList
+		}
+		return CmpNone
 	}
-	if d == KindDict && !dst.HasParams() {
-		if s&KindKeyr == 0 {
+	if d == KindDict {
+		if s&(d&KindCont) == 0 {
 			return CmpNone
 		}
-		return CmpCompDict
+		de := dst.Elem()
+		if de == Any {
+			return CmpCompDict
+		}
+		se := src.Elem()
+		if se == Any {
+			return CmpCheckDictAny
+		}
+		sub := Compare(src.Elem(), dst.Elem())
+		if sub > LvlConv {
+			return CmpConvDict
+		}
+		if sub > LvlCheck {
+			return CmpCheckDict
+		}
+		return CmpNone
 	}
-	if s == KindList && !src.HasParams() {
-		switch d & MaskElem {
-		case KindList, KindRec:
-		default:
+	if d&MaskElem == KindRec {
+		if s&KindCont == 0 {
 			return CmpNone
 		}
-		return CmpCheckList
-	}
-	if s == KindDict && !src.HasParams() {
-		switch d & MaskElem {
-		case KindDict, KindRec:
-		default:
-			return CmpNone
+		if !src.HasParams() {
+			if s == KindDict {
+				return CmpCheckDictAny
+			}
+			return CmpCheckListAny
 		}
-		return CmpCheckDict
-	}
-	// handle specific container src type
-	switch s & MaskElem {
-	case KindList:
-		if s&MaskElem == KindList {
-			sub := Compare(src.Elem(), dst.Elem())
-			if sub > LvlConv {
-				return CmpConvArr
-			}
-			if sub > LvlCheck {
-				return CmpCheckArr
-			}
-		}
-	case KindDict:
-		if s&MaskElem == KindDict {
-			sub := Compare(src.Elem(), dst.Elem())
-			if sub > LvlConv {
-				return CmpConvMap
-			}
-			if sub > LvlCheck {
-				return CmpCheckArr
-			}
-		}
-	case KindRec:
 		if s&MaskElem == KindRec {
 			sub := compareInfo(src.Info, dst.Info)
 			if sub > LvlConv {

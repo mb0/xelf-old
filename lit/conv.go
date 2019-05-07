@@ -47,13 +47,13 @@ func Convert(l Lit, dst typ.Type, cmp typ.Cmp) (_ Lit, err error) {
 		return checkAny(l, dst)
 	case typ.CmpCompSpec, typ.CmpCheckSpec:
 		l, err = checkSpec(l, dst)
-	case typ.CmpCheckList:
+	case typ.CmpCheckListAny:
 		return checkList(l.(*List), dst)
-	case typ.CmpCheckDict:
+	case typ.CmpCheckDictAny:
 		return checkDict(l.(*Dict), dst)
-	case typ.CmpConvArr, typ.CmpCheckArr:
+	case typ.CmpConvList, typ.CmpCheckList:
 		return checkArr(l, dst)
-	case typ.CmpConvMap, typ.CmpCheckMap:
+	case typ.CmpConvDict, typ.CmpCheckDict:
 		return checkMap(l, dst)
 	case typ.CmpConvRec, typ.CmpCheckRec:
 		l, err = checkObj(l, dst)
