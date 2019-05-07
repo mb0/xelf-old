@@ -20,8 +20,7 @@ var (
 
 	Idxer = Type{Kind: KindIdxr}
 	Keyer = Type{Kind: KindKeyr}
-
-	Infer = Type{Kind: KindVar}
+	Expr  = Type{Kind: KindExpr}
 
 	Sym   = Type{Kind: KindSym}
 	Dyn   = Type{Kind: KindDyn}
@@ -30,10 +29,13 @@ var (
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | KindOpt, t.Info} }
-func List(t Type) Type    { return cont(KindList, t) }
-func Dict(t Type) Type    { return cont(KindDict, t) }
 func Rec(fs []Param) Type { return Type{KindRec, &Info{Params: fs}} }
 
+func List(t Type) Type { return cont(KindList, t) }
+func Dict(t Type) Type { return cont(KindDict, t) }
+func Idxr(t Type) Type { return cont(KindIdxr, t) }
+func Keyr(t Type) Type { return cont(KindKeyr, t) }
+func Cont(t Type) Type { return cont(KindCont, t) }
 func cont(k Kind, el Type) Type {
 	if el == Void || el == Any {
 		return Type{Kind: k}

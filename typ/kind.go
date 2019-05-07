@@ -39,11 +39,12 @@ const (
 )
 
 const (
-	MaskUber = KindExpr | KindMeta            // 0000 0011 0000
-	MaskBits = 0xf00                          // 1111 0000 0000
-	MaskElem = KindPrim | KindCont | MaskBits // 1111 0000 1111
-	MaskRef  = MaskElem | MaskUber | KindCtx  // 1111 0111 1111
-	MaskLit  = MaskRef | KindOpt              // 1111 1100 1111
+	MaskUber = KindExpr | KindMeta           // 0000 0011 0000
+	MaskBits = 0xf00                         // 1111 0000 0000
+	MaskBase = KindAny | MaskUber            // 0000 0011 1111
+	MaskElem = MaskBase | MaskBits           // 1111 0011 1111
+	MaskRef  = MaskElem | MaskUber | KindCtx // 1111 0111 1111
+	MaskLit  = MaskRef | KindOpt             // 1111 1100 1111
 )
 
 const (
@@ -238,12 +239,14 @@ func simpleStr(k Kind) string {
 		return "alt"
 	case KindIdxr:
 		return "idxr"
+	case KindKeyr:
+		return "keyr"
+	case KindCont:
+		return "cont"
 	case KindExpr:
 		return "expr"
 	case KindMeta:
 		return "meta"
-	case KindKeyr:
-		return "keyr"
 	case KindList:
 		return "list"
 	case KindDict:

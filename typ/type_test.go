@@ -27,7 +27,8 @@ func TestString(t *testing.T) {
 		{Opt(Enum("kind")), `(enum? 'kind')`, ``},
 		{List(Any), `list`, ``},
 		{List(Int), `list|int`, ``},
-		{List(Num), `list|num`, ``},
+		{Keyr(Num), `keyr|num`, ``},
+		{Cont(Num), `cont|num`, ``},
 		{Opt(Rec([]Param{
 			{Name: "Name", Type: Str},
 		})), `(rec? :Name str)`, ``},
