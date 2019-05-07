@@ -198,12 +198,16 @@ func (t Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool
 		err = t.Info.writeXelf(b, true, hist)
 		b.WriteByte(')')
 		return err
-	case KindRef:
+	case KindRef, KindSch:
 		ref := ""
 		if t.HasRef() {
 			ref = t.Ref
 		}
-		writeRef(b, pre, '@', ref, t)
+		var x byte = '@'
+		if t.Kind&KindSch == KindSch {
+			x = '~'
+		}
+		writeRef(b, pre, x, ref, t)
 		return nil
 	case KindRec, KindFunc, KindForm, KindAlt:
 		detail = true

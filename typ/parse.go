@@ -56,7 +56,7 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 			k, err := ParseKind(s)
 			return Type{Kind: k}, err
 		} else { // schema type
-			res = Ref(ref)
+			res = Sch(ref)
 		}
 		if opt {
 			return Opt(res), nil

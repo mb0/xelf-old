@@ -80,7 +80,8 @@ const (
 
 	KindVar = KindMeta | KindBit1 // 0x120
 	KindRef = KindMeta | KindBit2 // 0x220
-	KindAlt = KindMeta | KindBit3 // 0x420
+	KindSch = KindMeta | KindBit3 // 0x420
+	KindAlt = KindMeta | KindBit4 // 0x820
 )
 
 func (k Kind) Prom() bool {
@@ -96,14 +97,6 @@ func ParseKind(str string) (Kind, error) {
 	pref := str[0] == '~'
 	if pref {
 		str = str[1:]
-	}
-	if len(str) > 5 && str[4] == '|' {
-		switch str[:4] {
-		case "list":
-			return KindList, nil
-		case "dict":
-			return KindDict, nil
-		}
 	}
 	switch str {
 	case "void":
@@ -259,6 +252,8 @@ func simpleStr(k Kind) string {
 	switch k & MaskRef {
 	case KindRef:
 		return "@"
+	case KindSch:
+		return "~"
 	case KindNum:
 		return "num"
 	case KindChar:
