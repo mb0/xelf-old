@@ -121,15 +121,15 @@ func TestStdResolve(t *testing.T) {
 		{`(apd [] 1 2 3)`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
 		{`([] 1 2 3)`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
 		{`(list (list|int 1 2 3))`, &lit.List{Data: []lit.Lit{lit.Int(1), lit.Int(2), lit.Int(3)}}},
-		{`(set {} +x +y 3)`, &lit.Dict{List: []lit.Keyed{
+		{`(set {} :x :y 3)`, &lit.Dict{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
 		}}},
-		{`({} +x +y 3)`, &lit.Dict{List: []lit.Keyed{
+		{`({} :x :y 3)`, &lit.Dict{List: []lit.Keyed{
 			{"x", lit.Num(3)},
 			{"y", lit.Num(3)},
 		}}},
-		{`(dict (dict|int +x +y 3))`, &lit.Dict{List: []lit.Keyed{
+		{`(dict (dict|int :x :y 3))`, &lit.Dict{List: []lit.Keyed{
 			{"x", lit.Int(3)},
 			{"y", lit.Int(3)},
 		}}},
@@ -145,9 +145,9 @@ func TestStdResolve(t *testing.T) {
 		{`(if 1 'a')`, lit.Char("a")},
 		{`(if 0 'a' 'b')`, lit.Char("b")},
 		{`(if 0 'a')`, lit.Char("")},
-		{`(let +a (int 1) a)`, lit.Int(1)},
-		{`(let +a 1 +b 2 +c (int (add a b)) c)`, lit.Int(3)},
-		{`(let +a 1 +b 2 +c (add a b) (add a b c))`, lit.Num(6)},
+		{`(let :a (int 1) a)`, lit.Int(1)},
+		{`(let :a 1 :b 2 :c (int (add a b)) c)`, lit.Int(3)},
+		{`(let :a 1 :b 2 :c (add a b) (add a b c))`, lit.Num(6)},
 		{`(len 'test')`, lit.Int(4)},
 		{`(len [1 2 3])`, lit.Int(3)},
 		{`(len {a:1 b:2})`, lit.Int(2)},
@@ -174,19 +174,19 @@ func TestStdResolve(t *testing.T) {
 			(fn :a :v str :i int : str (cat _ ' ' .v (if .i ','))))`,
 			lit.Str("hello calvin, bob, alice"),
 		},
-		{`(let +a int @a)`, typ.Int},
-		{`(let +a (rec :b int) @a.b)`, typ.Int},
-		{`(let +a int +b list|@a @b)`, typ.List(typ.Int)},
-		{`(let +f (fn : int 1) (f))`, lit.Int(1)},
-		{`(let +f (fn :a : int (add .a 1)) (f 1))`, lit.Int(2)},
-		{`(let +f (fn :a : int (mul _ _)) (f 3))`, lit.Int(9)},
-		{`(let +sum (fn :n list|int : int
+		{`(let :a int @a)`, typ.Int},
+		{`(let :a (rec :b int) @a.b)`, typ.Int},
+		{`(let :a int :b list|@a @b)`, typ.List(typ.Int)},
+		{`(let :f (fn : int 1) (f))`, lit.Int(1)},
+		{`(let :f (fn :a : int (add .a 1)) (f 1))`, lit.Int(2)},
+		{`(let :f (fn :a : int (mul _ _)) (f 3))`, lit.Int(9)},
+		{`(let :sum (fn :n list|int : int
 				(fold .n 0 (fn :a :b : int (add .a .b))))
 			(sum 1 2 3)
 		)`, lit.Int(6)},
 		{`(with 'test' .)`, lit.Char("test")},
 		{`(with ((rec :a int) [1]) .a)`, lit.Int(1)},
-		{`(with [1 2 3 4 5] (let +even (fn :a ~num : bool (eq (rem _ 2) 0)) (and
+		{`(with [1 2 3 4 5] (let :even (fn :a ~num : bool (eq (rem _ 2) 0)) (and
 			(eq (len "test") 4)
 			(eq (len .) 5)
 			(eq (fst .) (nth . 0) 1)

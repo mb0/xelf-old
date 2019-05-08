@@ -12,7 +12,7 @@ var errConType = cor.StrError("the 'con' expression must start with a type")
 // dynSpec resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'con' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
-var dynSpec = core.impl("(form 'dyn' @ :rest? list @)",
+var dynSpec = core.impl("(form 'dyn' @1 :rest? list @2)",
 	func(x exp.ReslReq) (_ exp.El, err error) {
 		if len(x.Call.Args) == 0 {
 			return typ.Void, nil
@@ -99,7 +99,7 @@ func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, e
 //    With one literal compatible to that type it returns the converted literal.
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
-var conSpec = core.impl("(form 'con' typ :args? list :unis? dict @)",
+var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 	func(x exp.ReslReq) (exp.El, error) {
 		// resolve all arguments
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)

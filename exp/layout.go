@@ -144,7 +144,7 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 				res = err
 			}
 			switch key {
-			case "decls", "unis":
+			case "tags", "decls", "unis":
 				p.Type = typ.Dict(v)
 			default:
 				p.Type = typ.List(v)

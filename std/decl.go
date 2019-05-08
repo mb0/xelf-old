@@ -28,7 +28,7 @@ var withSpec = core.impl("(form 'with' any :rest list|expr @)",
 
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-var letSpec = decl.impl("(form 'let' :unis dict|any :rest list|expr @)",
+var letSpec = decl.impl("(form 'let' :tags dict|any :plain list|expr @)",
 	func(x exp.ReslReq) (exp.El, error) {
 		decls, err := x.Unis(0)
 		if err != nil {
@@ -56,7 +56,7 @@ var letSpec = decl.impl("(form 'let' :unis dict|any :rest list|expr @)",
 	})
 
 // fnSpec declares a function literal from its arguments.
-var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :rest list|expr @)",
+var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :plain list|expr @)",
 	func(x exp.ReslReq) (exp.El, error) {
 		decls, err := x.Unis(0)
 		if err != nil {

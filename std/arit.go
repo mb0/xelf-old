@@ -279,5 +279,3 @@ func redNums(args []exp.El, c *numCtx, f numOp) (err error) {
 	}
 	return nil
 }
-
-//*/
