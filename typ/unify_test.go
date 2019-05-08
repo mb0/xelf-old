@@ -35,6 +35,8 @@ func TestUnify(t *testing.T) {
 		{List(Int), List(Int), List(Int)},
 		{List(Real), List(Int), List(Num)},
 		{Cont(Any), List(Any), List(Any)},
+		{Cont(Int), List(Var(1)), List(Int)},
+		{Var(1, Cont(Int)), Dict(Var(2)), Dict(Int)},
 		{Alt(Char, Str, Raw), UUID, Char},
 		{Alt(Char, Str), Time, Char},
 	}
@@ -61,7 +63,7 @@ func TestUnify(t *testing.T) {
 		c = new(Ctx)
 		a, m = c.inst(test.a, nil, nil)
 		b, m = c.inst(test.b, m, nil)
-		r, _ = Unify(c, a, b)
+		r, err = Unify(c, a, b)
 		if err != nil {
 			t.Errorf("unify ab error: %v", err)
 			continue
