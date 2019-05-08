@@ -133,7 +133,7 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 			inst.Params = append(inst.Params, p)
 			continue
 		}
-		switch p.Key() {
+		switch key := p.Key(); key {
 		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
 			v := c.New()
 			args, err := c.ResolveAll(env, args, v)
@@ -143,7 +143,7 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 				}
 				res = err
 			}
-			switch p.Name {
+			switch key {
 			case "decls", "unis":
 				p.Type = typ.Dict(v)
 			default:
@@ -172,12 +172,12 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 		}
 	}
 	if hint == typ.Void {
-		hint = typ.Any // c.New()
+		hint = c.New()
 	}
 	inst.Params = append(inst.Params, typ.Param{Type: hint})
 	r, err := typ.Unify(&c.Ctx, l.Sig, inst)
 	if err != nil {
-		return cor.Errorf("unify sig %s with %s: %v", l.Sig, inst, err)
+		return cor.Errorf("unify sig %s with %s: %v\n%v", c.Apply(l.Sig), c.Apply(inst), err, c.Ctx)
 	}
 	l.Sig = r
 	return res

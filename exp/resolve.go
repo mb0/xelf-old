@@ -100,7 +100,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
 	if hint != typ.Void {
 		if lt := l.Typ(); lt != typ.Void {
-			_, err := typ.Unify(&c.Ctx, hint, lt)
+			_, err := typ.Unify(&c.Ctx, lt, hint)
 			if err != nil {
 				return nil, err
 			}

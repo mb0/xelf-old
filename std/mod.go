@@ -17,7 +17,7 @@ var (
 )
 
 // catSpec concatenates one or more arguments to a str, raw or idxer literal.
-var catSpec = core.impl("(form 'cat' (@:alt str raw idxr) :rest list @)",
+var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :rest list @2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {

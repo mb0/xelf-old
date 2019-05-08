@@ -68,17 +68,17 @@ var lenSpec = core.implResl("(form 'len' (@:alt cont str raw) int)",
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 	})
 
-var fstSpec = decl.implResl("(form 'fst' cont|@1 :pred? (func @ bool) @1)",
+var fstSpec = decl.implResl("(form 'fst' list|@1 :pred? (func @ bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		return nth(x, x.Arg(0), x.Arg(1), 0)
 	})
 
-var lstSpec = decl.implResl("(form 'lst' cont|@1 :pred? (func @1 bool) @1)",
+var lstSpec = decl.implResl("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		return nth(x, x.Arg(0), x.Arg(1), -1)
 	})
 
-var nthSpec = decl.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @1)",
+var nthSpec = decl.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		l, ok := x.Arg(1).(lit.Numeric)
 		if !ok {
@@ -269,7 +269,7 @@ func (r *fIter) filter(x exp.ReslReq, cont exp.El) (lit.Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
-var filterSpec = decl.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
+var filterSpec = decl.implResl("(form 'filter' cont|@1 (func @1 bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
 		cont := x.Arg(0)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
@@ -283,7 +283,7 @@ var filterSpec = decl.implResl("(form 'filter' @1:cont|@2 (func @2 bool) @1)",
 		return res, nil
 	})
 
-var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
+var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 	func(x exp.ReslReq) (exp.El, error) {
 		cont := x.Arg(0)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
@@ -292,7 +292,7 @@ var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @:cont|@2)",
 		}
 		var rt typ.Type
 		it := iter.Res()
-		if it == typ.Void || it == typ.Infer {
+		if it == typ.Void {
 			it = typ.Any
 		}
 		switch t := cont.Typ(); t.Kind & typ.MaskElem {

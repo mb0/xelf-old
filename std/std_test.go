@@ -243,16 +243,16 @@ func TestStdResolvePart(t *testing.T) {
 		{`(lt 0 1 x)`, `(lt 1 x)`, "bool"},
 		{`(lt 0 x 2)`, `(lt 0 x 2)`, "bool"},
 		{`(lt x 1 2)`, `(lt x 1)`, "bool"},
-		{`(add x 2 3)`, `(add x 5)`, "@1"},
+		{`(add x 2 3)`, `(add x 5)`, "@1:num"},
 		{`(add 1 x 3)`, `(add 4 x)`, "~num"},
 		{`(add 1 2 x)`, `(add 3 x)`, "~num"},
-		{`(sub x 2 3)`, `(sub x 5)`, "@1"},
+		{`(sub x 2 3)`, `(sub x 5)`, "@1:num"},
 		{`(sub 1 x 3)`, `(sub -2 x)`, "~num"},
 		{`(sub 1 2 x)`, `(sub -1 x)`, "~num"},
-		{`(mul x 2 3)`, `(mul x 6)`, "@1"},
+		{`(mul x 2 3)`, `(mul x 6)`, "@1:num"},
 		{`(mul 6 x 3)`, `(mul 18 x)`, "~num"},
 		{`(mul 6 2 x)`, `(mul 12 x)`, "~num"},
-		{`(div x 2 3)`, `(div x 6)`, "@1"},
+		{`(div x 2 3)`, `(div x 6)`, "@1:num"},
 		{`(div 6 x 3)`, `(div 2 x)`, "~num"},
 		{`(div 6 2 x)`, `(div 3 x)`, "~num"},
 		{`(1 2 x)`, `(add 3 x)`, "~num"},
@@ -286,7 +286,7 @@ func TestStdResolvePart(t *testing.T) {
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)
 		}
 		if got, _ := elType(r); got.String() != test.typ {
-			t.Errorf("%s want %s got %s", test.raw, test.typ, got)
+			t.Errorf("%s want %s got %s\n%v", test.raw, test.typ, got, c.Ctx)
 		}
 	}
 }
