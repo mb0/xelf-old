@@ -4,7 +4,7 @@ import (
 	"github.com/mb0/xelf/cor"
 )
 
-// Unify unifies types a and b or returns an error.
+// Unify returns a unified type for a and b or an error.
 func Unify(c *Ctx, a, b Type) (Type, error) {
 	x, av := c.apply(a, nil)
 	y, bv := c.apply(b, nil)
@@ -14,104 +14,99 @@ func Unify(c *Ctx, a, b Type) (Type, error) {
 	if isVar(y) {
 		return unifyVar(c, y, x)
 	}
-	v, _ := choose(c, x)
-	w, _ := choose(c, y)
-	s, err := unify(c, v, w)
+	if isAlt(x) && isAlt(y) {
+		return Choose(Alt(x, y))
+	}
+	_, t, err := unify(c, x, y)
 	if err != nil {
 		return Void, err
 	}
 	var res error
 	if av {
-		res = bindAlt(c, a, x, w, s)
+		res = bindAlt(c, a, Void, t, Void)
 	}
 	if bv {
-		err := bindAlt(c, b, y, v, s)
+		err := bindAlt(c, b, Void, t, Void)
 		if res == nil {
 			res = err
 		}
 	}
-	return c.Apply(s), res
+	return c.Apply(t), res
 }
 
 func isVar(t Type) bool { return t.Kind&MaskRef == KindVar }
 func isAlt(t Type) bool { return t.Kind == KindAlt && t.HasParams() }
 
-func unify(c *Ctx, a, b Type) (Type, error) {
-	cmp := Compare(a, b)
-	if cmp > LvlEqual {
-		return a, nil
+func unify(c *Ctx, a, b Type) (Type, Type, error) {
+	if a == Any || b == Any {
+		return Any, Any, nil
 	}
-	switch cmp {
-	case CmpCompAny, CmpCompBase, CmpCompList, CmpCompDict:
-		return b, nil
-	case CmpCheckList, CmpCheckDict, CmpCompSpec, CmpCheckAny:
-		return a, nil
-	case CmpConvArr, CmpCheckArr:
-		el, err := Unify(c, a.Elem(), b.Elem())
+	s, t, err := Common(a, b)
+	if err != nil {
+		return s, t, err
+	}
+	x, err := Choose(s)
+	if err != nil {
+		return s, t, err
+	}
+	switch x.Kind {
+	case KindAny:
+		return Void, Void, cor.Errorf("cannot unify %s with %s", a, b)
+	case KindList, KindDict:
+		_, err := Unify(c, a.Elem(), b.Elem())
 		if err != nil {
-			return Void, err
+			return Void, Void, err
 		}
-		return Type{KindList, &Info{Params: []Param{{Type: el}}}}, nil
-	case CmpConvMap, CmpCheckMap:
-		el, err := Unify(c, a.Elem(), b.Elem())
-		if err != nil {
-			return Void, err
-		}
-		return Type{KindDict, &Info{Params: []Param{{Type: el}}}}, nil
 	default:
-		if m := a.Kind & KindAny; m != 0 && b.Kind&m != 0 {
-			res := Type{Kind: b.Kind & m}
-			if elem := a.Kind & MaskElem; elem == b.Kind&MaskElem {
-				res.Kind = elem
+		if a.HasParams() && b.HasParams() {
+			if len(a.Params) != len(b.Params) {
+				return s, t, nil
 			}
-			if a.HasParams() && b.HasParams() {
-				if len(a.Params) != len(b.Params) {
-					return res, nil
+			for i, ap := range a.Params {
+				_, err := Unify(c, ap.Type, b.Params[i].Type)
+				if err != nil {
+					return Void, Void, err
 				}
-				ps := make([]Param, 0, len(a.Params))
-				for i, ap := range a.Params {
-					c, err := Unify(c, ap.Type, b.Params[i].Type)
-					if err != nil {
-						return Void, err
-					}
-					ps = append(ps, Param{Type: c})
-				}
-				res.Info = &Info{Params: ps}
 			}
-			return res, nil
 		}
 	}
-	return Void, cor.Errorf("cannot unify %s with %s", a, b)
+	return s, t, nil
 }
 
 func unifyVar(c *Ctx, v, t Type) (Type, error) {
-	if v.HasParams() {
-		if isVar(t) {
-			t = mergeHint(t, v)
+	if isVar(t) {
+		if t.HasParams() && !v.HasParams() {
+			m := mergeHint(v, t)
+			m.Kind = t.Kind
+			t = m
 		} else {
-			err := checkHint(c, t, v)
-			if err != nil {
-				return Void, err
-			}
+			t = mergeHint(t, v)
 		}
-	} else if isVar(t) && t.HasParams() {
-		m := mergeHint(v, t)
-		m.Kind = t.Kind
-		return m, c.Bind(v.Kind, m)
+	} else if v.HasParams() {
+		err := checkHint(c, t, v)
+		if err != nil {
+			return Void, err
+		}
 	}
-	if v.Kind == t.Kind {
-		return v, nil
+	if v.Kind != t.Kind {
+		return t, c.Bind(v.Kind, t)
 	}
-	return t, c.Bind(v.Kind, t)
+	return t, nil
 }
 
 func mergeHint(v, o Type) Type {
-	if !v.HasParams() {
+	vp, op := v.HasParams(), o.HasParams()
+	if !vp && !op {
+		return v
+	}
+	if !vp {
 		if v.Info == nil {
 			v.Info = &Info{}
 		}
 		v.Params = append(v.Params, o.Params...)
-		return v
+	}
+	if !op && o.Info != nil {
+		o.Params = append(o.Params, v.Params...)
 	}
 	// TODO merge
 	return v

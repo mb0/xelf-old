@@ -1,8 +1,11 @@
 package typ
 
-import (
-	"github.com/mb0/xelf/cor"
-)
+import "sort"
+
+func NewAlt(alts ...Type) (res Type) {
+	res = Type{KindAlt, &Info{Params: make([]Param, 0, len(alts)*2)}}
+	return addAlts(res, alts)
+}
 
 // Alt returns a new type alternative for a list of types. Other alternatives are flattened.
 // If the first type is already an alterantive, the following types are added.
@@ -10,86 +13,83 @@ func Alt(alts ...Type) (res Type) {
 	if len(alts) == 0 {
 		return Void
 	}
-	fst := alts[0]
-	if isAlt(fst) {
+	if fst := alts[0]; isAlt(fst) {
 		return addAlts(fst, alts[1:])
 	}
-	res = Type{KindAlt, &Info{Params: make([]Param, 0, len(alts)*2)}}
-	return addAlts(res, alts)
-}
-
-func AddAlts(t Type, alts []Type) (_ Type, err error) {
-	if !isAlt(t) {
-		return t, cor.Errorf("invalid type alternaive")
-	}
-	return addAlts(t, alts), nil
+	return NewAlt(alts...)
 }
 
 // Choose returns type t with all type alternatives reduced to its most specific representation.
-func Choose(c *Ctx, t Type) Type { t, _ = choose(c, t); return t }
-func choose(c *Ctx, t Type) (min Type, ok bool) {
+func Choose(t Type) (_ Type, err error) {
 	if t.Kind&MaskRef != KindAlt {
 		if !t.HasParams() {
-			return t, false
+			return t, nil
 		}
 		var ps []Param
 		for i, p := range t.Params {
-			p.Type, ok = choose(c, p.Type)
-			if ok && ps == nil {
+			p.Type, err = Choose(p.Type)
+			if err != nil {
+				return Void, err
+			}
+			if ps == nil {
 				ps = make([]Param, 0, len(t.Params))
 				ps = append(ps, t.Params[:i]...)
 			}
 			ps = append(ps, p)
 		}
-		if ps == nil {
-			return t, false
+		if ps != nil {
+			nfo := *t.Info
+			nfo.Params = ps
+			t.Info = &nfo
 		}
-		nfo := *t.Info
-		nfo.Params = ps
-		t.Info = &nfo
-		return t, true
+		return t, nil
 	}
 	if !t.HasParams() {
-		return Void, true
+		return Void, nil
 	}
-	min = t.Params[0].Type
-	max := Void
-	for i, p := range t.Params[1:] {
-		v, _ := choose(c, min)
-		w, _ := choose(c, p.Type)
-		tmp, err := Unify(c, v, w)
+	var a, b, tmp Type
+	for i, p := range t.Params {
+		if i == 0 {
+			a = p.Type
+			continue
+		}
+		a, tmp, err = Common(a, p.Type)
 		if err != nil {
-			t.Params = t.Params[i-1:]
-			t.Params[0].Type = min
-			return t, true
+			return Void, err
 		}
-		min = tmp
-		if max == Void || Compare(max, p.Type) > LvlComp {
-			max = p.Type
+		if b == Void || b.Kind > tmp.Kind {
+			b = tmp
 		} else {
-			max = min
+			b = a
 		}
 	}
-	if max == Void {
-		return min, true
+	if b != Void {
+		return b, nil
 	}
-	return max, true
+	return a, nil
 }
 
 func hasAlt(t, alt Type) bool {
-	for _, p := range t.Params {
-		if alt.Equal(p.Type) {
-			return true
-		}
-	}
-	return false
+	ps := t.Params
+	i := sort.Search(len(ps), func(i int) bool {
+		return ps[i].Kind >= alt.Kind
+	})
+	return i < len(ps) && ps[i].Type == alt
 }
 
 func addAlt(t, a Type) Type {
 	if a.Kind != KindAlt {
-		if !hasAlt(t, a) {
-			t.Params = append(t.Params, Param{Type: a})
+		ps := t.Params
+		i := sort.Search(len(ps), func(i int) bool {
+			return ps[i].Kind >= a.Kind
+		})
+		if i >= len(ps) {
+			ps = append(ps, Param{Type: a})
+		} else if ps[i].Type != a {
+			ps = append(ps[:i+1], ps[i:]...)
+			ps[i] = Param{Type: a}
 		}
+		t.Params = ps
 	} else if a.ParamLen() > 0 {
 		for _, p := range a.Params {
 			t = addAlt(t, p.Type)

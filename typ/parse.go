@@ -102,11 +102,11 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 		}
 		switch s[:4] {
 		case "cont":
-			return cont(KindCont, t), nil
+			return Cont(t), nil
 		case "idxr":
-			return cont(KindIdxr, t), nil
+			return Idxr(t), nil
 		case "keyr":
-			return cont(KindKeyr, t), nil
+			return Keyr(t), nil
 		case "list":
 			return List(t), nil
 		case "dict":

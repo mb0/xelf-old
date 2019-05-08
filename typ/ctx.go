@@ -38,7 +38,12 @@ func (c *Ctx) Bind(v Kind, t Type) error {
 }
 
 // Apply returns t with variables replaced from context.
-func (c *Ctx) Apply(t Type) Type { t, _ = c.apply(t, nil); return Choose(c, t) }
+func (c *Ctx) Apply(t Type) Type {
+	t, _ = c.apply(t, nil)
+	t, _ = Choose(t)
+	return t
+}
+
 func (c *Ctx) apply(t Type, hist []Type) (_ Type, isvar bool) {
 	for isVar(t) {
 		isvar = true

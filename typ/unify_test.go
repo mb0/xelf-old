@@ -24,15 +24,17 @@ func TestUnify(t *testing.T) {
 		{Var(1), Var(1), Var(1)},
 		{Var(1, Num), Var(1), Var(1, Num)},
 		{Var(1), Var(1, Num), Var(1, Num)},
+		{Alt(Num), Int, Int},
 		{Alt(Num, Int), Int, Int},
 		{Alt(Num, Int), Real, Num},
 		{Alt(Num, Int), Num, Int},
 		{Int, Alt(Num, Int), Int},
 		{Real, Alt(Num, Int), Num},
-		{List(Int), List(Any), List(Int)},
-		{List(Any), List(Int), List(Int)},
+		{List(Int), List(Any), List(Any)},
+		{List(Any), List(Int), List(Any)},
 		{List(Int), List(Int), List(Int)},
 		{List(Real), List(Int), List(Num)},
+		{Cont(Any), List(Any), List(Any)},
 		{Alt(Char, Str, Raw), UUID, Char},
 		{Alt(Char, Str), Time, Char},
 	}
@@ -48,13 +50,26 @@ func TestUnify(t *testing.T) {
 		}
 		_, err = Unify(c, r, b)
 		if err != nil {
-			t.Errorf("unify error: %v", err)
+			t.Errorf("unify error for %s %s: %v", test.a, test.b, err)
 			continue
 		}
 		got := c.Apply(r)
 		if !got.Equal(test.w) {
-			t.Errorf("unify %s for %s %s > %s %s want %s got %s\n%v",
-				r, test.a, test.b, a, b, test.w, got, c.binds)
+			t.Errorf("unify %s for %s %s want %s got %s\n%v",
+				r, a, b, test.w, got, c.binds)
+		}
+		c = new(Ctx)
+		a, m = c.inst(test.a, nil, nil)
+		b, m = c.inst(test.b, m, nil)
+		r, _ = Unify(c, a, b)
+		if err != nil {
+			t.Errorf("unify ab error: %v", err)
+			continue
+		}
+		got = c.Apply(r)
+		if !got.Equal(test.w) {
+			t.Errorf("unify ab %s for %s %s want %s got %s\n%v",
+				r, a, b, test.w, got, c.binds)
 		}
 	}
 }
