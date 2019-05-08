@@ -56,7 +56,7 @@ var letSpec = decl.impl("(form 'let' :unis dict|any :rest list|expr @)",
 	})
 
 // fnSpec declares a function literal from its arguments.
-var fnSpec = decl.impl("(form 'fn' :unis? dict|typ :rest list|expr @)",
+var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :rest list|expr @)",
 	func(x exp.ReslReq) (exp.El, error) {
 		decls, err := x.Unis(0)
 		if err != nil {
