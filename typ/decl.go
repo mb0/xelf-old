@@ -18,10 +18,7 @@ var (
 	Time = Type{Kind: KindTime}
 	Span = Type{Kind: KindSpan}
 
-	Idxer = Type{Kind: KindIdxr}
-	Keyer = Type{Kind: KindKeyr}
 	Expr  = Type{Kind: KindExpr}
-
 	Sym   = Type{Kind: KindSym}
 	Dyn   = Type{Kind: KindDyn}
 	Call  = Type{Kind: KindCall}

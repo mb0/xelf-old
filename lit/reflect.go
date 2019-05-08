@@ -142,7 +142,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 			break
 		}
 		if isRef(t, refList) {
-			return typ.Idxer, nil
+			return typ.Idxr(typ.Any), nil
 		}
 		if t.Name() == "Dyn" && isRef(t, refEl) {
 			res = typ.Dyn

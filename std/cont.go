@@ -298,7 +298,7 @@ var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 		switch t := cont.Typ(); t.Kind & typ.MaskElem {
 		case typ.KindIdxr:
 			if it == typ.Any {
-				rt = typ.Idxer
+				rt = typ.Idxr(it)
 			} else {
 				rt = typ.List(it)
 			}
@@ -306,14 +306,14 @@ var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 			rt = typ.List(it)
 		case typ.KindKeyr:
 			if it == typ.Any {
-				rt = typ.Keyer
+				rt = typ.Keyr(it)
 			} else {
 				rt = typ.Dict(it)
 			}
 		case typ.KindDict:
 			rt = typ.Dict(it)
 		case typ.KindRec:
-			rt = typ.Keyer
+			rt = typ.Keyr(it)
 		}
 		switch v := deopt(cont).(type) {
 		case lit.Keyer:
