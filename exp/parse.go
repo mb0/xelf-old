@@ -1,6 +1,7 @@
 package exp
 
 import (
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -84,8 +85,15 @@ func Parse(env Env, a *lex.Tree) (Expr, error) {
 			}
 		case *Named:
 			if t.Name[0] == ':' {
-				// TODO decide what to do with tag expressions
-				return parseDyn(env, a.Seq, nil)
+				def := Lookup(env, t.Name)
+				if def == nil {
+					return nil, errStartingTag(t.Name)
+				}
+				spec, ok := def.Lit.(*Spec)
+				if !ok {
+					return nil, errStartingTag(t.Name)
+				}
+				return &Call{Spec: spec, Args: t.Args(), Src: t.Src}, nil
 			}
 			dyn, err := parseDyn(env, a.Seq[1:], nil)
 			if err != nil {
@@ -111,6 +119,11 @@ func Parse(env Env, a *lex.Tree) (Expr, error) {
 		return d, nil
 	}
 	return nil, a.Err(lex.ErrUnexpected)
+}
+
+func errStartingTag(name string) error {
+	return cor.Errorf("expressions starting with a tag must resolve to a built-in type "+
+		"conversion spec, got %v", name)
 }
 
 func parseDyn(env Env, seq []*lex.Tree, el Expr) (_ *Dyn, err error) {

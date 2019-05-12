@@ -40,6 +40,7 @@ func TestStdResolve(t *testing.T) {
 		{`(bool)`, lit.False},
 		{`(bool 1)`, lit.True},
 		{`(bool 0)`, lit.False},
+		{`(:bool 0)`, lit.False},
 		{`(raw)`, lit.Raw(nil)},
 		{`7`, lit.Num(7)},
 		{`(7)`, lit.Num(7)},

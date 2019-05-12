@@ -9,7 +9,7 @@ import (
 
 // failSpec returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
-var failSpec = core.impl("(form 'fail' :rest? list any)",
+var failSpec = core.implResl("(form 'fail' :rest? list any)",
 	func(x exp.ReslReq) (exp.El, error) {
 		if x.Exec {
 			return nil, cor.Errorf("%s", x.Call)
@@ -100,7 +100,7 @@ var boolSpec *exp.Spec
 var notSpec *exp.Spec
 
 func init() {
-	boolSpec = core.impl("(form '(bool)' :plain? list bool)", // TODO change to ':bool' ?
+	boolSpec = core.impl("(form ':bool' :plain? list bool)",
 		func(x exp.ReslReq) (exp.El, error) {
 			res, err := resolveAnd(x)
 			if err == exp.ErrUnres {
