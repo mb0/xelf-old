@@ -101,40 +101,43 @@ var leSpec = core.impl("(form 'le' @1 :plain list|@1 bool)",
 type cmpf = func(a, b lit.Lit) bool
 
 func resolveBinaryComp(x exp.ReslReq, sym bool, cmp cmpf) (exp.El, error) {
+	err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+	if err == exp.ErrUnres {
+		if !x.Part {
+			return x.Call, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
 	var res, init bool
 	var unres []exp.El
 	var last lit.Lit
-	for _, arg := range x.Call.Args {
-		arg, err := x.Ctx.Resolve(x.Env, arg, typ.Void)
-		if err == exp.ErrUnres {
-			if !x.Part {
-				return x.Call, err
+	for _, args := range x.Layout.All() {
+		for _, arg := range args {
+			if arg.Typ().Kind&typ.KindAny == 0 {
+				if len(unres) == 0 {
+					unres = make([]exp.El, 0, len(x.Call.Args))
+					if res {
+						init = true
+						unres = append(unres, last)
+					}
+				}
+				res = false
+				unres = append(unres, arg)
+				continue
 			}
-			if len(unres) == 0 {
-				unres = make([]exp.El, 0, len(x.Call.Args))
-				if res {
-					init = true
-					unres = append(unres, last)
+			el := arg.(lit.Lit)
+			if last != nil {
+				if !cmp(last, el) {
+					return lit.False, nil
 				}
 			}
-			res = false
-			unres = append(unres, arg)
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-		el := arg.(lit.Lit)
-		if last != nil {
-			if !cmp(last, el) {
-				return lit.False, nil
+			if !res && ((!sym || !init) && len(unres) > 0) || len(unres) == 1 {
+				unres = append(unres, el)
 			}
+			last = el
+			res = true
 		}
-		if !res && ((!sym || !init) && len(unres) > 0) || len(unres) == 1 {
-			unres = append(unres, el)
-		}
-		last = el
-		res = true
 	}
 	if len(unres) != 0 {
 		x.Call.Args = unres

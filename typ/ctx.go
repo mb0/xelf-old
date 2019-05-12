@@ -87,18 +87,10 @@ func (c *Ctx) apply(t Type, hist []Type) (_ Type, isvar bool) {
 // Inst instantiates type t for this context, replacing all type vars.
 func (c *Ctx) Inst(t Type) Type { r, _ := c.inst(t, nil, nil); return r }
 func (c *Ctx) inst(t Type, m Binds, hist []Type) (Type, Binds) {
-	if t.Info != nil {
-		for i := 0; i < len(hist); i++ {
-			h := hist[len(hist)-1-i]
-			if t.Info == h.Info {
-				return h, m
-			}
-		}
-	}
 	t, _ = c.apply(t, nil)
 	if isVar(t) {
 		r, ok := m.Get(t.Kind)
-		if !ok {
+		if t.Kind == KindVar || !ok {
 			r = c.New()
 			r.Info = t.Info
 			m = m.Set(t.Kind, r)
@@ -108,6 +100,12 @@ func (c *Ctx) inst(t Type, m Binds, hist []Type) (Type, Binds) {
 		}
 		return r, m
 	} else if t.HasParams() {
+		for i := 0; i < len(hist); i++ {
+			h := hist[len(hist)-1-i]
+			if t.Info == h.Info {
+				return h, m
+			}
+		}
 		n := *t.Info
 		r := Type{Kind: t.Kind, Info: &n}
 		r.Params = make([]Param, 0, len(t.Params))

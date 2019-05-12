@@ -106,7 +106,7 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 		if err != nil {
 			t, ok := x.Arg(0).(typ.Type)
 			if ok && x.Hint != typ.Void {
-				_, err := typ.Unify(&x.Ctx.Ctx, x.Hint, t)
+				_, err := typ.Unify(x.Ctx.Ctx, x.Hint, t)
 				if err == nil {
 					x.Call.Type = x.Apply(x.Call.Type)
 				}
@@ -118,7 +118,7 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 			return nil, errConType
 		}
 		if x.Hint != typ.Void {
-			typ.Unify(&x.Ctx.Ctx, x.Hint, t)
+			typ.Unify(x.Ctx.Ctx, x.Hint, t)
 			x.Call.Type = x.Apply(x.Call.Type)
 		}
 		if t == typ.Void { // just in case we have a dynamic comment

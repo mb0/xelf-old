@@ -23,7 +23,7 @@ var failSpec = core.impl("(form 'fail' :rest? list any)",
 var orSpec = core.impl("(form 'or' :plain? list bool)",
 	func(x exp.ReslReq) (exp.El, error) {
 		if x.Hint != typ.Void {
-			typ.Unify(&x.Ctx.Ctx, x.Hint, typ.Bool)
+			typ.Unify(x.Ctx.Ctx, x.Hint, typ.Bool)
 		}
 		args := x.Args(0)
 		for i, arg := range args {
@@ -58,7 +58,7 @@ var andSpec = core.impl("(form 'and' :plain? list bool)", resolveAnd)
 
 func resolveAnd(x exp.ReslReq) (exp.El, error) {
 	if x.Hint != typ.Void {
-		typ.Unify(&x.Ctx.Ctx, x.Hint, typ.Bool)
+		typ.Unify(x.Ctx.Ctx, x.Hint, typ.Bool)
 	}
 	args := x.Layout.Args(0)
 	for i, arg := range args {
@@ -73,7 +73,6 @@ func resolveAnd(x exp.ReslReq) (exp.El, error) {
 				if len(x.Call.Args) == 1 {
 					x.Call = &exp.Call{
 						Spec: boolSpec,
-						Type: x.Call.Type,
 						Args: x.Call.Args,
 					}
 				}
@@ -162,7 +161,7 @@ func simplifyBool(e *exp.Call, args []exp.El) *exp.Call {
 	default:
 		return e
 	}
-	return &exp.Call{Spec: f, Type: e.Type, Args: fst.Args}
+	return &exp.Call{Spec: f, Args: fst.Args}
 }
 
 // ifSpec resolves the arguments as condition, action pairs as part of an if-else condition.

@@ -28,7 +28,11 @@ type Ctx struct {
 	// used if this field is nil.
 	Dyn *Spec
 
-	typ.Ctx
+	*typ.Ctx
+}
+
+func NewCtx(part, exec bool) *Ctx {
+	return &Ctx{Part: part, Exec: exec, Ctx: &typ.Ctx{}}
 }
 
 // WithPart returns a copy of c with part set to val.

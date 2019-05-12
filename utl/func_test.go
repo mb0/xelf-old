@@ -82,7 +82,7 @@ func TestFuncResolver(t *testing.T) {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
 		}
-		ctx := &exp.Ctx{Exec: true}
+		ctx := exp.NewCtx(false, true)
 		call := &exp.Call{Spec: r, Args: test.args}
 		res, err := r.Resolve(ctx, std.Std, call, typ.Void)
 		if err != nil {

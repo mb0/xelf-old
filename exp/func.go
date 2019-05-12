@@ -80,7 +80,7 @@ func FuncArgs(x *Call) (*Layout, error) {
 
 		}
 	}
-	return &Layout{x.Spec.Type, args}, nil
+	return &Layout{x.Type, args}, nil
 }
 
 func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.List, error) {

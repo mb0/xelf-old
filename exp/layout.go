@@ -175,15 +175,19 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
 		hint = c.New()
 	}
 	inst.Params = append(inst.Params, typ.Param{Type: hint})
-	r, err := typ.Unify(&c.Ctx, l.Sig, inst)
+	r, err := typ.Unify(c.Ctx, l.Sig, inst)
 	if err != nil {
-		return cor.Errorf("unify sig %s with %s: %v\n%v", c.Apply(l.Sig), c.Apply(inst), err, c.Ctx)
+		return cor.Errorf("unify sig %s %s %s with %s: %v",
+			l.Sig, inst, c.Apply(l.Sig), c.Apply(inst), err)
 	}
 	l.Sig = r
 	return res
 }
 func LayoutCall(x *Call) (*Layout, error) {
-	return LayoutArgs(x.Spec.Type, x.Args)
+	if x.Type == typ.Void {
+		return nil, cor.Errorf("uninstanciated spec type in call %s", x)
+	}
+	return LayoutArgs(x.Type, x.Args)
 }
 func LayoutArgs(sig typ.Type, args []El) (*Layout, error) {
 	if !isSig(sig) {

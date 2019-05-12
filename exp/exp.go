@@ -63,7 +63,7 @@ type (
 
 	// Call is an expression with a defined specification.
 	Call struct {
-		// Type is the resolved type of lit in this context or void.
+		// Type is the instanciated and possibly resoved spec type in this context or void
 		Type Type
 		// Spec is the form or func specification
 		Spec *Spec

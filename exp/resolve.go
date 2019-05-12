@@ -10,12 +10,12 @@ import (
 
 // Resolve creates a new non-executing resolution context and resolves x with with given env.
 func Resolve(env Env, x El) (El, error) {
-	return (&Ctx{Part: true}).Resolve(env, x, typ.Void)
+	return NewCtx(true, false).Resolve(env, x, typ.Void)
 }
 
 // Execute creates a new executing resolution context and evaluates x with with given env.
 func Execute(env Env, x El) (El, error) {
-	return (&Ctx{Exec: true}).Resolve(env, x, typ.Void)
+	return NewCtx(false, true).Resolve(env, x, typ.Void)
 }
 
 // ResolveAll tries to resolve each element in xs in place and returns the first error if any.
@@ -89,6 +89,8 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 	case *Call:
 		if v.Type == typ.Void {
 			v.Type = c.Inst(v.Spec.Type)
+		} else {
+			// log.Printf("resolve call %s type already instantiated %s", v, v.Type)
 		}
 		return v.Spec.Resolve(c, env, v, hint)
 	case Lit:
@@ -100,7 +102,7 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
 	if hint != typ.Void {
 		if lt := l.Typ(); lt != typ.Void {
-			_, err := typ.Unify(&c.Ctx, lt, hint)
+			_, err := typ.Unify(c.Ctx, lt, hint)
 			if err != nil {
 				return nil, err
 			}
@@ -109,7 +111,7 @@ func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
 	return l, nil
 }
 
-func (c *Ctx) resolveDyn(env Env, d *Dyn, hint Type) (El, error) {
+func (c *Ctx) resolveDyn(env Env, d *Dyn, h Type) (El, error) {
 	if c.Dyn == nil {
 		def := Lookup(env, "dyn")
 		if def != nil {
@@ -119,7 +121,7 @@ func (c *Ctx) resolveDyn(env Env, d *Dyn, hint Type) (El, error) {
 	if c.Dyn == nil {
 		return d, ErrUnres
 	}
-	return c.Dyn.Resolve(c, env, &Call{Args: d.Els}, hint)
+	return c.Dyn.Resolve(c, env, &Call{Spec: c.Dyn, Type: c.Inst(c.Dyn.Type), Args: d.Els}, h)
 }
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {

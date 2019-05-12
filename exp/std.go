@@ -47,7 +47,7 @@ func Implement(sig string, resolve bool, r LayoutResolverFunc) *Spec {
 	s := MustSig(sig)
 	return &Spec{s, ReslFunc(func(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 		if e.Type == typ.Void {
-			e.Type = c.Inst(s)
+			return nil, cor.Errorf("type not instantiated for %s %s", s, e.Type)
 		}
 		lo, err := LayoutArgs(e.Type, e.Args)
 		if err != nil {
@@ -68,7 +68,7 @@ func ImplementReq(sig string, resolve bool, r ReslReqFunc) *Spec {
 	s := MustSig(sig)
 	return &Spec{s, ReslFunc(func(c *Ctx, env Env, e *Call, hint Type) (El, error) {
 		if e.Type == typ.Void {
-			e.Type = c.Inst(s)
+			return nil, cor.Errorf("type not instantiated for %s %s", s, e.Type)
 		}
 		lo, err := LayoutArgs(e.Type, e.Args)
 		if err != nil {
