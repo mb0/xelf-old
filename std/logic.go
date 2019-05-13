@@ -36,7 +36,11 @@ var orSpec = core.impl("(form 'or' :plain? list bool)",
 						return nil, err
 					}
 					if len(x.Call.Args) == 1 {
-						x.Call = &exp.Call{Spec: boolSpec, Args: x.Call.Args}
+						x.Call = &exp.Call{
+							Spec: boolSpec,
+							Type: boolSpec.Type,
+							Args: x.Call.Args,
+						}
 					}
 				}
 				return x.Call, exp.ErrUnres
@@ -73,6 +77,7 @@ func resolveAnd(x exp.ReslReq) (exp.El, error) {
 				if len(x.Call.Args) == 1 {
 					x.Call = &exp.Call{
 						Spec: boolSpec,
+						Type: boolSpec.Type,
 						Args: x.Call.Args,
 					}
 				}
@@ -103,14 +108,11 @@ func init() {
 	boolSpec = core.impl("(form ':bool' :plain? list bool)",
 		func(x exp.ReslReq) (exp.El, error) {
 			res, err := resolveAnd(x)
-			if err == exp.ErrUnres {
-				if x.Part {
+			if err != nil {
+				if err == exp.ErrUnres && x.Part {
 					x.Call = simplifyBool(x.Call, res.(*exp.Call).Args)
 				}
 				return x.Call, err
-			}
-			if err != nil {
-				return nil, err
 			}
 			if len(x.Call.Args) == 0 {
 				return lit.False, nil
@@ -121,14 +123,11 @@ func init() {
 	notSpec = core.impl("(form 'not' :plain? list bool)",
 		func(x exp.ReslReq) (exp.El, error) {
 			res, err := resolveAnd(x)
-			if err == exp.ErrUnres {
-				if x.Part {
+			if err != nil {
+				if err == exp.ErrUnres && x.Part {
 					x.Call = simplifyBool(x.Call, res.(*exp.Call).Args)
 				}
 				return x.Call, err
-			}
-			if err != nil {
-				return nil, err
 			}
 			if len(x.Call.Args) == 0 {
 				return lit.True, nil
@@ -168,52 +167,50 @@ func simplifyBool(e *exp.Call, args []exp.El) *exp.Call {
 // The odd end is the else action otherwise a zero value of the first action's type is used.
 var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
 	func(x exp.ReslReq) (exp.El, error) {
-		// TODO check actions to find a common type
+		// collect all possible action types in an alternative, then choose the common type
+		alt := typ.NewAlt()
+		ctx := x.WithExec(false)
 		var i int
 		for i = 0; i+1 < len(x.Call.Args); i += 2 {
-			cond, err := x.Ctx.Resolve(x.Env, x.Call.Args[i], typ.Any)
-			if err == exp.ErrUnres {
-				if x.Part {
-					// previous condition turned out false
-					x.Call.Args = x.Call.Args[i:]
-				}
-				return x.Call, err
-			}
-			if err != nil {
+			hint := x.New()
+			_, err := ctx.Resolve(x.Env, x.Call.Args[i+1], hint)
+			if err != nil && err != exp.ErrUnres {
 				return nil, err
 			}
-			if !cond.(lit.Lit).IsZero() {
-				return x.Ctx.Resolve(x.Env, x.Call.Args[i+1], x.Hint)
-			}
+			alt = typ.Alt(alt, ctx.Apply(hint))
 		}
 		if i < len(x.Call.Args) {
-			return x.Ctx.Resolve(x.Env, x.Call.Args[i], x.Hint)
+			hint := x.New()
+			_, err := ctx.Resolve(x.Env, x.Call.Args[i], hint)
+			if err != nil && err != exp.ErrUnres {
+				return nil, err
+			}
+			alt = typ.Alt(alt, ctx.Apply(hint))
 		}
-		act, _ := x.WithExec(false).Resolve(x.Env, x.Call.Args[1], x.Hint)
-		et, err := elType(act)
-		if err != nil || et == typ.Void {
-			return nil, cor.Errorf("when else action is omitted then must provide type information")
+		alt, err := typ.Choose(alt)
+		if err == nil && x.Hint != typ.Void {
+			alt, err = typ.Unify(ctx.Ctx, alt, x.Hint)
 		}
-		return lit.Zero(et), nil
+		if err != nil {
+			return nil, err
+		}
+		for i = 0; i+1 < len(x.Call.Args); i += 2 {
+			cond, err := x.Ctx.Resolve(x.Env, x.Call.Args[i], typ.Any)
+			if err != nil {
+				if !x.Part || err != exp.ErrUnres {
+					return x.Call, err
+				}
+				// previous conditions did not match
+				x.Call.Args = x.Call.Args[i:]
+				x.Ctx = x.WithExec(false)
+				return x.Call, err
+			}
+			if !cond.(lit.Lit).IsZero() {
+				return x.Ctx.Resolve(x.Env, x.Call.Args[i+1], alt)
+			}
+		}
+		if i < len(x.Call.Args) { // we have an else expression
+			return x.Ctx.Resolve(x.Env, x.Call.Args[i], alt)
+		}
+		return lit.Zero(alt), nil
 	})
-
-func elType(el exp.El) (typ.Type, error) {
-	switch t := el.Typ(); t.Kind {
-	case typ.KindTyp:
-		return el.(typ.Type), nil
-	case typ.KindSym:
-		s := el.(*exp.Sym)
-		if s.Type != typ.Void {
-			return s.Type, nil
-		}
-	case typ.KindCall:
-		x := el.(*exp.Call)
-		t := x.Res()
-		if t != typ.Void {
-			return t, nil
-		}
-	default:
-		return t, nil
-	}
-	return typ.Void, exp.ErrUnres
-}

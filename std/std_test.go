@@ -286,8 +286,21 @@ func TestStdResolvePart(t *testing.T) {
 		if got := r.String(); got != test.want {
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)
 		}
-		if got, _ := elType(r); got.String() != test.typ {
+		if got := elType(r); got.String() != test.typ {
 			t.Errorf("%s want %s got %s\n%v", test.raw, test.typ, got, c.Ctx)
 		}
 	}
+}
+
+func elType(el exp.El) typ.Type {
+	t := el.Typ()
+	switch t.Kind {
+	case typ.KindSym:
+		s := el.(*exp.Sym)
+		return s.Type
+	case typ.KindCall:
+		x := el.(*exp.Call)
+		return x.Res()
+	}
+	return t
 }
