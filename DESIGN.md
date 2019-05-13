@@ -178,12 +178,12 @@ By using only the ASCII character set we can avoid any encoding issues or substi
 environments without unicode identifier support.
 
 Xelf will need to work in environment that are case-sensitive and case-insensitive. To address that,
-cased names are usually used for declarations and are then automatically lowercased. All lookups in
-the resolution environment. This way we do not have to use configurable casing rules to generate
+cased names are usually used for declarations and are then automatically lowercased for all lookups
+in the resolution environment. This way we do not have to use configurable casing rules to generate
 idiomatic code for the go target.
 
-Compound names that would use either CamelCase, `snake_case` or kebab-case depending on the
-environment like ClientID are instead used as cased name for the go target and simply lowercased
+Compound names, that would use either CamelCase, `snake_case` or kebab-case depending on the
+environment, like ClientID, are instead used as cased name for the go target and simply lowercased
 for all others. This avoids a lot of busy code to convert from one identifier flavor to another
 and avoids potentially even more confusion.
 
@@ -334,7 +334,7 @@ it is used-as, other cases are treated as element.
 Specification
 -------------
 
-Specifications quasi-literals with a form or function type and a call resolver.
+Specifications are quasi-literals with a form or function type and a resolver.
 
 The 'fn' form can be used to construct function literals. Simple function expression should be able
 to omit and infer the function signature.
@@ -352,29 +352,16 @@ parameters to explicitly order some of the parameters append named ones in order
 Type Inference
 --------------
 
-After even more study over the hindley-milner type system, I come to the conclusion, that it is
-practically unavoidable when implementing type systems. However due to the involved type conversion
-rules the Xelf uses it cannot be used without without modification. We allow a type constraint for
-type variables, that constraint can be a type alternative allowing multiple types. The unification
-process collects all type alternatives for a variable allowed by its constraint and chooses the
-the most specific unified type.
+Xelf uses a Hindley-Milner based type system with some modifications to accommodate the complex type
+conversion rules. Type alternatives are used internally to collect all possible options and type
+variables can be constrained. The unification process chooses the most specific type that satisfies
+all alternatives.
 
-Xelf 
-Instead of involved coercions
-using constraints or ad-hoc coercions, Xelf uses type alternatives internally. Type alternatives
-collect type options for a given base type. They are basically type classes, from what I gather.
-They are not as useful in Xelf as in Haskell, because type behaviour can only be one of the base
-types.
+Form signatures can be used to automatically infer the type for some arguments most of the time.
+Some forms, like the built-in 'and', 'if', 'map' and others, cannot express their type as signature
+and must handle the unification in the resolver.
 
-We cannot completely separate type checking from the resolution process, because xelf allows forms
-to direct most aspects of the process. Forms are called to resolve their arguments and provide the
-result type information, if not available in the form signature. However type variables, references
-and alternatives should allow expressing many complex signatures.
-
-We pass a type hint to resolvers, so it can be considered when inferring types and encapsulate their
-type resolution. The other option would be to handle type checking and inference at the call site,
-but this would limit what resolvers could infer. The encapsulation this enables can also avoid full
-program type inference and instead incrementally resolves each call. Type hints can be of any kind,
-including variables, references and alternatives. Void hints indicates a lack of type expectations
-and means the resolver can disregard the hint completely.
+Resolvers are passed a type hint to unify with. Type hints can be of any kind, but are usually type
+variables created in the parent's resolver. Void hints indicates a lack of type expectations and
+means the resolver can disregard the hint completely.
 

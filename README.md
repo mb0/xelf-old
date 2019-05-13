@@ -1,11 +1,13 @@
 xelf
 ====
 
-xelf is a cross-environment expression language framework.
+xelf is a cross-platform expression language framework. It is meant to be a simple notation for all
+things crossing process or language boundaries.
 
+A small set of opinionated packages are the foundation to build simple domain specific languages,
+that provide expression resolution and a practical type system with inference out of the box.
 
-It is currently a work in progress. Development is paused for a couple of weeks, while i concentrate
-on other tasks. Please check again in June or July.
+It is in an alpha state and can be used for experimentation.
 
 Overview [![GoDoc](https://godoc.org/github.com/mb0/xelf?status.svg)](https://godoc.org/github.com/mb0/xelf)
 --------
@@ -32,11 +34,10 @@ Motivation
 
 The author envisioned this tool, while building a typical back-office software:
 
- * Config files for multiple deployments need a data format that would benefit from expressions.
- * Template languages are used for HTML, emails, PDFs or even receipts on both server and client.
- * Complex queries for other data heavy pages accumulate parameters and quasi-expressions.
- * Event sourcing composite field updates, e.g. tag list, have special notations sooner or later.
- * Domain models are useful at compile and runtime both on the server and the client.
+ * where configuration files could benefit from simple expressions
+ * templates could help generating html and PDFs on both the server and client
+ * complex queries for data heavy pages would accumulate expression like parameters
+ * data schema was needed at runtime and to generate code for different languages
 
 For all of those cases there are projects and solutions available that can be used and implemented.
 Each has its own environment with a different syntax and limitations. That is fine at first.
