@@ -127,6 +127,20 @@ func (c *Ctx) resolveDyn(env Env, d *Dyn, h Type) (El, error) {
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 	r, _, path, err := findDef(env, ref.Name)
 	if r == nil || r.Lit == nil || err == ErrUnres {
+		if r != nil && r.Type != typ.Void {
+			res := r.Type
+			if path != "" {
+				l, err := lit.Select(res, path)
+				if err != nil {
+					return nil, err
+				}
+				res = l.(typ.Type)
+			}
+			res, err := typ.Unify(c.Ctx, res, hint)
+			if err != nil {
+				return nil, err
+			}
+		}
 		c.Unres = append(c.Unres, ref)
 		return ref, ErrUnres
 	}

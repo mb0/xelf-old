@@ -36,13 +36,18 @@ func NewCtx(part, exec bool) *Ctx {
 }
 
 // WithPart returns a copy of c with part set to val.
-func (c Ctx) WithPart(val bool) *Ctx {
+func (c *Ctx) WithPart(val bool) *Ctx {
 	c.Part = val
-	return &c
+	return c.With(val, c.Exec)
 }
 
 // WithExec returns a copy of c with exec set to val.
-func (c Ctx) WithExec(val bool) *Ctx {
-	c.Exec = val
+func (c *Ctx) WithExec(val bool) *Ctx {
+	return c.With(c.Part, val)
+}
+
+func (c Ctx) With(part, exec bool) *Ctx {
+	c.Part = part
+	c.Exec = exec
 	return &c
 }

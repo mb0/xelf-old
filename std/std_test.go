@@ -156,38 +156,50 @@ func TestStdResolve(t *testing.T) {
 		{`(lst [1 2 3 4 5])`, lit.Num(5)},
 		{`(nth [1 2 3 4 5] 2)`, lit.Num(3)},
 		{`(nth [1 2 3 4 5] -3)`, lit.Num(3)},
-		{`(fst [1 2 3 4 5] (fn :a ~num : bool (eq (rem _ 2) 0)))`, lit.Num(2)},
-		{`(lst [1 2 3 4 5] (fn :a ~num : bool (eq (rem _ 2) 0)))`, lit.Num(4)},
-		{`(filter [1 2 3 4 5] (fn :a ~num : bool (eq (rem _ 2) 0)))`, &lit.List{typ.Any, []lit.Lit{
+		{`(fst [1 2 3 4 5] (fn (eq (rem _ 2) 0)))`, lit.Num(2)},
+		{`(lst [1 2 3 4 5] (fn (eq (rem _ 2) 0)))`, lit.Num(4)},
+		{`(filter [1 2 3 4 5] (fn (eq (rem _ 2) 0)))`, &lit.List{typ.Any, []lit.Lit{
 			lit.Num(2), lit.Num(4),
 		}}},
-		{`(filter [1 2 3 4 5] (fn :a ~num : bool (eq (rem _ 2) 1)))`, &lit.List{typ.Any, []lit.Lit{
+		{`(filter [1 2 3 4 5] (fn (eq (rem _ 2) 1)))`, &lit.List{typ.Any, []lit.Lit{
 			lit.Num(1), lit.Num(3), lit.Num(5),
 		}}},
-		{`(map [1 2 3 4] (fn :a : ~num (mul _ _)))`, &lit.List{Elem: typ.Num,
+		{`(map [1 2 3 4] (fn (mul _ _)))`, &lit.List{Elem: typ.Num,
 			Data: []lit.Lit{lit.Num(1), lit.Num(4), lit.Num(9), lit.Num(16)},
 		}},
-		{`(fold ['alice' 'bob' 'calvin'] 'hello'` +
-			`(fn :a :v str :i int : str (cat _ (if .i ',') ' ' .v)))`,
+		{`(fold ['alice' 'bob' 'calvin'] (str 'hello')
+			(fn (cat _ (if .2 ',') ' ' .1)))`,
 			lit.Str("hello alice, bob, calvin"),
 		},
-		{`(foldr ['alice' 'bob' 'calvin'] 'hello'
-			(fn :a :v str :i int : str (cat _ ' ' .v (if .i ','))))`,
+		{`(foldr ['alice' 'bob' 'calvin'] (str 'hello')
+			(fn :a :v str :i int : str (cat _ ' ' .1 (if .2 ','))))`,
 			lit.Str("hello calvin, bob, alice"),
 		},
 		{`(let :a int @a)`, typ.Int},
 		{`(let :a (rec :b int) @a.b)`, typ.Int},
 		{`(let :a int :b list|@a @b)`, typ.List(typ.Int)},
+		{`(let :f (fn 1) (f))`, lit.Num(1)},
+		{`(let :f (fn (int 1)) (f))`, lit.Int(1)},
 		{`(let :f (fn : int 1) (f))`, lit.Int(1)},
-		{`(let :f (fn :a : int (add .a 1)) (f 1))`, lit.Int(2)},
-		{`(let :f (fn :a : int (mul _ _)) (f 3))`, lit.Int(9)},
-		{`(let :sum (fn :n list|int : int
-				(fold .n 0 (fn :a :b : int (add .a .b))))
-			(sum 1 2 3)
-		)`, lit.Int(6)},
+		{`(let :f (fn (add _ 1)) (f 1))`, lit.Num(2)},
+		{`(let :f (fn (mul _ _)) (f 3))`, lit.Num(9)},
+		{`(let :f (fn (int (mul _ _))) (f 3))`, lit.Int(9)},
+		{`(let :f (fn : : int (mul _ _)) (f 3))`, lit.Int(9)},
+		{`(let :sum (fn :n list|int : int (fold _ 0 (fn (add _ .1)))) (sum 1 2 3))`,
+			lit.Int(6)},
+		// TODO fix convert for abstract cont types
+		// {`(let :sum (fn (fold _ 0 (fn (add _ .1)))) (sum [1 2 3]))`, lit.Int(6)},
 		{`(with 'test' .)`, lit.Char("test")},
 		{`(with ((rec :a int) [1]) .a)`, lit.Int(1)},
-		{`(with [1 2 3 4 5] (let :even (fn :a ~num : bool (eq (rem _ 2) 0)) (and
+		{`((fn (eq (add 1 1) 2)))`, lit.True},
+		{`(eq true (eq ['a'] ['a']))`, lit.True},
+		{`(with [1 2 3 4 5]
+			(eq (filter . (fn (equal (rem _ 2) (int 0)))) [2 4])
+		)`, lit.True},
+		{`(with [1 2 3 4 5]
+			(eq (filter . (fn (eq (rem _ 2) (int 0)))) [2 4])
+		)`, lit.True},
+		{`(with [1 2 3 4 5] (let :even (fn (eq (rem _ 2) 0)) (and
 			(eq (len "test") 4)
 			(eq (len .) 5)
 			(eq (fst .) (nth . 0) 1)
@@ -198,9 +210,9 @@ func TestStdResolve(t *testing.T) {
 			(eq (nth . -2 even) 2)
 			(eq (filter . even) [2 4])
 			(eq (map . even) [false true false true false])
-			(eq (fold . 0 (fn :a :v : ~num (add _ .v))) 15)
-			(eq (fold  . [0] (fn :a list :v ~num : list (apd _ .v))) [0 1 2 3 4 5])
-			(eq (foldr . [0] (fn :a list :v ~num : list (apd _ .v))) [0 5 4 3 2 1])
+			(eq (fold . 0 (fn (add _ .1))) 15)
+			(eq (fold  . [0] (fn (apd _ .1))) [0 1 2 3 4 5])
+			(eq (foldr . [0] (fn (apd _ .1))) [0 5 4 3 2 1])
 		)))`, lit.True},
 	}
 	for _, test := range tests {

@@ -92,10 +92,16 @@ func (c *Ctx) inst(t Type, m Binds, hist []Type) (Type, Binds) {
 		r, ok := m.Get(t.Kind)
 		if t.Kind == KindVar || !ok {
 			r = c.New()
-			r.Info = t.Info
+			if t.Info != nil {
+				nfo := *t.Info
+				r.Info = &nfo
+			}
 			m = m.Set(t.Kind, r)
 		} else if t.HasParams() {
-			r = mergeHint(r, t)
+			if r.Info == nil {
+				r.Info = &Info{}
+			}
+			r.Params = append(r.Params, t.Params...)
 			return r, m
 		}
 		return r, m

@@ -133,7 +133,7 @@ type fIter struct {
 }
 
 func getIter(x exp.ReslReq, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error) {
-	e, err := exp.Resolve(x.Env, e)
+	e, err := x.Ctx.With(false, false).Resolve(x.Env, e, typ.Void)
 	if err != nil && err != exp.ErrUnres {
 		return nil, err
 	}
@@ -170,19 +170,21 @@ func getIter(x exp.ReslReq, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error
 		}
 	}
 	for r.n < len(args) && r.n < r.v+3 {
-		switch args[r.n].Type.Kind {
-		case typ.KindInt:
-			if r.i > 0 {
-			}
-			r.i = r.n
-			r.n++
+		switch args[r.n].Type.Kind { // default to idx
 		case typ.KindStr:
 			if r.k > 0 {
+				return nil, cor.Errorf("key parameter already set, got %d %s",
+					r.n, args[r.n])
 			}
 			r.k = r.n
 			r.n++
 		default:
-			return nil, cor.Errorf("unexpected parameter %s", args[r.n])
+			if r.i > 0 {
+				return nil, cor.Errorf("idx parameter already set, got %d %s",
+					r.n, args[r.n])
+			}
+			r.i = r.n
+			r.n++
 		}
 	}
 	r.args = make([]exp.El, r.n)
@@ -198,7 +200,7 @@ func (r *fIter) resolve(x exp.ReslReq, el exp.El, idx int, key string) (lit.Lit,
 		r.args[r.k] = lit.Str(key)
 	}
 	call := &exp.Call{Spec: r.Spec, Args: r.args}
-	res, err := r.Resolve(x.Ctx, x.Env, call, typ.Void)
+	res, err := x.Ctx.Resolve(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +218,7 @@ func (r *fIter) accumulate(x exp.ReslReq, acc, el exp.El, idx int, key string) (
 		r.args[r.k] = lit.Str(key)
 	}
 	call := &exp.Call{Spec: r.Spec, Args: r.args}
-	res, err := r.Resolve(x.Ctx, x.Env, call, typ.Void)
+	res, err := x.With(false, false).Resolve(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, cor.Errorf("accumulate: %w", err)
 	}
