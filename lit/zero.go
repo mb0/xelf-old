@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -66,7 +67,7 @@ func ZeroProxy(tt typ.Type) (res Assignable) {
 	t, opt := tt.Deopt()
 	switch t.Kind & typ.MaskRef {
 	case typ.KindTyp:
-		res = typProxy{&typ.Type{}}
+		res = TypProxy{&typ.Type{}}
 	case typ.KindBool:
 		res = new(Bool)
 	case typ.KindInt:
@@ -95,10 +96,52 @@ func ZeroProxy(tt typ.Type) (res Assignable) {
 		res, _ = MakeRec(t)
 	}
 	if res == nil {
-		return &anyProxy{reflect.ValueOf(new(interface{})), Nil}
+		return &AnyProxy{reflect.ValueOf(new(interface{})), Nil}
 	}
 	if opt {
 		return SomeAssignable{res}
 	}
 	return res
+}
+
+type TypProxy struct {
+	*typ.Type
+}
+
+func (p TypProxy) Ptr() interface{} {
+	return p.Type
+}
+func (p TypProxy) Assign(l Lit) error {
+	if t, ok := l.(typ.Type); ok {
+		*p.Type = t
+		return nil
+	}
+	return cor.Errorf("%q not assignable to %q", l.Typ(), typ.Typ)
+}
+
+type AnyProxy struct {
+	Val reflect.Value
+	Lit
+}
+
+func (p *AnyProxy) Ptr() interface{} {
+	return p.Val.Interface()
+}
+func (p *AnyProxy) Assign(l Lit) error {
+	p.Lit = l
+	var v interface{}
+	switch x := l.(type) {
+	case Character:
+		v = x.Val()
+	case Numeric:
+		v = x.Val()
+	case Assignable:
+		v = x.Ptr()
+		p.Val.Elem().Set(reflect.ValueOf(v).Elem())
+		return nil
+	default:
+		v = x
+	}
+	p.Val.Elem().Set(reflect.ValueOf(v))
+	return nil
 }

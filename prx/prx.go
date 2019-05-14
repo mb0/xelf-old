@@ -1,10 +1,12 @@
-package lit
+// Package prx provides literal proxies that write though to the underlying go data structure.
+package prx
 
 import (
 	"reflect"
 	"time"
 
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -16,15 +18,15 @@ var (
 )
 
 // Assign assigns the value of l to the interface pointer value or returns an error
-func AssignTo(l Lit, ptr interface{}) error {
-	if a, ok := ptr.(Assignable); ok {
+func AssignTo(l lit.Lit, ptr interface{}) error {
+	if a, ok := ptr.(lit.Assignable); ok {
 		return assignTo(l, a)
 	}
 	return AssignToValue(l, reflect.ValueOf(ptr))
 }
 
 // AssignTo assigns the value of l to the reflect pointer value or returns an error
-func AssignToValue(l Lit, ptr reflect.Value) (err error) {
+func AssignToValue(l lit.Lit, ptr reflect.Value) (err error) {
 	if !ptr.IsValid() || ptr.Kind() != reflect.Ptr {
 		return ErrRequiresPtr
 	}
@@ -35,23 +37,16 @@ func AssignToValue(l Lit, ptr reflect.Value) (err error) {
 	return assignTo(l, pp)
 }
 
-func assignTo(l Lit, p Assignable) error {
-	l, err := Convert(l, p.Typ(), 0)
+func assignTo(l lit.Lit, p lit.Assignable) error {
+	l, err := lit.Convert(l, p.Typ(), 0)
 	if err != nil {
 		return err
 	}
 	return p.Assign(l)
 }
 
-func Deopt(l Lit) Lit {
-	if o, ok := l.(Opter); ok {
-		return o.Some()
-	}
-	return l
-}
-
 // Proxy returns an assignable literal for the pointer argument ptr or an error
-func Proxy(ptr interface{}) (Assignable, error) {
+func Proxy(ptr interface{}) (lit.Assignable, error) {
 	return ProxyValue(reflect.ValueOf(ptr))
 }
 
@@ -60,7 +55,7 @@ func Proxy(ptr interface{}) (Assignable, error) {
 //     bool, int64, float64, string, [16]byte, []byte, time.Time, List and *Dict
 // The numeric types int, int32, uint, uint32, float32 all list, dict and record types
 // use a proxy variant using reflection.
-func ProxyValue(ptr reflect.Value) (Assignable, error) {
+func ProxyValue(ptr reflect.Value) (lit.Assignable, error) {
 	if ptr.Kind() != reflect.Ptr {
 		return nil, ErrRequiresPtr
 	}
@@ -69,51 +64,51 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 	switch et.Kind() {
 	case reflect.Bool:
 		if v, ok := ptrRef(et, refBool, ptr); ok {
-			return (*Bool)(v.Interface().(*bool)), nil
+			return (*lit.Bool)(v.Interface().(*bool)), nil
 		}
 	case reflect.Int64:
 		if isRef(et, refSecs) {
 			if v, ok := ptrRef(et, refSpan, ptr); ok {
-				return (*Span)(v.Interface().(*time.Duration)), nil
+				return (*lit.Span)(v.Interface().(*time.Duration)), nil
 			}
 		}
 		if v, ok := ptrRef(et, refInt, ptr); ok {
-			return (*Int)(v.Interface().(*int64)), nil
+			return (*lit.Int)(v.Interface().(*int64)), nil
 		}
 	case reflect.Float64:
 		if v, ok := ptrRef(et, refReal, ptr); ok {
-			return (*Real)(v.Interface().(*float64)), nil
+			return (*lit.Real)(v.Interface().(*float64)), nil
 		}
 	case reflect.String:
 		if v, ok := ptrRef(et, refStr, ptr); ok {
-			return (*Str)(v.Interface().(*string)), nil
+			return (*lit.Str)(v.Interface().(*string)), nil
 		}
 	case reflect.Slice:
 		if v, ok := ptrRef(et, refRaw, ptr); ok {
-			return (*Raw)(v.Interface().(*[]byte)), nil
+			return (*lit.Raw)(v.Interface().(*[]byte)), nil
 		}
 		if v, ok := ptrRef(et, refList, ptr); ok {
-			return v.Interface().(*List), nil
+			return v.Interface().(*lit.List), nil
 		}
 	case reflect.Array:
 		if v, ok := ptrRef(et, refUUID, ptr); ok {
-			return (*UUID)(v.Interface().(*[16]byte)), nil
+			return (*lit.UUID)(v.Interface().(*[16]byte)), nil
 		}
 	case reflect.Struct:
 		if v, ok := ptrRef(et, refTime, ptr); ok {
-			return (*Time)(v.Interface().(*time.Time)), nil
+			return (*lit.Time)(v.Interface().(*time.Time)), nil
 		}
 		if v, ok := ptrRef(et, refType, ptr); ok {
-			return typProxy{v.Interface().(*typ.Type)}, nil
+			return lit.TypProxy{v.Interface().(*typ.Type)}, nil
 		}
 		if v, ok := toRef(ptr.Type(), refDict, ptr); ok {
-			return v.Interface().(*Dict), nil
+			return v.Interface().(*lit.Dict), nil
 		}
 	case reflect.Ptr:
 		if v, ok := ptrRef(et, refDict, ptr); ok {
-			dptr := v.Interface().(**Dict)
+			dptr := v.Interface().(**lit.Dict)
 			if *dptr == nil {
-				*dptr = &Dict{}
+				*dptr = &lit.Dict{}
 			}
 			return *dptr, nil
 		}
@@ -124,7 +119,7 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		return nil, err
 	}
 	if t.Kind == typ.KindAny {
-		return &anyProxy{ptr, Nil}, nil
+		return &lit.AnyProxy{ptr, lit.Nil}, nil
 	}
 	p := proxy{t, ptr}
 	switch t.Kind & typ.KindAny {
@@ -145,6 +140,16 @@ func ProxyValue(ptr reflect.Value) (Assignable, error) {
 		return &proxyRec{p, idx}, nil
 	}
 	return nil, cor.Errorf("cannot proxy type %s as %s", ptr.Type(), t)
+}
+
+func ptrRef(et reflect.Type, ref reflect.Type, v reflect.Value) (reflect.Value, bool) {
+	if et == ref {
+		return v, true
+	}
+	if et.ConvertibleTo(ref) {
+		return v.Convert(reflect.PtrTo(ref)), true
+	}
+	return v, false
 }
 
 type proxy struct {
@@ -179,56 +184,4 @@ func (p *proxy) elem(k reflect.Kind) (reflect.Value, bool) {
 		v = v.Elem()
 	}
 	return v, v.Kind() == k
-}
-
-func ptrRef(et reflect.Type, ref reflect.Type, v reflect.Value) (reflect.Value, bool) {
-	if et == ref {
-		return v, true
-	}
-	if et.ConvertibleTo(ref) {
-		return v.Convert(reflect.PtrTo(ref)), true
-	}
-	return v, false
-}
-
-type typProxy struct {
-	*typ.Type
-}
-
-func (p typProxy) Ptr() interface{} {
-	return p.Type
-}
-func (p typProxy) Assign(l Lit) error {
-	if t, ok := l.(typ.Type); ok {
-		*p.Type = t
-		return nil
-	}
-	return cor.Errorf("%q not assignable to %q", l.Typ(), typ.Typ)
-}
-
-type anyProxy struct {
-	val reflect.Value
-	Lit
-}
-
-func (p *anyProxy) Ptr() interface{} {
-	return p.val.Interface()
-}
-func (p *anyProxy) Assign(l Lit) error {
-	p.Lit = l
-	var v interface{}
-	switch x := l.(type) {
-	case Character:
-		v = x.Val()
-	case Numeric:
-		v = x.Val()
-	case Assignable:
-		v = x.Ptr()
-		p.val.Elem().Set(reflect.ValueOf(v).Elem())
-		return nil
-	default:
-		v = x
-	}
-	p.val.Elem().Set(reflect.ValueOf(v))
-	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/prx"
 )
 
 // Node is an interface for assignable object literals.
@@ -19,7 +20,7 @@ type Node interface {
 func GetNode(val interface{}) (Node, error) {
 	n, ok := val.(Node)
 	if !ok {
-		p, err := lit.Proxy(val)
+		p, err := prx.Proxy(val)
 		if err != nil {
 			return nil, cor.Errorf("proxy %T: %w", val, err)
 		}
@@ -70,7 +71,7 @@ func (r *NodeResolver) getNode() (Node, error) {
 			v.Elem().Set(r.def.Elem())
 		}
 	}
-	p, err := lit.ProxyValue(v)
+	p, err := prx.ProxyValue(v)
 	if err != nil {
 		return nil, cor.Errorf("proxy for %s: %w", v.Type(), err)
 	}

@@ -10,6 +10,13 @@ import (
 // It indicates that the iteration should be stopped even though no actual failure occurred.
 var BreakIter = cor.StrError("break iter")
 
+func Deopt(l Lit) Lit {
+	if o, ok := l.(Opter); ok {
+		return o.Some()
+	}
+	return l
+}
+
 // Lit is the common interface for all literal adapters.
 // A nil Lit represents an absent value.
 type Lit interface {

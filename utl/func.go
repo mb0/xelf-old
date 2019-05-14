@@ -6,6 +6,7 @@ import (
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/prx"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -34,7 +35,7 @@ func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) 
 			// reflect already provides a zero value
 			continue
 		}
-		err = lit.AssignToValue(n[0].(lit.Lit), v)
+		err = prx.AssignToValue(n[0].(lit.Lit), v)
 		if err != nil {
 			return nil, cor.Errorf("have %s: %w", v, err)
 		}
@@ -58,7 +59,7 @@ func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) 
 		return nil, nil
 	}
 	// create a proxy from the result and return
-	return lit.AdaptValue(res[0])
+	return prx.AdaptValue(res[0])
 }
 
 var refErr = reflect.TypeOf((*error)(nil)).Elem()
@@ -76,7 +77,7 @@ func ReflectFunc(name string, val interface{}, names ...string) (*exp.Spec, erro
 	pt := make([]reflect.Type, 0, n)
 	for i := 0; i < n; i++ {
 		rt := t.In(i)
-		xt, err := lit.ReflectType(rt)
+		xt, err := prx.ReflectType(rt)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +103,7 @@ func ReflectFunc(name string, val interface{}, names ...string) (*exp.Spec, erro
 		if i > 0 {
 			return nil, cor.Error("expect at most one compatible result and optionally an error")
 		}
-		xt, err := lit.ReflectType(rt)
+		xt, err := prx.ReflectType(rt)
 		if err != nil {
 			return nil, err
 		}

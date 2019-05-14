@@ -1,20 +1,21 @@
-package lit
+package prx
 
 import (
 	"reflect"
 
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
 type proxyList struct{ proxy }
 
-func (p *proxyList) Assign(l Lit) error {
+func (p *proxyList) Assign(l lit.Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
 	}
-	b, ok := l.(Indexer)
+	b, ok := l.(lit.Indexer)
 	if !ok || b.IsZero() { // a nil list?
 		if p.val.CanAddr() {
 			p.val.Set(reflect.Zero(p.val.Type()))
@@ -28,7 +29,7 @@ func (p *proxyList) Assign(l Lit) error {
 		return ErrNotSlice
 	}
 	v = v.Slice(0, 0)
-	err := b.IterIdx(func(i int, e Lit) error {
+	err := b.IterIdx(func(i int, e lit.Lit) error {
 		fp := reflect.New(v.Type().Elem())
 		fl, err := ProxyValue(fp)
 		if err != nil {
@@ -52,7 +53,7 @@ func (p *proxyList) Assign(l Lit) error {
 	return nil
 }
 
-func (p *proxyList) Append(ls ...Lit) (Appender, error) {
+func (p *proxyList) Append(ls ...lit.Lit) (lit.Appender, error) {
 	v, ok := p.elem(reflect.Slice)
 	if !ok {
 		return nil, ErrNotSlice
@@ -80,23 +81,23 @@ func (p *proxyList) Len() int {
 	return 0
 }
 func (p *proxyList) IsZero() bool { return p.Len() == 0 }
-func (p *proxyList) Idx(i int) (Lit, error) {
+func (p *proxyList) Idx(i int) (lit.Lit, error) {
 	if v, ok := p.elem(reflect.Slice); ok {
 		if i >= 0 && i < v.Len() {
 			return ProxyValue(v.Index(i).Addr())
 		}
 	}
-	return nil, ErrIdxBounds
+	return nil, lit.ErrIdxBounds
 }
-func (p *proxyList) SetIdx(i int, l Lit) (Indexer, error) {
+func (p *proxyList) SetIdx(i int, l lit.Lit) (lit.Indexer, error) {
 	if v, ok := p.elem(reflect.Slice); ok {
 		if i >= 0 && i < v.Len() {
 			return p, AssignToValue(l, v.Index(i).Addr())
 		}
 	}
-	return p, ErrIdxBounds
+	return p, lit.ErrIdxBounds
 }
-func (p *proxyList) IterIdx(it func(int, Lit) error) error {
+func (p *proxyList) IterIdx(it func(int, lit.Lit) error) error {
 	if v, ok := p.elem(reflect.Slice); ok {
 		for i, n := 0, v.Len(); i < n; i++ {
 			el, err := ProxyValue(v.Index(i).Addr())
@@ -105,7 +106,7 @@ func (p *proxyList) IterIdx(it func(int, Lit) error) error {
 			}
 			err = it(i, el)
 			if err != nil {
-				if err == BreakIter {
+				if err == lit.BreakIter {
 					return nil
 				}
 				return err
@@ -119,7 +120,7 @@ func (p *proxyList) String() string               { return bfr.String(p) }
 func (p *proxyList) MarshalJSON() ([]byte, error) { return bfr.JSON(p) }
 func (p *proxyList) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('[')
-	err := p.IterIdx(func(i int, el Lit) error {
+	err := p.IterIdx(func(i int, el lit.Lit) error {
 		if i > 0 {
 			writeSep(b)
 		}
@@ -131,4 +132,4 @@ func (p *proxyList) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte(']')
 }
 
-var _, _ Appender = &List{}, &proxyList{}
+var _ lit.Appender = &proxyList{}

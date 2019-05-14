@@ -1,4 +1,4 @@
-package lit
+package prx
 
 import (
 	"reflect"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mb0/xelf/cor"
+	. "github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 

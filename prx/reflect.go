@@ -1,4 +1,4 @@
-package lit
+package prx
 
 import (
 	"reflect"
@@ -7,30 +7,8 @@ import (
 
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
-)
-
-var (
-	refLit  = reflect.TypeOf((*Lit)(nil)).Elem()
-	refBool = reflect.TypeOf(false)
-	refInt  = reflect.TypeOf(int64(0))
-	refReal = reflect.TypeOf(float64(0))
-	refStr  = reflect.TypeOf("")
-	refRaw  = reflect.TypeOf([]byte(nil))
-	refUUID = reflect.TypeOf([16]byte{})
-	refSpan = reflect.TypeOf(time.Second)
-	refTime = reflect.TypeOf(time.Time{})
-	refList = reflect.TypeOf((*List)(nil))
-	refDict = reflect.TypeOf((*Dict)(nil))
-	refSecs = reflect.TypeOf((*MarkSpan)(nil))
-	refFlag = reflect.TypeOf((*MarkFlag)(nil))
-	refEnum = reflect.TypeOf((*MarkEnum)(nil))
-	refType = reflect.TypeOf(typ.Void)
-	refEl   = reflect.TypeOf((*interface {
-		WriteBfr(*bfr.Ctx) error
-		String() string
-		Typ() typ.Type
-	})(nil)).Elem()
 )
 
 // Reflect returns the xelf type for the interface value v or an error.
@@ -43,6 +21,29 @@ func ReflectType(t reflect.Type) (res typ.Type, err error) {
 	nfos := make(infoMap)
 	return reflectType(t, nfos)
 }
+
+var (
+	refLit  = reflect.TypeOf((*lit.Lit)(nil)).Elem()
+	refBool = reflect.TypeOf(false)
+	refInt  = reflect.TypeOf(int64(0))
+	refReal = reflect.TypeOf(float64(0))
+	refStr  = reflect.TypeOf("")
+	refRaw  = reflect.TypeOf([]byte(nil))
+	refUUID = reflect.TypeOf([16]byte{})
+	refSpan = reflect.TypeOf(time.Second)
+	refTime = reflect.TypeOf(time.Time{})
+	refList = reflect.TypeOf((*lit.List)(nil))
+	refDict = reflect.TypeOf((*lit.Dict)(nil))
+	refSecs = reflect.TypeOf((*lit.MarkSpan)(nil))
+	refFlag = reflect.TypeOf((*lit.MarkFlag)(nil))
+	refEnum = reflect.TypeOf((*lit.MarkEnum)(nil))
+	refType = reflect.TypeOf(typ.Void)
+	refEl   = reflect.TypeOf((*interface {
+		WriteBfr(*bfr.Ctx) error
+		String() string
+		Typ() typ.Type
+	})(nil)).Elem()
+)
 
 type fields = struct {
 	*typ.Info
@@ -71,7 +72,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 			break
 		}
 		if isRef(t, refEnum) {
-			cs := reflect.Zero(t).Interface().(MarkEnum).Enums()
+			cs := reflect.Zero(t).Interface().(lit.MarkEnum).Enums()
 			res = typ.Type{typ.KindBits, getConstInfo(t, typ.Constants(cs))}
 			break
 		}
@@ -80,7 +81,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		res = typ.Int
 	case reflect.Uint64:
 		if isRef(t, refFlag) {
-			cs := reflect.Zero(t).Interface().(MarkFlag).Flags()
+			cs := reflect.Zero(t).Interface().(lit.MarkFlag).Flags()
 			res = typ.Type{typ.KindBits, getConstInfo(t, typ.Constants(cs))}
 			break
 		}
@@ -91,7 +92,7 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 		res = typ.Real
 	case reflect.String:
 		if isRef(t, refEnum) {
-			cs := reflect.Zero(t).Interface().(MarkEnum).Enums()
+			cs := reflect.Zero(t).Interface().(lit.MarkEnum).Enums()
 			res = typ.Type{typ.KindBits, getConstInfo(t, typ.Constants(cs))}
 			break
 		}

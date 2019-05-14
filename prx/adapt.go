@@ -1,27 +1,28 @@
-package lit
+package prx
 
 import (
 	"reflect"
 	"time"
 
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
 // Adapt returns a literal adapter for the interface value v or an error.
-func Adapt(v interface{}) (Lit, error) {
+func Adapt(v interface{}) (lit.Lit, error) {
 	return AdaptValue(reflect.ValueOf(v))
 }
 
 // AdaptValue returns a literal adapter for the reflect value val or an error.
-func AdaptValue(val reflect.Value) (Lit, error) {
+func AdaptValue(val reflect.Value) (lit.Lit, error) {
 	if !val.IsValid() {
-		return Nil, nil
+		return lit.Nil, nil
 	}
 	var ptr bool
 	v, t := val, val.Type()
 	if t.Implements(refLit) {
-		return v.Interface().(Lit), nil
+		return v.Interface().(lit.Lit), nil
 	}
 	if ptr = t.Kind() == reflect.Ptr; ptr {
 		t = t.Elem()
@@ -31,36 +32,36 @@ func AdaptValue(val reflect.Value) (Lit, error) {
 			if err != nil {
 				return nil, err
 			}
-			return Null(t), nil
+			return lit.Null(t), nil
 		}
 	}
-	var l Lit
+	var l lit.Lit
 	switch t.Kind() {
 	case reflect.Bool:
-		l = Bool(v.Bool())
+		l = lit.Bool(v.Bool())
 	case reflect.Int64:
 		if isRef(t, refSecs) {
 			if v, ok := toRef(t, refSpan, v); ok {
-				l = Span(v.Interface().(time.Duration))
+				l = lit.Span(v.Interface().(time.Duration))
 				break
 			}
 		}
 		fallthrough
 	case reflect.Int, reflect.Int32:
-		l = Int(v.Int())
+		l = lit.Int(v.Int())
 	case reflect.Uint64:
 		// TODO check flags
 		fallthrough
 	case reflect.Uint, reflect.Uint32:
-		l = Int(int64(v.Uint()))
+		l = lit.Int(int64(v.Uint()))
 	case reflect.Float32, reflect.Float64:
-		l = Real(v.Float())
+		l = lit.Real(v.Float())
 	case reflect.String:
 		// TODO check enum
-		l = Str(v.String())
+		l = lit.Str(v.String())
 	case reflect.Struct:
 		if v, ok := toRef(t, refTime, v); ok {
-			l = Time(v.Interface().(time.Time))
+			l = lit.Time(v.Interface().(time.Time))
 			break
 		}
 		// TODO check rec
@@ -71,41 +72,41 @@ func AdaptValue(val reflect.Value) (Lit, error) {
 		l = res
 	case reflect.Array:
 		if v, ok := toRef(t, refUUID, v); ok {
-			l = UUID(v.Interface().([16]byte))
+			l = lit.UUID(v.Interface().([16]byte))
 		}
 	case reflect.Map:
 		return adaptMap(v)
 	case reflect.Slice:
 		if v, ok := toRef(t, refRaw, v); ok {
-			l = Raw(v.Bytes())
+			l = lit.Raw(v.Bytes())
 		}
 		return adaptArr(v)
 	case reflect.Interface:
 		if v.IsNil() {
-			return Nil, nil
+			return lit.Nil, nil
 		}
 		l, err := AdaptValue(v.Elem())
 		if err != nil {
 			return nil, err
 		}
-		return Any{l}, nil
+		return lit.Any{l}, nil
 	}
 	if l == nil {
 		return nil, cor.Error("not adaptable")
 	}
 	if ptr {
-		l = Some{l}
+		l = lit.Some{l}
 	}
 	return l, nil
 }
 
-func adaptArr(v reflect.Value) (Appender, error) {
+func adaptArr(v reflect.Value) (lit.Appender, error) {
 	et, err := ReflectType(v.Type().Elem())
 	if err != nil {
 		return nil, err
 	}
 	n := v.Len()
-	res, err := MakeList(typ.List(et), n)
+	res, err := lit.MakeList(typ.List(et), n)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +123,13 @@ func adaptArr(v reflect.Value) (Appender, error) {
 	return res, nil
 }
 
-func adaptMap(v reflect.Value) (Dictionary, error) {
+func adaptMap(v reflect.Value) (lit.Dictionary, error) {
 	mt, err := ReflectType(v.Type())
 	if err != nil {
 		return nil, err
 	}
 	keys := v.MapKeys()
-	res, err := MakeDictCap(mt, len(keys))
+	res, err := lit.MakeDictCap(mt, len(keys))
 	if err != nil {
 		return nil, err
 	}
@@ -145,12 +146,12 @@ func adaptMap(v reflect.Value) (Dictionary, error) {
 	return res, nil
 }
 
-func adaptObj(v reflect.Value) (Record, error) {
+func adaptObj(v reflect.Value) (lit.Record, error) {
 	nfo, idx, err := reflectFields(v.Type(), make(infoMap))
 	if err != nil {
 		return nil, err
 	}
-	res, err := MakeRec(typ.Rec(nfo.Params))
+	res, err := lit.MakeRec(typ.Rec(nfo.Params))
 	if err != nil {
 		return nil, err
 	}
