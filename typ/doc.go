@@ -73,7 +73,7 @@ Schema types are also a kind of type references, that are treated as a specific 
 Schema types reference a global type definition and as such must be resolved. Other than normal
 references the identifier is kept alongside the full type data after resolution.
 
-    flag is a named int type bit-set that consists of multiple bit constants
+    bits is a named int type bit-set that consists of multiple bit constants
     enum is a named str type that consists of one string constant of an enumeration
     obj  is a named rec type that has additional type and field details
 

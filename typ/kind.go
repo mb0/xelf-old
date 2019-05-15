@@ -10,7 +10,7 @@ import (
 // and type parameters. It is a handy implementation detail, but not part of the xelf specification.
 type Kind uint64
 
-func (Kind) Flags() map[string]int64 { return kindConsts }
+func (Kind) Bits() map[string]int64 { return kindConsts }
 
 // A Kind describes a type in a slot that uses the 12 least significant bits. The rest of the bits
 // are reserved to be used by specific types. Type variables use it to store a unique type id and
@@ -166,7 +166,7 @@ func ParseKind(str string) (Kind, error) {
 		return kk | KindSpan, nil
 	case "rec":
 		return kk | KindRec, nil
-	case "flag":
+	case "bits":
 		return kk | KindBits, nil
 	case "enum":
 		return kk | KindEnum, nil
@@ -280,7 +280,7 @@ func simpleStr(k Kind) string {
 	case KindRec:
 		return "rec"
 	case KindBits:
-		return "flag"
+		return "bits"
 	case KindEnum:
 		return "enum"
 	case KindObj:

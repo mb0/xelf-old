@@ -42,7 +42,7 @@ func cont(k Kind, el Type) Type {
 
 func Ref(n string) Type  { return Type{KindRef, &Info{Ref: n}} }
 func Sch(n string) Type  { return Type{KindSch, &Info{Ref: n}} }
-func Flag(n string) Type { return Type{KindBits, &Info{Ref: n}} }
+func Bits(n string) Type { return Type{KindBits, &Info{Ref: n}} }
 func Enum(n string) Type { return Type{KindEnum, &Info{Ref: n}} }
 func Obj(n string) Type  { return Type{KindObj, &Info{Ref: n}} }
 

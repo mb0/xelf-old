@@ -50,7 +50,7 @@ func AdaptValue(val reflect.Value) (lit.Lit, error) {
 	case reflect.Int, reflect.Int32:
 		l = lit.Int(v.Int())
 	case reflect.Uint64:
-		// TODO check flags
+		// TODO check bits
 		fallthrough
 	case reflect.Uint, reflect.Uint32:
 		l = lit.Int(int64(v.Uint()))

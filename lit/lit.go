@@ -141,8 +141,8 @@ type Record interface {
 // MarkSpan is a marker interface. When implemented on an int64 indicates a span type.
 type MarkSpan interface{ Seconds() float64 }
 
-// MarkFlag is a marker interface. When implemented on an unsigned integer indicates a flag type.
-type MarkFlag interface{ Flags() map[string]int64 }
+// MarkBits is a marker interface. When implemented on an unsigned integer indicates a bits type.
+type MarkBits interface{ Bits() map[string]int64 }
 
 // MarkEnum is a marker interface. When implemented on a string or integer indicates an enum type.
 type MarkEnum interface{ Enums() map[string]int64 }

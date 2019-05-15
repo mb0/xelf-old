@@ -34,13 +34,13 @@ type Any struct{ Lit }
 func (a Any) Typ() typ.Type { return typ.Any }
 func (a Any) Some() Lit     { return a.Lit }
 
-// FlagInt represents a flag int constant
-type FlagInt struct {
+// BitsInt represents a bits int constant
+type BitsInt struct {
 	Type typ.Type
 	Int
 }
 
-func (c FlagInt) Typ() typ.Type { return c.Type }
+func (c BitsInt) Typ() typ.Type { return c.Type }
 
 // EnumStr represents a enum str constant
 type EnumStr struct {

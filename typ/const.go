@@ -16,7 +16,7 @@ func Constants(m map[string]int64) Consts {
 	return res
 }
 
-// Const represents named integer constant for flags or enums
+// Const represents named integer constant for bits or enums
 type Const struct {
 	Name string `json:"name"`
 	Val  int64  `json:"val"`
@@ -27,7 +27,7 @@ func (c Const) Cased() string { return cor.Cased(c.Name) }
 
 type Consts []Const
 
-// ConstByKey finds and returns a constant with key in s. If a const was found, ok is true.
+// ByKey finds and returns a constant with key in s. If a const was found, ok is true.
 func (cs Consts) ByKey(key string) (c Const, ok bool) {
 	for _, e := range cs {
 		if key == e.Key() {
@@ -37,7 +37,7 @@ func (cs Consts) ByKey(key string) (c Const, ok bool) {
 	return
 }
 
-// ConstByVal finds and returns a constant with value val in s. If a const was found, ok is true.
+// ByVal finds and returns a constant with value val in s. If a const was found, ok is true.
 func (cs Consts) ByVal(val int64) (c Const, ok bool) {
 	for _, e := range cs {
 		if val == e.Val {
@@ -55,10 +55,10 @@ func (cs Consts) FormatEnum(val int64) string {
 	return ""
 }
 
-// FormatFlag returns a string representing mask. It returns the matched constants'
-// lowercase names seperated by a pip '|'.
-func (cs Consts) FormatFlag(mask int64) string {
-	res := cs.Flags(uint64(mask))
+// FormatBits returns a string representing mask. It returns the matched constants'
+// lowercase names separated by a pip '|'.
+func (cs Consts) FormatBits(mask int64) string {
+	res := cs.Bits(uint64(mask))
 	switch len(res) {
 	case 0:
 		return ""
@@ -75,9 +75,9 @@ func (cs Consts) FormatFlag(mask int64) string {
 	return b.String()
 }
 
-// GetFlags returns the matching constants s contained in mask. The given constants are checked in
+// Bits returns the matching constants s contained in mask. The given constants are checked in
 // reverse and thus should match combined, more specific constants first.
-func (cs Consts) Flags(mask uint64) Consts {
+func (cs Consts) Bits(mask uint64) Consts {
 	if len(cs) == 0 {
 		return nil
 	}

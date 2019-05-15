@@ -77,7 +77,7 @@ const (
 // Compare returns compatibility details for a source and destination type.
 // When the result is not none or equal, it informs what to do with a value
 // of the source type to arrive at the destination type.
-// The flag, enum and rec are treated as their corresponding literal type.
+// The bits, enum and rec are treated as their corresponding literal type.
 func Compare(src, dst Type) Cmp {
 	s, so := src.Deopt()
 	d, do := dst.Deopt()
@@ -151,7 +151,7 @@ func compare(src, dst Type) Cmp {
 	if d == KindVar {
 		return CmpInfer
 	}
-	// we can work with flags and enums as is but rec must be resolved
+	// we can work with bits and enums as is but rec must be resolved
 	if s == KindObj && !dst.HasParams() {
 		return CmpCheckRef
 	}

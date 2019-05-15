@@ -35,7 +35,7 @@ var (
 	refList = reflect.TypeOf((*lit.List)(nil))
 	refDict = reflect.TypeOf((*lit.Dict)(nil))
 	refSecs = reflect.TypeOf((*lit.MarkSpan)(nil))
-	refFlag = reflect.TypeOf((*lit.MarkFlag)(nil))
+	refBits = reflect.TypeOf((*lit.MarkBits)(nil))
 	refEnum = reflect.TypeOf((*lit.MarkEnum)(nil))
 	refType = reflect.TypeOf(typ.Void)
 	refEl   = reflect.TypeOf((*interface {
@@ -80,8 +80,8 @@ func reflectType(t reflect.Type, nfos infoMap) (res typ.Type, err error) {
 	case reflect.Int, reflect.Int32:
 		res = typ.Int
 	case reflect.Uint64:
-		if isRef(t, refFlag) {
-			cs := reflect.Zero(t).Interface().(lit.MarkFlag).Flags()
+		if isRef(t, refBits) {
+			cs := reflect.Zero(t).Interface().(lit.MarkBits).Bits()
 			res = typ.Type{typ.KindBits, getConstInfo(t, typ.Constants(cs))}
 			break
 		}

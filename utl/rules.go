@@ -161,8 +161,8 @@ func ExtraMapSetter(mapkey string) KeySetter {
 	}
 }
 
-// FlagPrepper returns a key prepper that tries to resolve a flag constant.
-func FlagPrepper(consts []typ.Const) KeyPrepper {
+// BitsPrepper returns a key prepper that tries to resolve a bits constant.
+func BitsPrepper(consts []typ.Const) KeyPrepper {
 	return func(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 		l, err := DynPrepper(c, env, n)
 		if err != nil {
@@ -185,8 +185,8 @@ func FlagPrepper(consts []typ.Const) KeyPrepper {
 	}
 }
 
-// FlagSetter returns a key setter that tries to add to a node flag field with key.
-func FlagSetter(key string) KeySetter {
+// BitsSetter returns a key setter that tries to add to a node bits field with key.
+func BitsSetter(key string) KeySetter {
 	return func(n Node, _ string, el lit.Lit) error {
 		f, err := n.Key(key)
 		if err != nil {

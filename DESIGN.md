@@ -46,13 +46,13 @@ base types:
    idxr for JSON arrays
    keyr for JSON objects
 
-However we usually need more specific type information that can not be represented in JSON.
-The type system chose a number of specific primitive types. The specific types of num are int, real
-and flag for bit sets, the specific types of char are str, raw for bytes, uuid, enum, time and span
-for durations. The bool type is also considered a numeric type, because some environments might not
-have a dedicated bool type, indexedDB in browsers comes to mind. Both span and time are usually
-represented in a text format but can also be converted to an integer, representing milliseconds.
-The numeric value of a time are the milliseconds from the unix epoch.
+However we usually need more specific type information that can not be represented in JSON. The type
+system chose a number of specific primitive types. The specific types of num are int, real and bits
+type for bit sets. The specific types of char are str, raw for bytes, uuid, enum, time and span for
+durations. The bool type is also considered a numeric type, because some environments might not have
+a dedicated bool type, indexedDB in browsers comes to mind. Both span and time are usually
+represented in a text format but can also be converted to an integer, representing milliseconds. The
+numeric value of a time are the milliseconds from the unix epoch.
 
 The selection is based on what types character and numeric literals are commonly used for, that
 differentiate enough in comparison or manipulation behavior. It is heavily informed by types
@@ -79,8 +79,8 @@ covered by type embedding and type references. Recursive record declaration also
 type references to itself or an ancestor. Type variables and alternatives are implicitly used in the
 type inference and resolution phase.
 
-The flag, enum and obj types are called schema types and are global references to a type definition
-with additional information. The flag type is a integer type used as bit set with associated
+The bits, enum and obj types are called schema types and are global references to a type definition
+with additional information. The bits type is a integer type used as bit set with associated
 constants. The enum type is a string type with associated constants. A object is a record type with
 a known schema and possibly additional information attached to it.
 
