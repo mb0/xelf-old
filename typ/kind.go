@@ -21,8 +21,8 @@ const (
 	SlotMask = 0xfff
 )
 
-// Each bit in a slot has a certain meaning. The first four bits specify a base type, next two bits
-// further specify the type. The last two bits flag a type as optional or reference version.
+// Each bit in a slot has a certain meaning. The first six bits specify a base type, next two bits
+// flag the type a context or optional variant.
 const (
 	KindNum  Kind = 1 << iota // 0x001
 	KindChar                  // 0x002
@@ -39,12 +39,11 @@ const (
 )
 
 const (
-	MaskUber = KindExpr | KindMeta           // 0000 0011 0000
-	MaskBits = 0xf00                         // 1111 0000 0000
-	MaskBase = KindAny | MaskUber            // 0000 0011 1111
-	MaskElem = MaskBase | MaskBits           // 1111 0011 1111
-	MaskRef  = MaskElem | MaskUber | KindCtx // 1111 0111 1111
-	MaskLit  = MaskRef | KindOpt             // 1111 1100 1111
+	MaskUber = KindExpr | KindMeta // 0000 0011 0000
+	MaskBits = 0xf00               // 1111 0000 0000
+	MaskBase = KindAny | MaskUber  // 0000 0011 1111
+	MaskElem = MaskBase | MaskBits // 1111 0011 1111
+	MaskRef  = MaskElem | KindCtx  // 1111 0111 1111
 )
 
 const (
@@ -85,6 +84,7 @@ const (
 	KindAlt = KindMeta | KindBit4 // 0x820
 )
 
+// Prom returns whether types of this kind are considered prominent.
 func (k Kind) Prom() bool {
 	return k == 0 || k&KindAny != 0 && k&MaskBits != 0 || k&KindFunc != 0
 }
