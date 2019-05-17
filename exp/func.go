@@ -20,10 +20,7 @@ func FuncArgs(x *Call) (*Layout, error) {
 	if err != nil {
 		return nil, err
 	}
-	tags, err := lo.Tags(0)
-	if err != nil {
-		return nil, err
-	}
+	tags := lo.Tags(0)
 	params := x.Spec.Arg()
 	if len(params) == 0 {
 		if len(tags) > 0 {

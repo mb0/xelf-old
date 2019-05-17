@@ -19,11 +19,7 @@ func ParseTags(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules TagR
 	if err != nil {
 		return err
 	}
-	tags, err := lo.Tags(0)
-	if err != nil {
-		return err
-	}
-	return rules.Resolve(c, env, tags, n)
+	return rules.Resolve(c, env, lo.Tags(0), n)
 }
 
 type (

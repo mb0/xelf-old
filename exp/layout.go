@@ -57,7 +57,7 @@ func (l *Layout) Arg(idx int) El {
 	return args[0]
 }
 
-func (l *Layout) Tags(idx int) ([]*Named, error) {
+func (l *Layout) Tags(idx int) []*Named {
 	args := l.Args(idx)
 	res := make([]*Named, 0, len(args))
 	for _, arg := range args {
@@ -68,7 +68,7 @@ func (l *Layout) Tags(idx int) ([]*Named, error) {
 			res = append(res, &Named{El: arg})
 		}
 	}
-	return res, nil
+	return res
 }
 
 func (l *Layout) Decls(idx int) ([]*Named, error) {

@@ -93,11 +93,7 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type)
 	for i, fp := range fps {
 		switch fp.Key() {
 		case "plain", "tags", "args":
-			tags, err := lo.Tags(i)
-			if err != nil {
-				return nil, err
-			}
-			err = r.Tags.Resolve(c, env, tags, node)
+			err = r.Tags.Resolve(c, env, lo.Tags(i), node)
 			if err != nil {
 				return nil, err
 			}
@@ -114,11 +110,7 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type)
 					return nil, err
 				}
 			} else {
-				tags, err := lo.Tags(i)
-				if err != nil {
-					return nil, err
-				}
-				err = r.Tags.Resolve(c, env, tags, node)
+				err = r.Tags.Resolve(c, env, lo.Tags(i), node)
 				if err != nil {
 					return nil, err
 				}
