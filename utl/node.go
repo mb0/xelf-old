@@ -39,13 +39,6 @@ type NodeRules struct {
 	Tail KeyRule
 }
 
-// NodeResolverFunc returns a one time node form resolver that uses v directly.
-func NodeResolverFunc(rules NodeRules, v interface{}) exp.ReslFunc {
-	r := NewNodeResolver(rules, v)
-	r.reuse = true
-	return r.Resolve
-}
-
 // NodeResolver is a form resolver that returns nodes of a specific type.
 type NodeResolver struct {
 	NodeRules
