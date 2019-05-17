@@ -11,6 +11,7 @@ import (
 
 type proxyNum struct{ proxy }
 
+func (p *proxyNum) New() lit.Proxy { return &proxyNum{p.new()} }
 func (p *proxyNum) Val() interface{} {
 	if v := p.el(); v.IsValid() {
 		switch v.Kind() {

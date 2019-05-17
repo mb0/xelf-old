@@ -19,7 +19,7 @@ var (
 
 // Assign assigns the value of l to the interface pointer value or returns an error
 func AssignTo(l lit.Lit, ptr interface{}) error {
-	if a, ok := ptr.(lit.Assignable); ok {
+	if a, ok := ptr.(lit.Proxy); ok {
 		return assignTo(l, a)
 	}
 	return AssignToValue(l, reflect.ValueOf(ptr))
@@ -37,7 +37,7 @@ func AssignToValue(l lit.Lit, ptr reflect.Value) (err error) {
 	return assignTo(l, pp)
 }
 
-func assignTo(l lit.Lit, p lit.Assignable) error {
+func assignTo(l lit.Lit, p lit.Proxy) error {
 	l, err := lit.Convert(l, p.Typ(), 0)
 	if err != nil {
 		return err
@@ -45,8 +45,8 @@ func assignTo(l lit.Lit, p lit.Assignable) error {
 	return p.Assign(l)
 }
 
-// Proxy returns an assignable literal for the pointer argument ptr or an error
-func Proxy(ptr interface{}) (lit.Assignable, error) {
+// NewProxy returns an assignable literal for the pointer argument ptr or an error
+func NewProxy(ptr interface{}) (lit.Proxy, error) {
 	return ProxyValue(reflect.ValueOf(ptr))
 }
 
@@ -55,7 +55,7 @@ func Proxy(ptr interface{}) (lit.Assignable, error) {
 //     bool, int64, float64, string, [16]byte, []byte, time.Time, List and *Dict
 // The numeric types int, int32, uint, uint32, float32 all list, dict and record types
 // use a proxy variant using reflection.
-func ProxyValue(ptr reflect.Value) (lit.Assignable, error) {
+func ProxyValue(ptr reflect.Value) (lit.Proxy, error) {
 	if ptr.Kind() != reflect.Ptr {
 		return nil, ErrRequiresPtr
 	}
@@ -158,6 +158,12 @@ type proxy struct {
 }
 
 func (p *proxy) Typ() typ.Type { return p.typ }
+func (p *proxy) new() proxy {
+	if p.val.IsValid() {
+		return proxy{p.typ, reflect.New(p.val.Type().Elem())}
+	}
+	return proxy{p.typ, p.val}
+}
 func (p *proxy) Ptr() interface{} {
 	if p.val.IsValid() {
 		return p.val.Interface()

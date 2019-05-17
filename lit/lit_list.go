@@ -51,6 +51,7 @@ func (l *List) SetIdx(i int, el Lit) (_ Indexer, err error) {
 	return l, nil
 }
 
+func (l *List) New() Proxy       { return &List{Elem: l.Elem} }
 func (l *List) Ptr() interface{} { return l }
 func (l *List) Append(ls ...Lit) (_ Appender, err error) {
 	for _, el := range ls {

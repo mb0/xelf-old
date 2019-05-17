@@ -63,7 +63,7 @@ func Zero(t typ.Type) Lit {
 }
 
 // ZeroProxy returns an assignable zero literal for the given type t.
-func ZeroProxy(tt typ.Type) (res Assignable) {
+func ZeroProxy(tt typ.Type) (res Proxy) {
 	t, opt := tt.Deopt()
 	switch t.Kind & typ.MaskRef {
 	case typ.KindTyp:
@@ -99,7 +99,7 @@ func ZeroProxy(tt typ.Type) (res Assignable) {
 		return &AnyProxy{reflect.ValueOf(new(interface{})), Nil}
 	}
 	if opt {
-		return SomeAssignable{res}
+		return SomeProxy{res}
 	}
 	return res
 }
@@ -108,9 +108,8 @@ type TypProxy struct {
 	*typ.Type
 }
 
-func (p TypProxy) Ptr() interface{} {
-	return p.Type
-}
+func (p TypProxy) New() Proxy       { return TypProxy{} }
+func (p TypProxy) Ptr() interface{} { return p.Type }
 func (p TypProxy) Assign(l Lit) error {
 	if t, ok := l.(typ.Type); ok {
 		*p.Type = t
@@ -124,9 +123,8 @@ type AnyProxy struct {
 	Lit
 }
 
-func (p *AnyProxy) Ptr() interface{} {
-	return p.Val.Interface()
-}
+func (p *AnyProxy) New() Proxy       { return &AnyProxy{Val: reflect.New(p.Val.Type().Elem())} }
+func (p *AnyProxy) Ptr() interface{} { return p.Val.Interface() }
 func (p *AnyProxy) Assign(l Lit) error {
 	p.Lit = l
 	var v interface{}
@@ -135,7 +133,7 @@ func (p *AnyProxy) Assign(l Lit) error {
 		v = x.Val()
 	case Numeric:
 		v = x.Val()
-	case Assignable:
+	case Proxy:
 		v = x.Ptr()
 		p.Val.Elem().Set(reflect.ValueOf(v).Elem())
 		return nil

@@ -39,9 +39,11 @@ type Opter interface {
 	Some() Lit
 }
 
-// Assignable is the common interface for proxies and some adapter pointers that can be assigned to.
-type Assignable interface {
+// Proxy is the common interface for proxies and some adapter pointers that can be assigned to.
+type Proxy interface {
 	Lit
+	// New returns a zero instance of the proxy literal.
+	New() Proxy
 	// Ptr returns a pointer to the underlying go value as interface.
 	Ptr() interface{}
 	// Assign assigns the value of the given literal or returns an error.

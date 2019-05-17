@@ -41,6 +41,7 @@ func (v Span) Seconds() float64 {
 	return time.Duration(v).Seconds()
 }
 
+func (v *Time) New() Proxy       { return new(Time) }
 func (v *Time) Ptr() interface{} { return v }
 func (v *Time) Assign(l Lit) error {
 	l = Deopt(l)
@@ -56,6 +57,7 @@ func (v *Time) Assign(l Lit) error {
 	return cor.Errorf("%q not assignable to %q", l.Typ(), v.Typ())
 }
 
+func (v *Span) New() Proxy       { return new(Span) }
 func (v *Span) Ptr() interface{} { return v }
 func (v *Span) Assign(l Lit) error {
 	l = Deopt(l)

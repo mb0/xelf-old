@@ -156,7 +156,7 @@ func sign(x exp.ReslReq, neg bool) (fst exp.El, err error) {
 			break
 		}
 		nl := lit.Num(-n)
-		if a, ok := v.(lit.Assignable); ok {
+		if a, ok := v.(lit.Proxy); ok {
 			err = a.Assign(nl)
 			if err != nil {
 				return nil, err

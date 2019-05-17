@@ -128,3 +128,13 @@ func (a *Rec) WriteBfr(b *bfr.Ctx) error {
 	}
 	return b.WriteByte('}')
 }
+
+func (a *Rec) New() Proxy       { return &Rec{Type: a.Elem} }
+func (a *Rec) Ptr() interface{} { return a }
+func (a *Rec) Assign(l Lit) error {
+	c, err := Convert(l, a.Type, 0)
+	if err != nil {
+		return err
+	}
+	return a.Dict.Assign(c)
+}

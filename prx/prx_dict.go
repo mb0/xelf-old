@@ -11,6 +11,7 @@ import (
 
 type proxyDict struct{ proxy }
 
+func (p *proxyDict) New() lit.Proxy { return &proxyDict{p.new()} }
 func (p *proxyDict) Assign(l lit.Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)

@@ -210,6 +210,10 @@ func SetPath(l Lit, p Path, el Lit, create bool) (Lit, error) {
 		return l, cor.Errorf("set path got nil literal")
 	}
 	if len(p) == 0 {
+		if a, ok := l.(Proxy); ok {
+			err := a.Assign(el)
+			return a, err
+		}
 		return nil, cor.Errorf("set path got empty path")
 	}
 	return setPath(l, el, p, create)

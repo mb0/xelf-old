@@ -52,6 +52,7 @@ func (v Str) Len() int  { return len(v) }
 func (v Char) Len() int { return len(v) }
 func (v Raw) Len() int  { return len(v) }
 
+func (v *Str) New() Proxy       { return new(Str) }
 func (v *Str) Ptr() interface{} { return v }
 func (v *Str) Assign(l Lit) error {
 	l = Deopt(l)
@@ -67,6 +68,7 @@ func (v *Str) Assign(l Lit) error {
 	return cor.Errorf("%q not assignable to %[2]q", l.Typ(), v.Typ())
 }
 
+func (v *Raw) New() Proxy       { return new(Raw) }
 func (v *Raw) Ptr() interface{} { return v }
 func (v *Raw) Assign(l Lit) error {
 	l = Deopt(l)
@@ -82,6 +84,7 @@ func (v *Raw) Assign(l Lit) error {
 	return cor.Errorf("%q not assignable to %q", l.Typ(), v.Typ())
 }
 
+func (v *UUID) New() Proxy       { return new(UUID) }
 func (v *UUID) Ptr() interface{} { return v }
 func (v *UUID) Assign(l Lit) error {
 	l = Deopt(l)

@@ -122,6 +122,7 @@ func (d *Dict) WriteBfr(b *bfr.Ctx) error {
 	return b.WriteByte('}')
 }
 
+func (d *Dict) New() Proxy       { return &Dict{Elem: d.Elem} }
 func (d *Dict) Ptr() interface{} { return d }
 func (d *Dict) Assign(l Lit) error {
 	if d == nil {

@@ -50,6 +50,7 @@ func (v Bool) WriteBfr(b *bfr.Ctx) error { return b.Fmt(v.String()) }
 func (v Int) WriteBfr(b *bfr.Ctx) error  { return b.Fmt(v.String()) }
 func (v Real) WriteBfr(b *bfr.Ctx) error { return b.Fmt(v.String()) }
 
+func (v *Bool) New() Proxy       { return new(Bool) }
 func (v *Bool) Ptr() interface{} { return v }
 func (v *Bool) Assign(l Lit) error {
 	l = Deopt(l)
@@ -65,6 +66,7 @@ func (v *Bool) Assign(l Lit) error {
 	return cor.Errorf("%q not assignable to %q", l.Typ(), v.Typ())
 }
 
+func (v *Int) New() Proxy       { return new(Int) }
 func (v *Int) Ptr() interface{} { return v }
 func (v *Int) Assign(l Lit) error {
 	l = Deopt(l)
@@ -80,6 +82,7 @@ func (v *Int) Assign(l Lit) error {
 	return cor.Errorf("%q not assignable to %q", l.Typ(), v.Typ())
 }
 
+func (v *Real) New() Proxy       { return new(Real) }
 func (v *Real) Ptr() interface{} { return v }
 func (v *Real) Assign(l Lit) error {
 	l = Deopt(l)

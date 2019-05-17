@@ -20,7 +20,7 @@ type Node interface {
 func GetNode(val interface{}) (Node, error) {
 	n, ok := val.(Node)
 	if !ok {
-		p, err := prx.Proxy(val)
+		p, err := prx.NewProxy(val)
 		if err != nil {
 			return nil, cor.Errorf("proxy %T: %w", val, err)
 		}

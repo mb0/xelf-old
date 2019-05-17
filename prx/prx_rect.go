@@ -13,6 +13,7 @@ type proxyRec struct {
 	idx [][]int
 }
 
+func (p *proxyRec) New() lit.Proxy { return &proxyRec{p.new(), p.idx} }
 func (p *proxyRec) Assign(l lit.Lit) error {
 	if l == nil || !p.typ.Equal(l.Typ()) {
 		return cor.Errorf("%q not assignable to %q", l.Typ(), p.typ)
