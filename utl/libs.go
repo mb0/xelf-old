@@ -1,3 +1,4 @@
+// Package utl provides helpers to extend the xelf language and some common library function specs.
 package utl
 
 import (
