@@ -21,7 +21,9 @@ Overview [![GoDoc](https://godoc.org/github.com/mb0/xelf?status.svg)](https://go
  * [typ](https://godoc.org/github.com/mb0/xelf/typ):
    composable type system and a parser, comparison and unification
  * [lit](https://godoc.org/github.com/mb0/xelf/lit):
-   literal parser, adapters and support for comparison and conversion
+   literal parser, generic implementations and support for comparison and conversion
+ * [prx](https://godoc.org/github.com/mb0/xelf/prx):
+   literal adapters and proxies to native go data using reflection
  * [exp](https://godoc.org/github.com/mb0/xelf/exp):
    simple extensible expression language
  * [std](https://godoc.org/github.com/mb0/xelf/std):
@@ -32,9 +34,9 @@ Overview [![GoDoc](https://godoc.org/github.com/mb0/xelf?status.svg)](https://go
 Motivation
 ----------
 
-The author envisioned this tool, while building a typical back-office software:
+The author envisioned this tool, while building a typical back-office software, where:
 
- * where configuration files could benefit from simple expressions
+ * configuration files could benefit from variables and simple expressions
  * templates could help generating html and PDFs on both the server and client
  * complex queries for data heavy pages would accumulate expression like parameters
  * data schema was needed at runtime and to generate code for different languages
@@ -42,30 +44,34 @@ The author envisioned this tool, while building a typical back-office software:
 For all of those cases there are projects and solutions available that can be used and implemented.
 Each has its own environment with a different syntax and limitations. That is fine at first.
 
-Then you want to format the text of some ingredients bold on both its product label and the label
-preview or use the domain model to create HTML views in your client.
-Or really any situation where you need to share data and behaviour between different environments.
-The resulting hacked up adapters and solutions continue to grow and keep you busy writing similar
-boilerplate all over in each environment for each change.
+But then you want to customize one aspect of the library you are using for your problem or need to
+use the same functionality in another language. The result is adapter code or handwritten niche
+solutions, that continue to grow and keep you busy writing similar boilerplate for each environment,
+for every change.
 
-It usually starts with a repetitive pattern on either the client or the server, after some
-abstraction you have a small package API that is needed on the other side as well.
-Now you rewrite that code in another programming language and add an ugly JSON based data format.
-After some time you have multiple tiny DSLs that are neither well-defined, pretty to look at nor
-easy to work with, all whilst repeating similar data validation and manipulation with some
-bug-prone permutations.
+The vision for xelf is to have basic meta-language as versatile tool for creating simple domain
+specific languages, that can be used as data format and translated to other language targets. In
+contrast to other DSL frameworks, scripting languages or LISPs, the xelf language is specifically
+designed to be easy to gradually implement and to work with in other languages.
 
-JSON was the minimal go-to data format used by the author. While not elegant or comfortable, every
-environment supports it well. Using JSON, however, is not ergonomic, when used as a product label
-layout language or in any other more involved situation.
-
-After about two years of experiments of varying degree I naturally arrived at a Lisp-style syntax,
+After about two years of experiments of varying success, I naturally arrived at a Lisp-style syntax,
 using a simple, yet powerful type system in combination with JSON compatible literals, a small set
 of built-in operators and expressions and an extensible evaluation process, that can be used to
 liberally change or extend the language.
 
 The result is not a Lisp and is much more restricted than one, primarily to make it as easy as
 possible to translate expressions to idiomatic code in different languages, even SQL.
+
+Examples
+--------
+
+There are two projects in development, that will demonstrate how xelf can be used.
+
+The [daql](https://github.com/mb0/daql) project provides tools to define, migrate and query domain
+models as well as packages used for to facilitate these features.
+
+The [layla](https://github.com/mb0/layla) project provides a layout format, that can be printed on a
+specific label printer or rendered as PDF or HTML preview.
 
 License
 -------
