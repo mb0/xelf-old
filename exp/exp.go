@@ -14,10 +14,12 @@ type El interface {
 	WriteBfr(*bfr.Ctx) error
 	// String returns the xelf representation as string.
 	String() string
-	// Typ returns the type
+	// Typ returns the element type.
 	Typ() typ.Type
-	// Source returns the source position if available
+	// Source returns the source position if available.
 	Source() lex.Src
+	// Travers calls the appropriate visitor methods for this element and its children.
+	Traverse(Visitor) error
 }
 
 // All the language elements
