@@ -6,14 +6,13 @@ questions about the design of xelf can be raised with the author and will be inc
 this document. This document along with each package documentation acts as informal and incomplete
 specification as long as the project is a work in progress.
 
-The main mantra for xelf is simplicity and practicality for use with web-centric technologies.
+The main mantra for xelf is simplicity and practicality in the context of web-centric technologies.
+The different packages build on each other and can be gradually implemented on other platforms.
 
-Simplicity is a difficult goal by itself, but especially for a generic and extensible tool
-like xelf. The project obviously has to provide value for common use-cases to be feasible,
-which means code that provides that value. It should try to separate each feature as much as
-possible and is allowed to be opinionated in feature selection.
-
-Xelf should try to make gradual implementation easy where complexity cannot be avoided.
+Xelf provides runtime code and development tools to work with data in a unified way in -and generate
+schemas and code for- targeted platforms. Web apps usually consist of a server program, a web client
+often using javascript and persistent data storage like a sql database. The most basic platform to
+think of here is a some-what idiomatic sqlite3 target.
 
 JSON
 ----
@@ -21,17 +20,13 @@ JSON
 One aspect of xelf is to provide a unified way to work with data across different environments.
 It needs to choose the data format that poses the least resistance.
 
-The most basic environment to think of here is a some-what idiomatic sqlite3 target.
-
 JSON emerged quite early and organically as the most commonly implemented and used object format.
 It is very basic, well-known, and programmers are already used to map their data to a JSON
 representation one way or another. Recently more and more database solution got JSON support.
 
 Accepting plain JSON as valid literal syntax makes it very simple to interoperate with existing
-code, databases, and user assumptions.
-
-Building xelf around JSON at its core is very practical, but also provides limitations that need
-to be accepted or worked around.
+code, databases, and user assumptions. Building xelf around JSON at its core is very practical, but
+also provides limitations that need to be accepted or worked around.
 
 Types
 -----
@@ -48,11 +43,11 @@ base types:
 
 However we usually need more specific type information that can not be represented in JSON. The type
 system chose a number of specific primitive types. The specific types of num are int, real and bits
-type for bit sets. The specific types of char are str, raw for bytes, uuid, enum, time and span for
-durations. The bool type is also considered a numeric type, because some environments might not have
-a dedicated bool type, indexedDB in browsers comes to mind. Both span and time are usually
-represented in a text format but can also be converted to an integer, representing milliseconds. The
-numeric value of a time are the milliseconds from the unix epoch.
+type for bit sets and span for time durations. The specific types of char are str, raw for bytes,
+uuid, enum and time. The bool type is also considered a numeric type, because some environments
+might not have a dedicated bool type, indexedDB in browsers comes to mind. Both span and time are
+usually represented in a text format but can also be represented as integer, representing
+milliseconds. The numeric value of a time are the milliseconds since the unix epoch.
 
 The selection is based on what types character and numeric literals are commonly used for, that
 differentiate enough in comparison or manipulation behavior. It is heavily informed by types
@@ -62,20 +57,19 @@ validation or storage layer. For most uses a couple of wasted bytes is not an is
 
 There are two distinct behavior of container types called idxr and keyr. An indexer provides access
 to its elements by index, and a keyer by a string key. The idxr and keyr base type can hold any
-elements, while the list and dict type take an optional element type. They use different types to
-avoid mix-ups with the record types rec and obj that do implement both indexer and keyer interface,
-because record fields are inherently ordered. Idxr should be implemented to preserve field order for
-this reason, but does not provide the idxr interface. Another reason in go to avoid maps most
-literals in xelf is that they do not support interior pointers.
+literals, while the list and dict type take an optional element type. They use different types to
+avoid mix-ups with the record types, that do implement both indexer and keyer interface.
+Because record fields are inherently ordered, dict is implemented to preserve field order, but does
+not provide the idxr interface. Another reason in go to avoid maps, is that they do not support
+interior pointers, which complicates working wit proxy literals.
 
 Apart from the any type all primitive and record types can be optional. Optional type variants have
-a question mark suffix and translate to pointer, option or nullable types in the target
-environments. Note that there are also optional record fields that mark the field itself and not its
-value optional.
+a question mark suffix and translate to pointer, option or nullable types for the target platform.
+Note: there are also optional record fields that mark the field itself and not its value optional.
 
 To rely on type information without specifying it explicitly in every case, for possibly large
 composite literals, xelf must allow to explicitly refer to and infer from existing types. This is
-covered by type embedding and type references. Recursive record declaration also use special
+covered by type embedding and type references. Recursive record declarations also use special
 type references to itself or an ancestor. Type variables and alternatives are implicitly used in the
 type inference and resolution phase.
 
@@ -111,44 +105,43 @@ inside other environments. Single quoted string alleviate escaping quotes in dou
 Single quoted char literals are therefor the default xelf format.
 
 Char literals can be back-tick quoted multi line raw literals without escape sequences. This is
-especially useful when use in templates or everywhere else with large pre-formated char literals.
+especially useful when used in templates or anywhere else for large pre-formated char literals.
 
 Idxr and Keyr literals can omit commas, because it does not fit in with the lisp style expression
-syntax as later discussed. And simple dict keys can be symbols and do not need any quotes.
+syntax as later discussed. And simple dict keys can be plain symbols without quotes.
 
 Composite literals can only contain literals. Any opening square or curly braces always start a
 literal. Expression resolvers are used to construct literals from expressions, instead of reusing
 the literal syntax. This makes it visually more obvious whether something is a literal.
 
-Types, functions and forms do implement the main literal interface and can be used as literals in
-some cases. This also simplifies the already heavy resolution API, as a successful resolution will
-always return a valid literal, and alleviates another check after each resolution step.
+Types, functions and forms specs do implement the main literal interface and can be used as literals
+in some cases. This also simplifies the already heavy resolution API, as a successful resolution
+will always return a valid literal, and alleviates another check after each resolution step.
 
-All literals except booleans are parsed as the base types any, num, char, idxr and keyr. They are
-later converted to a specific type inferred from the expression context.
+All literals except booleans are parsed as the types any, num, char, list and dict. They are later
+converted to a specific type inferred from the expression context.
 
-Every environment working with xelf literals requires some adapter code to convert, compare or
-otherwise work with literal. The xelf go package provides interfaces for each class of literal
-behaviors and both generic and proxy adapters. The generic adapters provide an abstract
-representation for all literals. Proxy adapters implement the literal interface but write through to
-to any compatible backing value in the native environment.
+Every platform working with literals requires some adapter code to convert, compare or otherwise
+work with them. Xelf provides generic literal implementations in the lit package, that can be used
+as abstract representation for all literals. And reflection based proxy literals in package prx,
+that can be used to adapt and write through to compatible typed go data structures.
 
-Null literal
-------------
-
-The 'null' literal turns out to be very useful if treated as a universal zero value. That means
-that it can be used in every type context as an appropriate zero value. This helps to translate
-the concept to languages that do not have a null pointers and use none and some for optional types.
+The 'null' literal is used as universal zero value. It can be used in typed context and represents
+the specific zero value for that type. The zero value for a str is and empty string while the zero
+value for an optional string is a null pointer. This helps to translate the concept to languages
+that do not have a null pointers and use none and some for optional types.
 
 Type Conversion
 ---------------
 
-We need flexible type conversion rules, mostly because xelf is a typed language using untyped JSON
-literals. The conversion rules are a bit more involved for that reason.
+Xelf has flexible type conversion rules. Those rules make it possible to use untyped JSON literals
+in in a typed language. The conversion rules are rather complex, but not really avoidable for the
+stated reason.
 
-Allowed conversions are encoded by the compare function in the typ package. It returns a comparison
-bit-set, that indicates not only whether, but in what way a type can be converted to another. The
-possible conversions are grouped into levels: equal, comparable, convertible or checked convertible.
+Allowed conversions are encoded by the compare function in the typ package. Compare returns a
+comparison bit-set, that indicates not only whether, but in what way a type can be converted to
+another. The possible conversions are grouped into levels: equal, comparable, convertible or checked
+convertible.
 
 Equal types indicate the same types or that the destination type is inferred.
 
@@ -193,25 +186,25 @@ punctuation. This makes a potentially problematic colon parsing in keyer literal
 Expression Syntax
 -----------------
 
-Xelf must be very simple to parse. Infix notation is always harder to parse than s-expressions. So
-we naturally choose LISP style parenthesis enclosed expressions. The parenthesis are also used for
-defining complex types. But apart from that always indicate that a resolver is called with the
-expression element.
+Xelf uses prefix notation for expressions and is very simple to parse. Infix notation is always
+harder to parse than s-expressions, so we naturally choose LISP style parenthesis enclosed
+expressions.  The parenthesis are also used for complex type definitions, but otherwise always
+indicate a call to a function or form resolver.
 
 LISP languages are great. However, many key concepts of LISP-languages are not easily expressed in
-simple environments. Xelf builds on JSON and adds a notation for types and expressions on top of it.
+other environments. Xelf builds on JSON and adds a notation for types and expressions on top of it.
 
 Xelf has special handling for tag and declaration symbols within expressions. This is to avoid
 excessive nesting of expressions and to achieve a comfortable level of expressiveness in a variety
 of contexts. Tag symbols that start with a colon and can be used for named arguments, node
-properties or similar things. Declaration symbols starting with a plus sign are used to signify
-variables, parameters or field names in declarations or when setting elements by key.
+properties or similar things. Declaration symbols starting with a plus sign are reserved to be used
+in language extensions.
 
 Predefined Symbols
 ------------------
 
 Only the literal symbols null, false and true as well as the void type are hard keywords. All other
-types are just built-in definitions that can be overwritten in sub environment.
+types are just built-in symbols that can be overwritten in sub environment.
 
 The schema prefix can be used to refer to built-in types, even if shadowed by a another definition.
 
@@ -273,9 +266,9 @@ as plain symbol.
 Expressions
 -----------
 
-Xelf language elements can be literals including types, symbols or expressions. Expressions can
-either be named, dynamic or call expressions. All elements share a common interface, that includes a
-sting and write bfr method as well as a type method. The returned type identifies the kind of the
+Xelf language elements can be atoms, symbols or expressions. Expressions can either be named,
+dynamic or call expressions. All elements share a common interface, that includes a string and write
+bfr method as well as a traverse and type method. The returned type identifies the kind of the
 language element.
 
 Named expressions start with a tag or declaration symbol and are handled by the parent's
@@ -291,14 +284,13 @@ Expression Resolution
 ---------------------
 
 Dynamic expressions direct a considerable part of the resolution process, and provide a configurable
-way to extend the language with new syntax. Because the dyn resolver plays this central role it does
-not use a lookup from the environment on every call and instead uses a reference in the resolution
-context or uses the default dyn resolver. Changing the dyn resolver is still possible by copying the
-context.
+way to extend the language with new syntax. Because the dyn resolver plays this central role, it
+does not use a lookup from the environment on every call and instead caches a reference in the
+resolution context. Changing the dyn resolver is still possible by clearing the context cached spec.
 
 The default dyn resolver resolves the first arg and delegates to a resolver based on it. If the
 first argument is form or function it is called directly. If it is a type the expression is treated
-as the 'as' type conversion form. For other literals a appropriate combination operator is used if
+as the 'con' type conversion form. For other literals a appropriate combination operator is used if
 available. Users can redefine and reuse the dyn resolver to add custom delegations.
 
 There is only one resolver interface for all aspects of the resolution process to keep it simple.
@@ -307,9 +299,9 @@ return a partially resolved expression. The context also encapsulates the defaul
 machinery that resolvers can choose to resolve arguments.
 
 The form resolvers provided by xelf are grouped into the core, std and library resolvers. The core
-built-ins include basic operators, conditional and the dyn and as resolvers. The std built-ins have
-basic resolvers that include declarations. The library built-ins are provide extra functionality
-centered around one type.
+built-ins include basic operators, conditional and the 'dyn' and 'con' resolvers. The std built-ins
+have basic resolvers that include declarations. The library built-ins in package utl provide extra
+functionality centered around one type.
 
 Forms and Functions
 -------------------
@@ -331,23 +323,10 @@ has an list type, it can be called as variadic parameter - meaning multiple argu
 instead of the expected list. When exactly one argument is used that is convertible to the list type
 it is used-as, other cases are treated as element.
 
-Specification
--------------
-
 Specifications are quasi-literals with a form or function type and a resolver.
 
-The 'fn' form can be used to construct function literals. Simple function expression should be able
-to omit and infer the function signature.
-
-If we have a full function type as hint, inferring the signature could be as simple as checking if
-all parameter references work with the declared type and whether the result type if comparable. The
-dot prefix is used and allows path to use either keys or indices to refer to the parameters. The
-underscore refers to the first parameter which allows use to easy infer the type signatures with two
-parameters.
-
-To infer the signature without any hint we must deduce all parameter references and their order as
-well as the result type. The prefix allow us to identify all parameter references. We can use index
-parameters to explicitly order some of the parameters append named ones in order.
+The 'fn' form can be used to construct function literals. Simple function expression can omit and
+infer the function signature.
 
 Type Inference
 --------------
@@ -365,3 +344,26 @@ Resolvers are passed a type hint to unify with. Type hints can be of any kind, b
 variables created in the parent's resolver. Void hints indicates a lack of type expectations and
 means the resolver can disregard the hint completely.
 
+Planed Tasks
+------------
+
+We should use the element visitor in more places. One reason is that the interface calls to concrete
+types is cheaper than type conversions and facilities using the visitor can more easily be reused
+and extended.
+
+Use the element visitor to build up the program input type, and spec literal parameter types.
+
+With atoms now in place we could add a type field, that indicates the resolved literal type. This
+would allow delayed literal conversions and would make it possible to drop at the base-type literals
+char and num.
+
+We should add more test and clear some Todo items. Especially record, function and form conversion
+is not implemented, as are many edge-cases that generally need investigations.
+
+Explore and document the significance of the type unification order. We should think about how to
+minimize type variables to make the type inference easier to grok. Maybe use local type contexts,
+that we merge back into the larger program type context, omitting all locally inferable type vars.
+
+Implement planned tasks for the daql and layla example projects, to discover and fix potential
+issues with xelf. If the work on those projects and examples using them stabilizes, we can invest
+time writing documentation and think about releasing and evangelizing this project.
