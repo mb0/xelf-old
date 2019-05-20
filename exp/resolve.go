@@ -19,7 +19,7 @@ func Execute(env Env, x El) (El, error) {
 }
 
 // ResolveAll tries to resolve each element in xs in place and returns the first error if any.
-func (c *Ctx) ResolveAll(env Env, els []El, hint Type) ([]El, error) {
+func (c *Ctx) ResolveAll(env Env, els []El, hint typ.Type) ([]El, error) {
 	var res error
 	xs := els
 	if !c.Part {
@@ -45,23 +45,24 @@ func (c *Ctx) ResolveAll(env Env, els []El, hint Type) ([]El, error) {
 // context's unresolved slice.
 // The resolver implementations usually use this method either directly or indirectly to resolve
 // arguments, which are then again added to the unresolved elements when appropriate.
-func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
+func (c *Ctx) Resolve(env Env, x El, hint typ.Type) (res El, err error) {
 	if x == nil {
-		return typ.Void, nil
-	}
-	if a, ok := x.(*Atom); ok {
-		x = a.Lit
+		return &Atom{Lit: typ.Void}, nil
 	}
 	switch v := x.(type) {
-	case Type: // resolve type references
-		if !v.Resolved() {
-			v, err = c.resolveType(env, v)
-			if err != nil {
-				if err == ErrUnres {
-					c.Unres = append(c.Unres, x)
-					return x, err
+	case *Atom:
+		if v.Typ() == typ.Typ { // resolve type references
+			t := v.Lit.(typ.Type)
+			if !t.Resolved() {
+				t, err = c.resolveType(env, t)
+				if err != nil {
+					if err == ErrUnres {
+						c.Unres = append(c.Unres, v)
+						return x, err
+					}
+					return nil, err
 				}
-				return nil, err
+				v.Lit = t
 			}
 		}
 		return c.checkHint(hint, v)
@@ -93,13 +94,11 @@ func (c *Ctx) Resolve(env Env, x El, hint Type) (res El, err error) {
 			// log.Printf("resolve call %s type already instantiated %s", v, v.Type)
 		}
 		return v.Spec.Resolve(c, env, v, hint)
-	case Lit:
-		return c.checkHint(hint, v)
 	}
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
 }
 
-func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
+func (c *Ctx) checkHint(hint typ.Type, l El) (El, error) {
 	if hint != typ.Void {
 		if lt := l.Typ(); lt != typ.Void {
 			_, err := typ.Unify(c.Ctx, lt, hint)
@@ -111,7 +110,7 @@ func (c *Ctx) checkHint(hint Type, l Lit) (El, error) {
 	return l, nil
 }
 
-func (c *Ctx) resolveDyn(env Env, d *Dyn, h Type) (El, error) {
+func (c *Ctx) resolveDyn(env Env, d *Dyn, h typ.Type) (El, error) {
 	if c.Dyn == nil {
 		def := Lookup(env, "dyn")
 		if def != nil {
@@ -124,7 +123,7 @@ func (c *Ctx) resolveDyn(env Env, d *Dyn, h Type) (El, error) {
 	return c.Dyn.Resolve(c, env, &Call{Spec: c.Dyn, Type: c.Inst(c.Dyn.Type), Args: d.Els}, h)
 }
 
-func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
+func (c *Ctx) resolveSym(env Env, ref *Sym, hint typ.Type) (El, error) {
 	r, _, path, err := findDef(env, ref.Name)
 	if r == nil || r.Lit == nil || err == ErrUnres {
 		if r != nil && r.Type != typ.Void {
@@ -154,10 +153,10 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint Type) (El, error) {
 			return nil, err
 		}
 	}
-	return c.checkHint(hint, res)
+	return c.checkHint(hint, &Atom{res, ref.Source()})
 }
 
-func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {
+func (c *Ctx) resolveType(env Env, t typ.Type) (_ typ.Type, err error) {
 	last := t.Last()
 	if !last.HasRef() {
 		return t, ErrUnres
@@ -177,14 +176,14 @@ func (c *Ctx) resolveType(env Env, t Type) (_ Type, err error) {
 	}
 	s := def.Type
 	if def.Lit != nil && s == typ.Typ {
-		s = def.Lit.(Type)
+		s = def.Lit.(typ.Type)
 	}
 	if path != "" {
 		res, err := lit.Select(s, path)
 		if err != nil {
 			return typ.Void, err
 		}
-		s = res.(Type)
+		s = res.(typ.Type)
 	}
 	if last.Kind&typ.KindOpt != 0 {
 		s = typ.Opt(s)
@@ -264,10 +263,10 @@ func lastSupports(env Env, x byte) (last Env) {
 	return last
 }
 
-func elType(el El) (Type, error) {
+func elType(el El) (typ.Type, error) {
 	switch t := el.Typ(); t.Kind {
 	case typ.KindTyp:
-		return el.(Type), nil
+		return el.(*Atom).Lit.(typ.Type), nil
 	case typ.KindSym:
 		s := el.(*Sym)
 		if s.Type != typ.Void {
@@ -285,7 +284,7 @@ func elType(el El) (Type, error) {
 	return typ.Void, ErrUnres
 }
 
-func replaceRef(t, el Type) (Type, bool) {
+func replaceRef(t, el typ.Type) (typ.Type, bool) {
 	switch k := t.Kind & typ.MaskRef; k {
 	case typ.KindList, typ.KindDict:
 		n, ok := replaceRef(t.Elem(), el)

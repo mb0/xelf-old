@@ -5,13 +5,13 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-type ReslFunc func(*Ctx, Env, *Call, Type) (El, error)
+type ReslFunc func(*Ctx, Env, *Call, typ.Type) (El, error)
 
-func (rf ReslFunc) Resolve(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+func (rf ReslFunc) Resolve(c *Ctx, env Env, e *Call, hint typ.Type) (El, error) {
 	return rf(c, env, e, hint)
 }
 
-func Sig(sig string) (Type, error) {
+func Sig(sig string) (typ.Type, error) {
 	s, err := typ.ParseString(sig)
 	if err != nil {
 		return typ.Void, cor.Errorf("cannot parse signature %s: %v", sig, err)
@@ -24,7 +24,7 @@ func Sig(sig string) (Type, error) {
 	return s, nil
 }
 
-func MustSig(sig string) Type {
+func MustSig(sig string) typ.Type {
 	s, err := Sig(sig)
 	if err != nil {
 		panic(cor.Errorf("implement spec error: %v", err))
@@ -32,20 +32,20 @@ func MustSig(sig string) Type {
 	return s
 }
 
-type LayoutResolverFunc = func(*Ctx, Env, *Call, *Layout, Type) (El, error)
+type LayoutResolverFunc = func(*Ctx, Env, *Call, *Layout, typ.Type) (El, error)
 
 type ReslReq struct {
 	*Ctx
 	Env  Env
 	Call *Call
 	*Layout
-	Hint Type
+	Hint typ.Type
 }
 type ReslReqFunc = func(ReslReq) (El, error)
 
 func Implement(sig string, resolve bool, r LayoutResolverFunc) *Spec {
 	s := MustSig(sig)
-	return &Spec{s, ReslFunc(func(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+	return &Spec{s, ReslFunc(func(c *Ctx, env Env, e *Call, hint typ.Type) (El, error) {
 		if e.Type == typ.Void {
 			return nil, cor.Errorf("type not instantiated for %s %s", s, e.Type)
 		}
@@ -66,7 +66,7 @@ func Implement(sig string, resolve bool, r LayoutResolverFunc) *Spec {
 
 func ImplementReq(sig string, resolve bool, r ReslReqFunc) *Spec {
 	s := MustSig(sig)
-	return &Spec{s, ReslFunc(func(c *Ctx, env Env, e *Call, hint Type) (El, error) {
+	return &Spec{s, ReslFunc(func(c *Ctx, env Env, e *Call, hint typ.Type) (El, error) {
 		if e.Type == typ.Void {
 			return nil, cor.Errorf("type not instantiated for %s %s", s, e.Type)
 		}

@@ -2,6 +2,8 @@ package exp
 
 import (
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lit"
+	"github.com/mb0/xelf/typ"
 )
 
 // ErrUnres is returned by a resolver if the result is unresolved, but otherwise valid.
@@ -13,12 +15,12 @@ var ErrExec = cor.StrError("not executed")
 // Def represents a definition in an environment.
 type Def struct {
 	// Type is the resolved definition type.
-	Type
+	typ.Type
 	// Lit is the evaluated literal. The literal must be convertible to the definiton type.
-	Lit Lit
+	Lit lit.Lit
 }
 
-func NewDef(l Lit) *Def { return &Def{Type: l.Typ(), Lit: l} }
+func NewDef(l lit.Lit) *Def { return &Def{Type: l.Typ(), Lit: l} }
 
 // Env is a scoped symbol environment used to define and lookup resolvers by symbol.
 type Env interface {

@@ -61,57 +61,61 @@ type litLener interface {
 
 var lenSpec = core.implResl("(form 'len' (@:alt cont str raw) int)",
 	func(x exp.ReslReq) (exp.El, error) {
-		fst := x.Arg(0)
-		if v, ok := deopt(fst).(litLener); ok {
-			return lit.Int(v.Len()), nil
+		fst := x.Arg(0).(*exp.Atom)
+		if v, ok := deopt(fst.Lit).(litLener); ok {
+			return &exp.Atom{lit.Int(v.Len()), x.Call.Source()}, nil
 		}
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 	})
 
 var fstSpec = decl.implResl("(form 'fst' list|@1 :pred? (func @ bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
-		return nth(x, x.Arg(0), x.Arg(1), 0)
+		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), 0)
 	})
 
 var lstSpec = decl.implResl("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
-		return nth(x, x.Arg(0), x.Arg(1), -1)
+		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), -1)
 	})
 
 var nthSpec = decl.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
-		l, ok := x.Arg(1).(lit.Numeric)
+		l, ok := x.Arg(1).(*exp.Atom).Lit.(lit.Numeric)
 		if !ok {
 			return nil, cor.Errorf("want number got %s", x.Arg(1))
 		}
-		return nth(x, x.Arg(0), x.Arg(2), int(l.Num()))
+		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(2), int(l.Num()))
 	})
 
-func nth(x exp.ReslReq, cont, pred exp.El, idx int) (_ exp.El, err error) {
+func nth(x exp.ReslReq, cont *exp.Atom, pred exp.El, idx int) (_ exp.El, err error) {
 	if pred != nil {
 		iter, err := getIter(x, pred, cont.Typ(), false)
 		if err != nil {
 			return nil, err
 		}
-		cont, err = iter.filter(x, cont)
+		cont.Lit, err = iter.filter(x, cont)
 		if err != nil {
 			return nil, err
 		}
 	}
-	switch v := deopt(cont).(type) {
+	switch v := deopt(cont.Lit).(type) {
 	case lit.Indexer:
 		idx, err = checkIdx(idx, v.Len())
 		if err != nil {
 			return nil, err
 		}
-		return v.Idx(idx)
+		l, err := v.Idx(idx)
+		if err != nil {
+			return nil, err
+		}
+		return &exp.Atom{Lit: l}, nil
 	case *lit.Dict:
 		idx, err = checkIdx(idx, v.Len())
 		if err != nil {
 			return nil, err
 		}
 		keyed := v.List[idx]
-		return keyed.Lit, nil
+		return &exp.Atom{Lit: keyed.Lit}, nil
 	}
 	return nil, cor.Errorf("nth wants idxer or dict got %s", cont.Typ())
 }
@@ -137,8 +141,10 @@ func getIter(x exp.ReslReq, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error
 	if err != nil && err != exp.ErrUnres {
 		return nil, err
 	}
-	if s, ok := e.(*exp.Spec); ok {
-		r = &fIter{Spec: s}
+	if a, ok := e.(*exp.Atom); ok {
+		if s, ok := a.Lit.(*exp.Spec); ok {
+			r = &fIter{Spec: s}
+		}
 	}
 	if r == nil {
 		return nil, cor.Errorf("iter not a func or form %s", e.Typ())
@@ -191,42 +197,42 @@ func getIter(x exp.ReslReq, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error
 	return r, nil
 }
 
-func (r *fIter) resolve(x exp.ReslReq, el exp.El, idx int, key string) (lit.Lit, error) {
-	r.args[0] = el
+func (r *fIter) resolve(x exp.ReslReq, el lit.Lit, idx int, key string) (lit.Lit, error) {
+	r.args[0] = &exp.Atom{Lit: el}
 	if r.i > 0 {
-		r.args[r.i] = lit.Int(idx)
+		r.args[r.i] = &exp.Atom{Lit: lit.Int(idx)}
 	}
 	if r.k > 0 {
-		r.args[r.k] = lit.Str(key)
+		r.args[r.k] = &exp.Atom{Lit: lit.Str(key)}
 	}
 	call := &exp.Call{Spec: r.Spec, Args: r.args}
 	res, err := x.Ctx.Resolve(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
-	return res.(lit.Lit), nil
+	return res.(*exp.Atom).Lit, nil
 }
-func (r *fIter) accumulate(x exp.ReslReq, acc, el exp.El, idx int, key string) (lit.Lit, error) {
+func (r *fIter) accumulate(x exp.ReslReq, acc *exp.Atom, el lit.Lit, idx int, key string) (*exp.Atom, error) {
 	r.args[0] = acc
 	if r.v > 0 {
-		r.args[r.v] = el
+		r.args[r.v] = &exp.Atom{Lit: el}
 	}
 	if r.i > 0 {
-		r.args[r.i] = lit.Int(idx)
+		r.args[r.i] = &exp.Atom{Lit: lit.Int(idx)}
 	}
 	if r.k > 0 {
-		r.args[r.k] = lit.Str(key)
+		r.args[r.k] = &exp.Atom{Lit: lit.Str(key)}
 	}
 	call := &exp.Call{Spec: r.Spec, Args: r.args}
 	res, err := x.With(false, false).Resolve(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, cor.Errorf("accumulate: %w", err)
 	}
-	return res.(lit.Lit), nil
+	return res.(*exp.Atom), nil
 }
 
-func (r *fIter) filter(x exp.ReslReq, cont exp.El) (lit.Lit, error) {
-	switch v := deopt(cont).(type) {
+func (r *fIter) filter(x exp.ReslReq, cont *exp.Atom) (lit.Lit, error) {
+	switch v := deopt(cont.Lit).(type) {
 	case lit.Keyer:
 		out := lit.Zero(v.Typ()).(lit.Keyer)
 		idx := 0
@@ -273,7 +279,7 @@ func (r *fIter) filter(x exp.ReslReq, cont exp.El) (lit.Lit, error) {
 
 var filterSpec = decl.implResl("(form 'filter' cont|@1 (func @1 bool) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
-		cont := x.Arg(0)
+		cont := x.Arg(0).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
 			return nil, err
@@ -282,12 +288,12 @@ var filterSpec = decl.implResl("(form 'filter' cont|@1 (func @1 bool) @2)",
 		if err != nil {
 			return nil, err
 		}
-		return res, nil
+		return &exp.Atom{res, x.Call.Source()}, nil
 	})
 
 var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 	func(x exp.ReslReq) (exp.El, error) {
-		cont := x.Arg(0)
+		cont := x.Arg(0).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
 			return nil, err
@@ -317,7 +323,7 @@ var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 		case typ.KindRec:
 			rt = typ.Keyr(it)
 		}
-		switch v := deopt(cont).(type) {
+		switch v := deopt(cont.Lit).(type) {
 		case lit.Keyer:
 			out := lit.Zero(rt).(lit.Keyer)
 			idx := 0
@@ -336,7 +342,7 @@ var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 			if err != nil {
 				return nil, err
 			}
-			return out, nil
+			return &exp.Atom{out, x.Call.Source()}, nil
 		case lit.Indexer:
 			out := lit.Zero(rt).(lit.Appender)
 			if iter.k > 0 {
@@ -356,20 +362,20 @@ var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 			if err != nil {
 				return nil, err
 			}
-			return out, nil
+			return &exp.Atom{out, x.Call.Source()}, nil
 		}
 		return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
 	})
 
 var foldSpec = decl.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
-		cont := x.Arg(0)
-		acc := x.Arg(1).(lit.Lit)
+		cont := x.Arg(0).(*exp.Atom)
+		acc := x.Arg(1).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(2), acc.Typ(), true)
 		if err != nil {
 			return nil, err
 		}
-		switch v := deopt(cont).(type) {
+		switch v := deopt(cont.Lit).(type) {
 		case lit.Keyer:
 			idx := 0
 			err := v.IterKey(func(key string, el lit.Lit) error {
@@ -405,13 +411,13 @@ var foldSpec = decl.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 
 var foldrSpec = decl.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x exp.ReslReq) (exp.El, error) {
-		cont := x.Arg(0)
-		acc := x.Arg(1).(lit.Lit)
+		cont := x.Arg(0).(*exp.Atom)
+		acc := x.Arg(1).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(2), acc.Typ(), true)
 		if err != nil {
 			return nil, err
 		}
-		switch v := deopt(cont).(type) {
+		switch v := deopt(cont.Lit).(type) {
 		case lit.Keyer:
 			keys := v.Keys()
 			for idx := len(keys) - 1; idx >= 0; idx-- {

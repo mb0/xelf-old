@@ -20,7 +20,9 @@ var neSpec = core.impl("(form 'ne' @1 :plain list|@1 bool)",
 		if err != nil {
 			return res, err
 		}
-		return !res.(lit.Bool), nil
+		a := res.(*exp.Atom)
+		a.Lit = !a.Lit.(lit.Bool)
+		return a, nil
 	})
 
 // equalSpec returns a bool whether the arguments are same types or same literals.
@@ -42,14 +44,15 @@ var niSpec = core.implResl("(form 'ni' @1 list|@1 bool)",
 	})
 
 func inOrNi(x exp.ReslReq, neg bool) (exp.El, error) {
-	a := x.Arg(0).(lit.Lit)
-	list, ok := x.Arg(1).(lit.Indexer)
+	a := x.Arg(0).(*exp.Atom)
+	b := x.Arg(1).(*exp.Atom)
+	list, ok := b.Lit.(lit.Indexer)
 	if !ok {
-		return nil, cor.Errorf("expect idxer got %s", x.Arg(1).Typ())
+		return nil, cor.Errorf("expect idxer got %s", b.Typ())
 	}
 	var found bool
 	err := list.IterIdx(func(idx int, el lit.Lit) error {
-		if found = lit.Equal(el, a); found {
+		if found = lit.Equal(el, a.Lit); found {
 			return lit.BreakIter
 		}
 		return nil
@@ -58,9 +61,9 @@ func inOrNi(x exp.ReslReq, neg bool) (exp.El, error) {
 		return nil, err
 	}
 	if neg {
-		return lit.Bool(!found), nil
+		found = !found
 	}
-	return lit.Bool(found), nil
+	return &exp.Atom{Lit: lit.Bool(found)}, nil
 }
 
 // ltSpec returns a bool whether the arguments are monotonic increasing literals.
@@ -111,7 +114,7 @@ func resolveBinaryComp(x exp.ReslReq, sym bool, cmp cmpf) (exp.El, error) {
 	}
 	var res, init bool
 	var unres []exp.El
-	var last lit.Lit
+	var last *exp.Atom
 	for _, args := range x.Layout.All() {
 		for _, arg := range args {
 			if arg.Typ().Kind&typ.KindAny == 0 {
@@ -126,10 +129,10 @@ func resolveBinaryComp(x exp.ReslReq, sym bool, cmp cmpf) (exp.El, error) {
 				unres = append(unres, arg)
 				continue
 			}
-			el := arg.(lit.Lit)
+			el := arg.(*exp.Atom)
 			if last != nil {
-				if !cmp(last, el) {
-					return lit.False, nil
+				if !cmp(last.Lit, el.Lit) {
+					return &exp.Atom{Lit: lit.False}, nil
 				}
 			}
 			if !res && ((!sym || !init) && len(unres) > 0) || len(unres) == 1 {
@@ -143,5 +146,5 @@ func resolveBinaryComp(x exp.ReslReq, sym bool, cmp cmpf) (exp.El, error) {
 		x.Call.Args = unres
 		return x.Call, exp.ErrUnres
 	}
-	return lit.True, nil
+	return &exp.Atom{Lit: lit.True}, nil
 }

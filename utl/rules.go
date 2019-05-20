@@ -106,7 +106,7 @@ func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 	}
 	res := &lit.List{Data: make([]lit.Lit, 0, len(args))}
 	for _, arg := range args {
-		res.Data = append(res.Data, arg.(lit.Lit))
+		res.Data = append(res.Data, arg.(*exp.Atom).Lit)
 	}
 	return res, nil
 }
@@ -127,7 +127,7 @@ func DynPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (_ lit.Lit, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return x.(lit.Lit), nil
+	return x.(*exp.Atom).Lit, nil
 }
 
 // PathSetter sets el to n using key as path or returns an error.

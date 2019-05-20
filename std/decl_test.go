@@ -29,7 +29,7 @@ func TestInferFn(t *testing.T) {
 			t.Errorf("exec %s error: %v", x, err)
 			continue
 		}
-		s, ok := l.(*exp.Spec)
+		s, ok := l.(*exp.Atom).Lit.(*exp.Spec)
 		if !ok {
 			t.Errorf("for %s want spec got %T %[2]s", x, s)
 			continue

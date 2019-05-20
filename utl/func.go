@@ -5,7 +5,6 @@ import (
 
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
-	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/prx"
 	"github.com/mb0/xelf/typ"
 )
@@ -35,7 +34,7 @@ func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) 
 			// reflect already provides a zero value
 			continue
 		}
-		err = prx.AssignToValue(n[0].(lit.Lit), v)
+		err = prx.AssignToValue(n[0].(*exp.Atom).Lit, v)
 		if err != nil {
 			return nil, cor.Errorf("have %s: %w", v, err)
 		}
@@ -59,7 +58,11 @@ func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) 
 		return nil, nil
 	}
 	// create a proxy from the result and return
-	return prx.AdaptValue(res[0])
+	l, err := prx.AdaptValue(res[0])
+	if err != nil {
+		return nil, err
+	}
+	return &exp.Atom{Lit: l}, nil
 }
 
 var refErr = reflect.TypeOf((*error)(nil)).Elem()

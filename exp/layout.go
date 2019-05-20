@@ -36,7 +36,7 @@ import (
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
 type Layout struct {
-	Sig  Type
+	Sig  typ.Type
 	args [][]El
 }
 
@@ -115,12 +115,12 @@ func (l *Layout) Unis(idx int) ([]*Named, error) {
 	return res, nil
 }
 
-func (l *Layout) Resolve(c *Ctx, env Env, hint Type) error {
+func (l *Layout) Resolve(c *Ctx, env Env, hint typ.Type) error {
 	if l == nil {
 		return nil
 	}
 	var res error
-	inst := Type{l.Sig.Kind, &typ.Info{Params: make([]typ.Param, 0, len(l.Sig.Params))}}
+	inst := typ.Type{l.Sig.Kind, &typ.Info{Params: make([]typ.Param, 0, len(l.Sig.Params))}}
 	if l.Sig.HasRef() {
 		inst.Ref = l.Sig.Ref
 	}
@@ -241,7 +241,7 @@ Loop:
 	return &Layout{sig, res}, nil
 }
 
-func isSig(t Type) bool {
+func isSig(t typ.Type) bool {
 	return (t.Kind == typ.KindForm || t.Kind == typ.KindFunc) && t.HasParams()
 }
 
@@ -350,7 +350,7 @@ func consumeUnis(es []El) (res, _ []El) {
 	return res, es
 }
 
-func isSpecial(e El, pre string) (t Type, s string, a []El, ok bool) {
+func isSpecial(e El, pre string) (t typ.Type, s string, a []El, ok bool) {
 	switch t = e.Typ(); t {
 	case typ.Dyn:
 		switch d := e.(type) {

@@ -65,15 +65,15 @@ func TestFuncResolver(t *testing.T) {
 		err   error
 	}{
 		{strings.ToLower, nil, []exp.El{
-			lit.Str("HELLO"),
+			&exp.Atom{Lit: lit.Str("HELLO")},
 		}, `'hello'`, nil},
 		{time.Time.Format, []string{"t?", "format"}, []exp.El{
-			&exp.Named{Name: ":format", El: lit.Char(`2006-02-01`)},
+			&exp.Named{Name: ":format", El: &exp.Atom{Lit: lit.Char(`2006-02-01`)}},
 		}, `'0001-01-01'`, nil},
 		{fmt.Sprintf, nil, []exp.El{
-			lit.Str("Hi %s no. %d."),
-			lit.Str("you"),
-			lit.Int(9),
+			&exp.Atom{Lit: lit.Str("Hi %s no. %d.")},
+			&exp.Atom{Lit: lit.Str("you")},
+			&exp.Atom{Lit: lit.Int(9)},
 		}, `'Hi you no. 9.'`, nil},
 	}
 	for _, test := range tests {
@@ -94,7 +94,6 @@ func TestFuncResolver(t *testing.T) {
 		if test.want != "" {
 			if got := res.String(); test.want != got {
 				t.Errorf("for %T want res %s got %v", test.fun, test.want, got)
-
 			}
 		}
 	}

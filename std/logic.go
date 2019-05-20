@@ -48,11 +48,12 @@ var orSpec = core.impl("(form 'or' :plain? list bool)",
 			if err != nil {
 				return nil, err
 			}
-			if !el.(lit.Lit).IsZero() {
-				return lit.True, nil
+			a := el.(*exp.Atom)
+			if !a.Lit.IsZero() {
+				return &exp.Atom{Lit: lit.True}, nil
 			}
 		}
-		return lit.False, nil
+		return &exp.Atom{Lit: lit.False}, nil
 	})
 
 // andSpec resolves the arguments as short-circuiting logical 'and' to a bool literal.
@@ -87,11 +88,12 @@ func resolveAnd(x exp.ReslReq) (exp.El, error) {
 		if err != nil {
 			return nil, err
 		}
-		if el.(lit.Lit).IsZero() {
-			return lit.False, nil
+		a := el.(*exp.Atom)
+		if a.Lit.IsZero() {
+			return &exp.Atom{Lit: lit.False}, nil
 		}
 	}
-	return lit.True, nil
+	return &exp.Atom{Lit: lit.True}, nil
 }
 
 // boolSpec resolves the arguments similar to short-circuiting logical 'and' to a bool literal.
@@ -114,10 +116,13 @@ func init() {
 				}
 				return x.Call, err
 			}
+			a := res.(*exp.Atom)
 			if len(x.Call.Args) == 0 {
-				return lit.False, nil
+				a.Lit = lit.False
+			} else {
+				a.Lit = lit.Bool(!a.Lit.IsZero())
 			}
-			return lit.Bool(!res.(lit.Lit).IsZero()), nil
+			return a, nil
 		})
 
 	notSpec = core.impl("(form 'not' :plain? list bool)",
@@ -129,10 +134,13 @@ func init() {
 				}
 				return x.Call, err
 			}
+			a := res.(*exp.Atom)
 			if len(x.Call.Args) == 0 {
-				return lit.True, nil
+				a.Lit = lit.True
+			} else {
+				a.Lit = lit.Bool(a.Lit.IsZero())
 			}
-			return lit.Bool(res.(lit.Lit).IsZero()), nil
+			return a, nil
 		})
 }
 
@@ -205,12 +213,13 @@ var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
 				x.Ctx = x.WithExec(false)
 				return x.Call, err
 			}
-			if !cond.(lit.Lit).IsZero() {
+			a := cond.(*exp.Atom)
+			if !a.Lit.IsZero() {
 				return x.Ctx.Resolve(x.Env, x.Call.Args[i+1], alt)
 			}
 		}
 		if i < len(x.Call.Args) { // we have an else expression
 			return x.Ctx.Resolve(x.Env, x.Call.Args[i], alt)
 		}
-		return lit.Zero(alt), nil
+		return &exp.Atom{Lit: lit.Zero(alt)}, nil
 	})

@@ -19,7 +19,7 @@ type Resl interface {
 	// and either the original element or if the context allows it a partially resolved element.
 	// If the resolution cannot proceed with execution it returns the special error ErrExec.
 	// Any other error ends the whole resolution process.
-	Resolve(c *Ctx, env Env, e *Call, hint Type) (El, error)
+	Resolve(c *Ctx, env Env, e *Call, hint typ.Type) (El, error)
 }
 
 // Arg returns the argument parameters or nil.
@@ -31,7 +31,7 @@ func (sp *Spec) Arg() []typ.Param {
 }
 
 // Res returns the result type or void.
-func (sp *Spec) Res() Type {
+func (sp *Spec) Res() typ.Type {
 	if sp.IsZero() {
 		return typ.Void
 	}

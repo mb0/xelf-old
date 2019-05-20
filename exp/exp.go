@@ -8,33 +8,23 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// El is the common interface for all language elements.
+// El is the common interface of all language elements.
 type El interface {
 	// WriteBfr writes the element to a bfr.Ctx.
 	WriteBfr(*bfr.Ctx) error
 	// String returns the xelf representation as string.
 	String() string
 	// Typ returns the type
-	Typ() Type
-}
-
-// Expr is a language element with source offset information.
-type Expr interface {
-	El
+	Typ() typ.Type
+	// Source returns the source position if available
 	Source() lex.Src
 }
 
 // All the language elements
 type (
-	// Lit is a literal as defined in package lit.
-	Lit = lit.Lit
-
-	// Type is a type as defined in package typ. Types also implement literal.
-	Type = typ.Type
-
 	// Atom is a literal or type with source source offsets as returned by the parser.
 	Atom struct {
-		Lit
+		Lit lit.Lit
 		lex.Src
 	}
 
@@ -42,9 +32,9 @@ type (
 	Sym struct {
 		Name string
 		// Type is the resolved type of lit in this context or void.
-		Type Type
+		Type typ.Type
 		// Lit is the resolved literal or nil. Conversion may be required.
-		Lit Lit
+		Lit lit.Lit
 		lex.Src
 	}
 
@@ -57,14 +47,14 @@ type (
 	// Named is a tag or declaration; its meaning is determined by the parent's specification.
 	Named struct {
 		Name string
-		El
+		El   El
 		lex.Src
 	}
 
 	// Call is an expression with a defined specification.
 	Call struct {
-		// Type is the instanciated and possibly resoved spec type in this context or void
-		Type Type
+		// Type is the instantiated and possibly resolved spec type in this context or void
+		Type typ.Type
 		// Spec is the form or func specification
 		Spec *Spec
 		Args []El
@@ -72,18 +62,21 @@ type (
 	}
 )
 
-func (x *Sym) Typ() Type   { return typ.Sym }
-func (x Dyn) Typ() Type    { return typ.Dyn }
-func (x *Call) Typ() Type  { return typ.Call }
-func (x *Named) Typ() Type { return typ.Named }
+func (x *Atom) Typ() typ.Type  { return x.Lit.Typ() }
+func (x *Sym) Typ() typ.Type   { return typ.Sym }
+func (x *Dyn) Typ() typ.Type   { return typ.Dyn }
+func (x *Call) Typ() typ.Type  { return typ.Call }
+func (x *Named) Typ() typ.Type { return typ.Named }
 
+func (x *Atom) String() string  { return bfr.String(x) }
 func (x *Sym) String() string   { return x.Name }
 func (x *Dyn) String() string   { return bfr.String(x) }
 func (x *Named) String() string { return bfr.String(x) }
 func (x *Call) String() string  { return bfr.String(x) }
 
-func (x *Sym) WriteBfr(b *bfr.Ctx) error { return b.Fmt(x.Name) }
-func (x *Dyn) WriteBfr(b *bfr.Ctx) error { return writeExpr(b, "", x.Els) }
+func (x *Atom) WriteBfr(b *bfr.Ctx) error { return x.Lit.WriteBfr(b) }
+func (x *Sym) WriteBfr(b *bfr.Ctx) error  { return b.Fmt(x.Name) }
+func (x *Dyn) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, "", x.Els) }
 func (x *Named) WriteBfr(b *bfr.Ctx) error {
 	if x.El == nil {
 		return b.Fmt(x.Name)
@@ -127,7 +120,7 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 func (x *Sym) Key() string { return cor.Keyed(x.Name) }
 
 // Res returns the result type or void.
-func (x *Call) Res() Type {
+func (x *Call) Res() typ.Type {
 	if isSig(x.Type) {
 		return x.Type.Params[len(x.Type.Params)-1].Type
 	}

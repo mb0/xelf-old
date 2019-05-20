@@ -80,14 +80,14 @@ func FuncArgs(x *Call) (*Layout, error) {
 	return &Layout{x.Type, args}, nil
 }
 
-func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.List, error) {
+func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*Atom, error) {
 	els, err := c.ResolveAll(env, args, et)
 	if err != nil {
 		return nil, err
 	}
 	res := make([]lit.Lit, 0, len(els))
 	for _, el := range els {
-		l := el.(Lit)
+		l := el.(*Atom).Lit
 		if et != typ.Any {
 			l, err = lit.Convert(l, et, 0)
 			if err != nil {
@@ -96,7 +96,7 @@ func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*lit.List, error) 
 		}
 		res = append(res, l)
 	}
-	return &lit.List{et, res}, nil
+	return &Atom{Lit: &lit.List{et, res}}, nil
 }
 
 func ResolveFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
@@ -124,15 +124,15 @@ func ResolveFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
 			if err != nil {
 				return nil, err
 			}
-			l := el.(Lit)
-			ll, err := lit.Convert(l, p.Type, 0)
+			a := el.(*Atom)
+			a.Lit, err = lit.Convert(a.Lit, p.Type, 0)
 			if err != nil {
-				ll, err = resolveListArr(c, env, p.Type.Elem(), []El{el})
+				a, err = resolveListArr(c, env, p.Type.Elem(), []El{a})
 				if err != nil {
 					return nil, err
 				}
 			}
-			lo.args[i] = []El{ll}
+			lo.args[i] = []El{a}
 			break // last iteration
 		}
 		if len(a) > 1 {
@@ -143,14 +143,14 @@ func ResolveFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
 		if err != nil {
 			return nil, err
 		}
-		l := el.(Lit)
+		at := el.(*Atom)
 		if p.Type != typ.Any {
-			l, err = lit.Convert(l, p.Type, 0)
+			at.Lit, err = lit.Convert(at.Lit, p.Type, 0)
 			if err != nil {
 				return nil, err
 			}
 		}
-		a[0] = l
+		a[0] = at
 	}
 	return lo, err
 }

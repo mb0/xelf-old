@@ -8,7 +8,7 @@ import (
 )
 
 // ParseString scans and parses string s and returns an element or an error.
-func ParseString(env Env, s string) (Expr, error) {
+func ParseString(env Env, s string) (El, error) {
 	a, err := lex.Scan(s)
 	if err != nil {
 		return nil, err
@@ -18,7 +18,7 @@ func ParseString(env Env, s string) (Expr, error) {
 
 // Parse parses the syntax tree a and returns an element or an error.
 // It needs a static environment to distinguish elements.
-func Parse(env Env, a *lex.Tree) (Expr, error) {
+func Parse(env Env, a *lex.Tree) (El, error) {
 	switch a.Tok {
 	case lex.Number, lex.String, '[', '{':
 		l, err := lit.Parse(a)
@@ -71,7 +71,7 @@ func Parse(env Env, a *lex.Tree) (Expr, error) {
 			if t.Typ() != typ.Typ {
 				break
 			}
-			tt := t.Lit.(Type)
+			tt := t.Lit.(typ.Type)
 			if tt == typ.Void {
 				return nil, nil
 			}
@@ -126,7 +126,7 @@ func errStartingTag(name string) error {
 		"conversion spec, got %v", name)
 }
 
-func parseDyn(env Env, seq []*lex.Tree, el Expr) (_ *Dyn, err error) {
+func parseDyn(env Env, seq []*lex.Tree, el El) (_ *Dyn, err error) {
 	args, src, err := parseArgs(env, seq, el)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func parseDyn(env Env, seq []*lex.Tree, el Expr) (_ *Dyn, err error) {
 	return &Dyn{Els: args, Src: src}, nil
 }
 
-func parseArgs(env Env, seq []*lex.Tree, el Expr) (args []El, src lex.Src, err error) {
+func parseArgs(env Env, seq []*lex.Tree, el El) (args []El, src lex.Src, err error) {
 	args = make([]El, 0, len(seq)+1)
 	if el != nil {
 		args = append(args, el)

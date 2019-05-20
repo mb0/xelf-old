@@ -27,7 +27,7 @@ func TestStdFail(t *testing.T) {
 func TestStdResolve(t *testing.T) {
 	tests := []struct {
 		raw  string
-		want exp.El
+		want lit.Lit
 	}{
 		{`~any`, typ.Any},
 		{`bool`, typ.Bool},
@@ -227,8 +227,9 @@ func TestStdResolve(t *testing.T) {
 			t.Errorf("%s resolve err: %+v\n%v", test.raw, err, c.Unres)
 			continue
 		}
-		if !reflect.DeepEqual(r, test.want) {
-			t.Errorf("%s want %s got %s %[3]T", test.raw, test.want, r)
+		a := r.(*exp.Atom)
+		if !reflect.DeepEqual(a.Lit, test.want) {
+			t.Errorf("%s want %s got %s %[3]T", test.raw, test.want, a.Lit)
 		}
 	}
 }

@@ -48,7 +48,7 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 		}
 		if n == nil {
 			if ctx.idx >= 0 {
-				ctx.unres[ctx.idx] = lit.Num(ctx.res)
+				ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 			}
 			x.Call.Args = append(x.Call.Args[:1], ctx.unres...)
 			return x.Call, exp.ErrUnres
@@ -57,12 +57,13 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
 		}
+		la := &exp.Atom{Lit: l}
 		if len(ctx.unres) != 0 {
-			x.Call.Args = append(x.Call.Args[:0], l)
+			x.Call.Args = append(x.Call.Args[:0], la)
 			x.Call.Args = append(x.Call.Args, ctx.unres...)
 			return x.Call, exp.ErrUnres
 		}
-		return l, nil
+		return la, nil
 	})
 
 // divSpec divides the product of the rest from the first argument.
@@ -89,7 +90,7 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 		}
 		if n == nil {
 			if ctx.idx >= 0 {
-				ctx.unres[ctx.idx] = lit.Num(ctx.res)
+				ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 			}
 			x.Call.Args = append(x.Call.Args[:1], ctx.unres...)
 			return x.Call, exp.ErrUnres
@@ -107,20 +108,21 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
 		}
+		la := &exp.Atom{Lit: l}
 		if len(ctx.unres) != 0 {
-			x.Call.Args = append(x.Call.Args[:0], l)
+			x.Call.Args = append(x.Call.Args[:0], la)
 			x.Call.Args = append(x.Call.Args, ctx.unres...)
 			return x.Call, exp.ErrUnres
 		}
-		return l, nil
+		return la, nil
 	})
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
 var remSpec = core.implResl("(form 'rem' @1:int @:int @1)",
 	func(x exp.ReslReq) (exp.El, error) {
-		res := x.Arg(0).(lit.Numeric).Num()
-		mod := x.Arg(1).(lit.Numeric).Num()
-		return lit.Int(res) % lit.Int(mod), nil
+		res := x.Arg(0).(*exp.Atom).Lit.(lit.Numeric).Num()
+		mod := x.Arg(1).(*exp.Atom).Lit.(lit.Numeric).Num()
+		return &exp.Atom{Lit: lit.Int(res) % lit.Int(mod)}, nil
 	})
 
 // absSpec returns the argument with the absolute numeric value.
@@ -135,20 +137,20 @@ var negSpec = core.implResl("(form 'neg' @1:num @1)",
 		return sign(x, true)
 	})
 
-func sign(x exp.ReslReq, neg bool) (fst exp.El, err error) {
-	fst = x.Arg(0)
-	switch v := fst.(type) {
+func sign(x exp.ReslReq, neg bool) (_ exp.El, err error) {
+	fst := x.Arg(0).(*exp.Atom)
+	switch v := fst.Lit.(type) {
 	case lit.Int:
 		if neg || v < 0 {
-			fst = -v
+			fst.Lit = -v
 		}
 	case lit.Num:
 		if neg || v < 0 {
-			fst = -v
+			fst.Lit = -v
 		}
 	case lit.Real:
 		if neg || v < 0 {
-			fst = -v
+			fst.Lit = -v
 		}
 	case lit.Numeric:
 		n := v.Num()
@@ -162,7 +164,7 @@ func sign(x exp.ReslReq, neg bool) (fst exp.El, err error) {
 				return nil, err
 			}
 		} else {
-			fst, err = lit.Convert(nl, v.Typ(), 0)
+			fst.Lit, err = lit.Convert(nl, v.Typ(), 0)
 			if err != nil {
 				return nil, err
 			}
@@ -199,23 +201,23 @@ var maxSpec = core.impl("(form 'max' @1:num :plain? list|@1 @1)",
 	})
 
 func getNumer(e exp.El) lit.Numeric {
-	v, _ := deopt(e).(lit.Numeric)
-	return v
+	if a, ok := e.(*exp.Atom); ok {
+		v, _ := deopt(a.Lit).(lit.Numeric)
+		return v
+	}
+	return nil
 }
 
 type numOp = func(r, e float64) (float64, error)
 
-func deopt(el exp.El) lit.Lit {
-	if l, ok := el.(lit.Lit); ok {
-		if o, ok := l.(lit.Opter); ok {
-			if l = o.Some(); l == nil {
-				t, _ := o.Typ().Deopt()
-				l = lit.Zero(t)
-			}
+func deopt(l lit.Lit) lit.Lit {
+	if o, ok := l.(lit.Opter); ok {
+		if l = o.Some(); l == nil {
+			t, _ := o.Typ().Deopt()
+			l = lit.Zero(t)
 		}
-		return l
 	}
-	return nil
+	return l
 }
 
 func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
@@ -242,14 +244,17 @@ func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
 		return nil, err
 	}
 	if len(ctx.unres) == 0 {
-		l := lit.Num(ctx.res)
+		var l lit.Lit = lit.Num(ctx.res)
 		if fst.Typ() != typ.Num {
-			return lit.Convert(l, fst.Typ(), 0)
+			l, err = lit.Convert(l, fst.Typ(), 0)
+			if err != nil {
+				return nil, err
+			}
 		}
-		return l, nil
+		return &exp.Atom{Lit: l}, nil
 	}
 	if ctx.idx >= 0 {
-		ctx.unres[ctx.idx] = lit.Num(ctx.res)
+		ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 	}
 	x.Call.Args = ctx.unres
 	return x.Call, exp.ErrUnres

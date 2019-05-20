@@ -37,7 +37,7 @@ func (f *FuncScope) Get(s string) *Def {
 	return f.DataScope.Get(s)
 }
 
-func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint Type) (El, error) {
+func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint typ.Type) (El, error) {
 	// build a parameter record from all arguments
 	lo, err := ResolveFuncArgs(c, env, x)
 	if err != nil {
@@ -52,7 +52,7 @@ func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint Type) (El, error) {
 		if len(a) == 0 { // can only be optional parameter; use zero value
 			kl.Lit = lit.Zero(p.Type)
 		} else {
-			kl.Lit = a[0].(Lit)
+			kl.Lit = a[0].(*Atom).Lit
 		}
 		if kl.Key == "" {
 			// otherwise use a synthetic name
@@ -77,7 +77,12 @@ func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint Type) (El, error) {
 	}
 	rt := x.Spec.Res()
 	if rt == typ.Void {
-		return rt, nil
+		return &Atom{Lit: rt}, nil
 	}
-	return lit.Convert(res.(Lit), rt, 0)
+	a := res.(*Atom)
+	a.Lit, err = lit.Convert(a.Lit, rt, 0)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
 }

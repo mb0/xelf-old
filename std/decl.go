@@ -5,7 +5,6 @@ import (
 
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
-	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -16,7 +15,7 @@ var withSpec = core.impl("(form 'with' any :rest list|expr @)",
 		if err != nil {
 			return x.Call, err
 		}
-		env := &exp.DataScope{x.Env, el.(lit.Lit)}
+		env := &exp.DataScope{x.Env, el.(*exp.Atom).Lit}
 		rest := x.Args(1)
 		if len(rest) == 0 {
 			return nil, cor.Errorf("with must have body expressions")
@@ -73,13 +72,13 @@ var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :plain list|expr @)",
 				if err != nil {
 					return x.Call, err
 				}
-				dt, ok := l.(typ.Type)
+				dt, ok := l.(*exp.Atom).Lit.(typ.Type)
 				if !ok {
 					return nil, cor.Errorf("want type in func parameters got %T", l)
 				}
 				fs = append(fs, typ.Param{Name: d.Name[1:], Type: dt})
 			}
-			return &exp.Spec{typ.Func("", fs), &exp.ExprBody{rest, x.Env}}, nil
+			return &exp.Atom{&exp.Spec{typ.Func("", fs), &exp.ExprBody{rest, x.Env}}, x.Call.Source()}, nil
 		}
 		last := rest[len(rest)-1]
 		// the last action's type is resolved in a mock function scope, that collects all
@@ -95,7 +94,7 @@ var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :plain list|expr @)",
 		}
 		ps = append(ps, typ.Param{Type: x.Apply(res)})
 		spec := &exp.Spec{typ.Func("", ps), &exp.ExprBody{rest, x.Env}}
-		return spec, nil
+		return &exp.Atom{Lit: spec}, nil
 	})
 
 type mockScope struct {
@@ -167,13 +166,9 @@ func letDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err e
 		if err != nil {
 			return nil, err
 		}
-		switch l := res.(type) {
-		case lit.Lit:
-			if r, ok := l.(*exp.Spec); ok {
-				err = env.Def(d.Key(), exp.NewDef(r))
-			} else {
-				err = env.Def(d.Key(), exp.NewDef(l))
-			}
+		switch a := res.(type) {
+		case *exp.Atom:
+			err = env.Def(d.Key(), exp.NewDef(a.Lit))
 		default:
 			return nil, cor.Errorf("unexpected element as declaration value %v", res)
 		}

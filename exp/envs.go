@@ -86,7 +86,7 @@ func (s *Scope) Get(sym string) *Def {
 // DataScope is a child environment that supports relative paths and is backed by a literal
 type DataScope struct {
 	Par Env
-	Dot Lit
+	Dot lit.Lit
 }
 
 // NewDataScope returns a data scope with the given parent environment.

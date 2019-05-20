@@ -7,6 +7,7 @@ import (
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/prx"
+	"github.com/mb0/xelf/typ"
 )
 
 // Node is an interface for assignable object literals.
@@ -71,7 +72,7 @@ func (r *NodeResolver) getNode() (Node, error) {
 	return p.(Node), nil
 }
 
-func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type) (exp.El, error) {
+func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
 	lo, err := exp.LayoutCall(x)
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h exp.Type)
 			return nil, err
 		}
 	}
-	return node, nil
+	return &exp.Atom{Lit: node}, nil
 }
 
 var refNode = reflect.TypeOf((*Node)(nil)).Elem()

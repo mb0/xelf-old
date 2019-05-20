@@ -15,14 +15,14 @@ var errConType = cor.StrError("the 'con' expression must start with a type")
 var dynSpec = core.impl("(form 'dyn' @1 :rest? list @2)",
 	func(x exp.ReslReq) (_ exp.El, err error) {
 		if len(x.Call.Args) == 0 {
-			return typ.Void, nil
+			return &exp.Atom{Lit: typ.Void}, nil
 		}
 		return defaultDyn(x.Ctx, x.Env, &exp.Dyn{Els: x.Call.Args}, x.Hint)
 	})
 
 func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, err error) {
 	if len(d.Els) == 0 {
-		return typ.Void, nil
+		return &exp.Atom{Lit: typ.Void}, nil
 	}
 	fst := d.Els[0]
 	switch t := fst.Typ(); t.Kind {
@@ -31,7 +31,7 @@ func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, e
 	case typ.KindDyn:
 		v, _ := fst.(*exp.Dyn)
 		if len(v.Els) == 0 {
-			return typ.Void, nil
+			return &exp.Atom{Lit: typ.Void}, nil
 		}
 		fst, err = defaultDyn(c, env, v, typ.Void)
 	}
@@ -43,10 +43,8 @@ func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, e
 	args := d.Els
 	switch t := fst.Typ(); t.Kind & typ.MaskRef {
 	case typ.KindTyp:
-		if a, ok := fst.(*exp.Atom); ok {
-			fst = a.Lit
-		}
-		tt := fst.(typ.Type)
+		a := fst.(*exp.Atom)
+		tt := a.Lit.(typ.Type)
 		if tt == typ.Void {
 			return fst, nil
 		}
@@ -56,15 +54,13 @@ func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, e
 			sym = "con"
 		}
 	case typ.KindFunc, typ.KindForm:
-		r, ok := fst.(*exp.Spec)
+		a := fst.(*exp.Atom)
+		r, ok := a.Lit.(*exp.Spec)
 		if ok {
 			spec, args = r, args[1:]
 		}
 	default:
 		if len(d.Els) == 1 && t.Kind&typ.KindAny != 0 {
-			if a, ok := fst.(*exp.Atom); ok {
-				fst = a.Lit
-			}
 			return fst, nil
 		}
 		switch t.Kind & typ.MaskElem {
@@ -104,7 +100,7 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 		// resolve all arguments
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			t, ok := x.Arg(0).(typ.Type)
+			t, ok := x.Arg(0).(*exp.Atom).Lit.(typ.Type)
 			if ok && x.Hint != typ.Void {
 				_, err := typ.Unify(x.Ctx.Ctx, x.Hint, t)
 				if err == nil {
@@ -113,7 +109,7 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 			}
 			return x.Call, err
 		}
-		t, ok := x.Arg(0).(typ.Type)
+		t, ok := x.Arg(0).(*exp.Atom).Lit.(typ.Type)
 		if !ok {
 			return nil, errConType
 		}
@@ -122,7 +118,7 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 			x.Call.Type = x.Apply(x.Call.Type)
 		}
 		if t == typ.Void { // just in case we have a dynamic comment
-			return typ.Void, nil
+			return &exp.Atom{Lit: typ.Void}, nil
 		}
 		args := x.Args(1)
 		decls, err := x.Unis(2)
@@ -131,53 +127,53 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 		}
 		// first rule: return zero literal
 		if len(args) == 0 && len(decls) == 0 {
-			return lit.Zero(t), nil
+			return &exp.Atom{Lit: lit.Zero(t)}, nil
 		}
 		// second rule: convert compatible literals
 		if len(args) == 1 && len(decls) == 0 {
-			fst := args[0].(lit.Lit)
-			res, err := lit.Convert(fst, t, 0)
+			fst := args[0].(*exp.Atom)
+			res, err := lit.Convert(fst.Lit, t, 0)
 			if err == nil {
-				return res, nil
+				return &exp.Atom{Lit: res}, nil
 			}
 		}
 		// third rule: set declarations
 		if t.Kind&typ.KindKeyr != 0 {
 			res := deopt(lit.Zero(t)).(lit.Keyer)
 			for _, d := range decls {
-				el, ok := d.Arg().(lit.Lit)
+				el, ok := d.Arg().(*exp.Atom)
 				if !ok {
 					return nil, cor.Errorf("want literal in declaration got %s", d.El)
 				}
-				_, err = res.SetKey(d.Key(), el)
+				_, err = res.SetKey(d.Key(), el.Lit)
 				if err != nil {
 					return nil, err
 				}
 			}
-			return res, nil
+			return &exp.Atom{Lit: res}, nil
 		}
 		// fourth rule: append list
 		if ok && t.Kind&typ.KindIdxr != 0 {
 			res := deopt(lit.Zero(t)).(lit.Indexer)
 			apd, _ := res.(lit.Appender)
 			for i, a := range args {
-				el, ok := a.(lit.Lit)
+				el, ok := a.(*exp.Atom)
 				if !ok {
 					return nil, cor.Error("want literal in argument list")
 				}
 				if apd != nil { // list uses append
-					apd, err = apd.Append(el)
+					apd, err = apd.Append(el.Lit)
 				} else { // otherwise its a record literal set by index
-					_, err = res.SetIdx(i, el)
+					_, err = res.SetIdx(i, el.Lit)
 				}
 				if err != nil {
 					return nil, err
 				}
 			}
 			if apd != nil {
-				return apd, nil
+				return &exp.Atom{Lit: apd}, nil
 			}
-			return res, nil
+			return &exp.Atom{Lit: res}, nil
 		}
 		return nil, cor.Error("not implemented")
 	})

@@ -23,31 +23,32 @@ var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @2)",
 		if err != nil {
 			return x.Call, err
 		}
-		fst := x.Arg(0).(lit.Lit)
+		fst := x.Arg(0).(*exp.Atom)
 		t, opt := fst.Typ().Deopt()
 		var res lit.Lit
 		switch t.Kind & typ.MaskRef {
 		case typ.KindChar, typ.KindStr:
 			var b strings.Builder
-			err = catChar(&b, false, fst, x.Args(1))
+			err = catChar(&b, false, fst.Lit, x.Args(1))
 			if err != nil {
 				return nil, err
 			}
 			res = lit.Str(b.String())
 		case typ.KindRaw:
 			var b bytes.Buffer
-			err = catChar(&b, true, fst, x.Args(1))
+			err = catChar(&b, true, fst.Lit, x.Args(1))
 			if err != nil {
 				return nil, err
 			}
 			res = lit.Raw(b.Bytes())
 		default:
-			apd, ok := fst.(lit.Appender)
+			apd, ok := fst.Lit.(lit.Appender)
 			if !ok {
 				break
 			}
 			for _, arg := range x.Args(1) {
-				idxr, ok := arg.(lit.Indexer)
+				aa, ok := arg.(*exp.Atom)
+				idxr, ok := aa.Lit.(lit.Indexer)
 				if !ok {
 					return nil, errCatLit
 				}
@@ -59,7 +60,7 @@ var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @2)",
 					return nil, err
 				}
 			}
-			return apd, nil
+			return &exp.Atom{Lit: apd}, nil
 		}
 		if res == nil {
 			return nil, cor.Errorf("cannot cat %s", t)
@@ -67,7 +68,7 @@ var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @2)",
 		if opt {
 			res = lit.Some{res}
 		}
-		return res, nil
+		return &exp.Atom{Lit: res}, nil
 	})
 
 // apdSpec appends the rest literal arguments to the first literal appender argument.
@@ -77,13 +78,13 @@ var apdSpec = core.impl("(form 'apd' @1:list|@2 :plain list|@2 @1)",
 		if err != nil {
 			return x.Call, err
 		}
-		apd, ok := x.Arg(0).(lit.Appender)
+		apd, ok := x.Arg(0).(*exp.Atom).Lit.(lit.Appender)
 		if !ok {
 			return nil, cor.Errorf("cannot append to %T", x.Arg(0))
 		}
 		for _, arg := range x.Args(1) {
-			if l, ok := arg.(lit.Lit); ok {
-				apd, err = apd.Append(l)
+			if a, ok := arg.(*exp.Atom); ok {
+				apd, err = apd.Append(a.Lit)
 				if err != nil {
 					return nil, err
 				}
@@ -91,7 +92,7 @@ var apdSpec = core.impl("(form 'apd' @1:list|@2 :plain list|@2 @1)",
 			}
 			return nil, cor.Errorf("cannot append arg %T", arg)
 		}
-		return apd, nil
+		return &exp.Atom{Lit: apd}, nil
 	})
 
 // setSpec sets the first keyer literal with the following declaration arguments.
@@ -101,12 +102,12 @@ var setSpec = core.impl("(form 'set' @1:keyr|@2 :plain? list|keyr|@2 :tags? dict
 		if err != nil {
 			return x.Call, err
 		}
-		fst := x.Arg(0)
-		res, ok := deopt(fst).(lit.Keyer)
+		fst := x.Arg(0).(*exp.Atom)
+		res, ok := deopt(fst.Lit).(lit.Keyer)
 		if !ok {
 			return nil, errSetKeyer
 		}
-		opt := res != fst
+		opt := res != fst.Lit
 		if len(x.Call.Args) == 1 {
 			return fst, nil
 		}
@@ -115,19 +116,20 @@ var setSpec = core.impl("(form 'set' @1:keyr|@2 :plain? list|keyr|@2 :tags? dict
 			return nil, err
 		}
 		for _, d := range decls {
-			el, ok := d.Arg().(lit.Lit)
+			el, ok := d.Arg().(*exp.Atom)
 			if !ok {
 				return nil, cor.Errorf("want literal in declaration got %v", d.El)
 			}
-			_, err = res.SetKey(d.Key(), el)
+			_, err = res.SetKey(d.Key(), el.Lit)
 			if err != nil {
 				return nil, err
 			}
 		}
+		a := &exp.Atom{Lit: res}
 		if opt {
-			return lit.Some{res}, nil
+			a.Lit = lit.Some{a.Lit}
 		}
-		return res, nil
+		return a, nil
 	})
 
 func catChar(b bfr.B, raw bool, fst lit.Lit, args []exp.El) error {
@@ -136,11 +138,11 @@ func catChar(b bfr.B, raw bool, fst lit.Lit, args []exp.El) error {
 		return err
 	}
 	for _, arg := range args {
-		l, ok := arg.(lit.Lit)
+		a, ok := arg.(*exp.Atom)
 		if !ok {
 			return cor.Errorf("%s not a literal: %w", arg, errCatLit)
 		}
-		err := writeChar(b, l)
+		err := writeChar(b, a.Lit)
 		if err != nil {
 			return err
 		}
