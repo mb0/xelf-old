@@ -347,6 +347,8 @@ means the resolver can disregard the hint completely.
 Planed Tasks
 ------------
 
+We should enforce white space between zero numbers in the lexer.
+
 We should use the element visitor in more places. One reason is that the interface calls to concrete
 types is cheaper than type conversions and facilities using the visitor can more easily be reused
 and extended.
@@ -360,10 +362,22 @@ char and num.
 We should add more test and clear some Todo items. Especially record, function and form conversion
 is not implemented, as are many edge-cases that generally need investigations.
 
+It would be good to have an extensive test harness for all the std specs, that must be passed by all
+targeted platforms. We need to test partial evaluation and that all specs respect the context exec
+flag.
+
+We should also populate the source information for all expressions. Partially evaluated expressions
+should use the source positions of the origin expression. That means that the final result source
+is likely the root expression or a branch for short circuiting forms like 'if'.
+
 Explore and document the significance of the type unification order. We should think about how to
 minimize type variables to make the type inference easier to grok. Maybe use local type contexts,
 that we merge back into the larger program type context, omitting all locally inferable type vars.
 
+We need better documentation and error messages for resolution and type errors, before the project
+is advertised to a wider audience.
+
 Implement planned tasks for the daql and layla example projects, to discover and fix potential
 issues with xelf. If the work on those projects and examples using them stabilizes, we can invest
-time writing documentation and think about releasing and evangelizing this project.
+time cleaning up apis, writing a handbook and tutorials and think about releasing and evangelizing
+the project.
