@@ -366,6 +366,9 @@ It would be good to have an extensive test harness for all the std specs, that m
 targeted platforms. We need to test partial evaluation and that all specs respect the context exec
 flag.
 
+The expression resolution context should use context package for cancellation. A call to the context
+err method a significant points in the evaluation process should be enough.
+
 We should also populate the source information for all expressions. Partially evaluated expressions
 should use the source positions of the origin expression. That means that the final result source
 is likely the root expression or a branch for short circuiting forms like 'if'.
