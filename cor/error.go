@@ -15,3 +15,5 @@ func StrError(str string) error { return strError(str) }
 type strError string
 
 func (s strError) Error() string { return string(s) }
+
+func IsErr(err, e error) bool { return xerrors.Is(err, e) }
