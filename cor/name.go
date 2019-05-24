@@ -17,12 +17,6 @@ func NameStart(r rune) bool { return Letter(r) || r == '_' }
 // NamePart tests whether r is ascii letter, digit or underscore.
 func NamePart(r rune) bool { return NameStart(r) || Digit(r) }
 
-// KeyStart tests whether r is ascii lowercase letter or underscore.
-func KeyStart(r rune) bool { return r >= 'a' && r <= 'z' || r == '_' }
-
-// KeyPart tests whether r is ascii lowercase letter, digit, dot or underscore.
-func KeyPart(r rune) bool { return KeyStart(r) || Digit(r) || r == '.' }
-
 // Punct tests whether r is one of the ascii punctuations allowed in symbols.
 func Punct(r rune) bool {
 	switch r {
@@ -40,19 +34,6 @@ func IsName(s string) bool {
 	}
 	for _, r := range s[1:] {
 		if !NamePart(r) {
-			return false
-		}
-	}
-	return true
-}
-
-// IsKey tests whether s is a valid key.
-func IsKey(s string) bool {
-	if s == "" || !KeyStart(rune(s[0])) {
-		return false
-	}
-	for _, r := range s[1:] {
-		if !KeyPart(r) {
 			return false
 		}
 	}
@@ -79,45 +60,6 @@ func LastName(s string) string {
 		return s[start:]
 	}
 	return s[start:end]
-}
-
-// LastKey returns the last name segment of s as key.
-func LastKey(s string) string {
-	start, end := -1, 0
-	for i, c := range s {
-		if start > -1 && end == 0 {
-			if !NamePart(c) && c != '.' {
-				end = i
-			}
-		} else if NameStart(c) {
-			start = i
-			end = 0
-		}
-	}
-	if start < 0 {
-		return ""
-	}
-	if end > 0 {
-		s = s[:end]
-	}
-	return strings.ToLower(s[start:])
-}
-
-// Keyed returns the s starting with the first name segment as key.
-func Keyed(s string) string {
-	for i, c := range s {
-		if NameStart(c) {
-			s = s[i:]
-			break
-		}
-	}
-	for i, c := range s {
-		if !NamePart(c) && c != '.' {
-			s = s[:i]
-			break
-		}
-	}
-	return strings.ToLower(s)
 }
 
 func Cased(n string) (s string) {
