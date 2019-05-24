@@ -94,7 +94,7 @@ func (l *List) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('[')
 	for i, e := range l.Data {
 		if i > 0 {
-			writeSep(b)
+			b.Sep()
 		}
 		writeLit(b, e)
 	}
@@ -119,13 +119,6 @@ func (l *List) Assign(val Lit) error {
 		return cor.Errorf("%q not assignable to %q", val.Typ(), l.Typ())
 	}
 	return nil
-}
-
-func writeSep(b *bfr.Ctx) error {
-	if b.JSON {
-		return b.WriteByte(',')
-	}
-	return b.WriteByte(' ')
 }
 
 func writeLit(b *bfr.Ctx, e Lit) error {

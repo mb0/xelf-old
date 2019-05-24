@@ -118,9 +118,9 @@ func (a *Rec) WriteBfr(b *bfr.Ctx) error {
 			continue
 		}
 		if n++; n > 1 {
-			writeSep(b)
+			b.Sep()
 		}
-		writeKey(b, f.Key())
+		b.RecordKey(f.Key())
 		err = writeLit(b, el)
 		if err != nil {
 			return err

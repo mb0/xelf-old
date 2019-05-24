@@ -114,9 +114,9 @@ func (d *Dict) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	for i, e := range d.List {
 		if i > 0 {
-			writeSep(b)
+			b.Sep()
 		}
-		writeKey(b, e.Key)
+		b.RecordKey(e.Key)
 		writeLit(b, e.Lit)
 	}
 	return b.WriteByte('}')
@@ -145,21 +145,4 @@ func (d *Dict) Assign(l Lit) error {
 		return cor.Errorf("%q %T not assignable to %q", l.Typ(), l, d.Typ())
 	}
 	return nil
-}
-
-func writeKey(b *bfr.Ctx, key string) (err error) {
-	if !b.JSON && cor.IsName(key) {
-		b.WriteString(key)
-		return b.WriteByte(':')
-	}
-	if b.JSON {
-		key, err = cor.Quote(key, '"')
-	} else {
-		key, err = cor.Quote(key, '\'')
-	}
-	if err != nil {
-		return err
-	}
-	b.WriteString(key)
-	return b.WriteByte(':')
 }

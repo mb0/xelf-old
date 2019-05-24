@@ -60,6 +60,26 @@ func (c *Ctx) Quote(v string) (err error) {
 	return c.Fmt(v)
 }
 
+func (c *Ctx) RecordKey(key string) (err error) {
+	if c.JSON {
+		key, err = cor.Quote(key, '"')
+	} else if !cor.IsName(key) {
+		key, err = cor.Quote(key, '\'')
+	}
+	if err != nil {
+		return err
+	}
+	c.WriteString(key)
+	return c.WriteByte(':')
+}
+
+func (c *Ctx) Sep() error {
+	if c.JSON {
+		return c.WriteByte(',')
+	}
+	return c.WriteByte(' ')
+}
+
 // Writer is an interface for types that can write to a Ctx
 type Writer interface {
 	WriteBfr(*Ctx) error
