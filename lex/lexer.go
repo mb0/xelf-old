@@ -165,6 +165,8 @@ func (l *Lexer) lexNumber() (Token, error) {
 	b.WriteRune(l.cur)
 	if l.cur != '0' {
 		l.lexDigits(&b)
+	} else if cor.Digit(l.nxt) {
+		return t, cor.Errorf("number zero must be separated by whitespace")
 	}
 	if l.nxt == '.' {
 		b.WriteRune(l.nxt)

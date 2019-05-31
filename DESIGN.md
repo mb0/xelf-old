@@ -347,8 +347,6 @@ means the resolver can disregard the hint completely.
 Planed Tasks
 ------------
 
-We should enforce white space between zero numbers in the lexer.
-
 We should use the element visitor in more places. One reason is that the interface calls to concrete
 types is cheaper than type conversions and facilities using the visitor can more easily be reused
 and extended.
