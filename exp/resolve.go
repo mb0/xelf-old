@@ -90,9 +90,9 @@ func (c *Ctx) Resolve(env Env, x El, hint typ.Type) (res El, err error) {
 	case *Call:
 		if v.Type == typ.Void {
 			v.Type = c.Inst(v.Spec.Type)
-		} else {
-			// log.Printf("resolve call %s type already instantiated %s", v, v.Type)
-		}
+		} //else {
+		//	log.Printf("resolve call %s type already instantiated %s", v, v.Type)
+		//}
 		return v.Spec.Resolve(c, env, v, hint)
 	}
 	return x, cor.Errorf("unexpected expression %T %v", x, x)
@@ -171,7 +171,7 @@ func (c *Ctx) resolveType(env Env, t typ.Type) (_ typ.Type, err error) {
 		key = "~" + key
 	}
 	def, _, path, err := findDef(env, key)
-	if def == nil {
+	if def == nil || err != nil {
 		return t, ErrUnres
 	}
 	s := def.Type
@@ -261,27 +261,6 @@ func lastSupports(env Env, x byte) (last Env) {
 		e = Supports(e.Parent(), x)
 	}
 	return last
-}
-
-func elType(el El) (typ.Type, error) {
-	switch t := el.Typ(); t.Kind {
-	case typ.KindTyp:
-		return el.(*Atom).Lit.(typ.Type), nil
-	case typ.KindSym:
-		s := el.(*Sym)
-		if s.Type != typ.Void {
-			return s.Type, nil
-		}
-	case typ.KindCall:
-		x := el.(*Call)
-		t := x.Res()
-		if t != typ.Void {
-			return t, nil
-		}
-	default:
-		return t, nil
-	}
-	return typ.Void, ErrUnres
 }
 
 func replaceRef(t, el typ.Type) (typ.Type, bool) {

@@ -207,6 +207,9 @@ func checkDict(l *Dict, to typ.Type) (res Keyer, err error) {
 	default:
 		return nil, cor.Errorf("%v %T to %s", ErrUnconv, l, to)
 	}
+	if err != nil {
+		return nil, err
+	}
 	if l != nil {
 		for _, e := range l.List {
 			_, err := res.SetKey(e.Key, e.Lit)

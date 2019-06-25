@@ -14,7 +14,7 @@ import (
 //
 // The layout is formalizes by the parameter signature. It uses a number of special parameter names,
 // that indicate to the layout how arguments must be parsed. A full form consisting of all possible
-// kinds of accepted elements, is: (form 'full' +args +decls +tail)
+// kinds of accepted elements, is: (form 'full' :args :decls :tail)
 //
 // These are the recognised parameter names:
 //    plain or rest accepts any number of plain elements.
@@ -32,7 +32,7 @@ import (
 // Explicit parameters are plain elements and can only occur in front or instead plain arguments.
 //
 // The parameter types give hints at what types are accepted. The special parameters can only use
-// container types. The unis and decls parameters expect a keyer type, while all others accpect an
+// container types. The unis and decls parameters expect a keyer type, while all others accept an
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
 type Layout struct {
@@ -278,7 +278,7 @@ func consumeDecl(es []El, uni bool) (El, []El) {
 		if t == typ.Dyn || len(a) > 0 {
 			els, a = consumePlain(a, els)
 			els, a = consumeTags(a, els)
-			els, a = consumeDecls(a, els)
+			els, _ = consumeDecls(a, els)
 			if t == typ.Dyn {
 				d.El = &Dyn{Els: els}
 				return d, es

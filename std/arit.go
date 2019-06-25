@@ -56,6 +56,9 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 		var l lit.Lit = lit.Num(n.Num() - ctx.res)
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
+			if err != nil {
+				return nil, err
+			}
 		}
 		la := &exp.Atom{Lit: l}
 		if len(ctx.unres) != 0 {
@@ -107,6 +110,9 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 		var l lit.Lit = lit.Num(ctx.res)
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
+			if err != nil {
+				return nil, err
+			}
 		}
 		la := &exp.Atom{Lit: l}
 		if len(ctx.unres) != 0 {

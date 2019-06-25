@@ -64,8 +64,6 @@ func (c *Ctx) apply(t Type, hist []Type) (_ Type, isvar bool) {
 	}
 	var ps []Param
 	for i, p := range t.Params {
-		if p.Type.Info != nil {
-		}
 		pt, ok := c.apply(p.Type, append(hist, t))
 		if ok && ps == nil {
 			ps = make([]Param, i, len(t.Params))

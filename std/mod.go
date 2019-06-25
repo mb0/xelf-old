@@ -48,6 +48,9 @@ var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @2)",
 			}
 			for _, arg := range x.Args(1) {
 				aa, ok := arg.(*exp.Atom)
+				if !ok {
+					return nil, errCatLit
+				}
 				idxr, ok := aa.Lit.(lit.Indexer)
 				if !ok {
 					return nil, errCatLit

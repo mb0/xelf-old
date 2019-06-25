@@ -73,9 +73,6 @@ func FuncArgs(x *Call) (*Layout, error) {
 			}
 			return nil, cor.Errorf("missing non optional parameter %s", pa.Name)
 		}
-		if len(arg) > 1 {
-
-		}
 	}
 	return &Layout{x.Type, args}, nil
 }

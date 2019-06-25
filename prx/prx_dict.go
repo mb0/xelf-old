@@ -74,15 +74,15 @@ func (p *proxyDict) SetKey(k string, l lit.Lit) (lit.Keyer, error) {
 	return p, cor.Errorf("nil keyer")
 }
 
-func (p *proxyDict) Keys() []string {
+func (p *proxyDict) Keys() (res []string) {
 	if v, ok := p.elem(reflect.Map); ok {
 		keys := v.MapKeys()
-		res := make([]string, 0, len(keys))
+		res = make([]string, 0, len(keys))
 		for _, key := range keys {
 			res = append(res, key.String())
 		}
 	}
-	return nil
+	return res
 }
 
 func (p *proxyDict) IterKey(it func(string, lit.Lit) error) error {
