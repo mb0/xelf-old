@@ -31,9 +31,9 @@ func MakeListCap(t typ.Type, len, cap int) (*List, error) {
 	return &res, nil
 }
 
-func (l *List) Typ() typ.Type     { return typ.List(l.Elem) }
-func (l *List) IsZero() bool      { return l == nil || len(l.Data) == 0 }
-func (l *List) Element() typ.Type { return l.Elem }
+func (l *List) Typ() typ.Type           { return typ.List(l.Elem) }
+func (l *List) IsZero() bool            { return l == nil || len(l.Data) == 0 }
+func (l *List) Element() (Proxy, error) { return ZeroProxy(l.Elem), nil }
 func (l *List) SetIdx(i int, el Lit) (_ Indexer, err error) {
 	if l == nil || i < 0 || i >= len(l.Data) {
 		return l, ErrIdxBounds

@@ -84,7 +84,7 @@ func (t Type) Elem() Type {
 			return Any
 		}
 		return t.Params[0].Type
-	case KindRec:
+	case KindRec, KindObj:
 		// TODO consider an attempt to unify field types
 		return Any
 	}

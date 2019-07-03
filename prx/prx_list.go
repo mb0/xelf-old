@@ -6,7 +6,6 @@ import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
-	"github.com/mb0/xelf/typ"
 )
 
 type proxyList struct{ proxy }
@@ -74,7 +73,15 @@ func (p *proxyList) Append(ls ...lit.Lit) (lit.Appender, error) {
 	return &res, nil
 }
 
-func (p *proxyList) Element() typ.Type { return p.typ.Elem() }
+func (p *proxyList) Element() (lit.Proxy, error) {
+	if v, ok := p.elem(reflect.Slice); ok {
+		rt := v.Type().Elem()
+		fp := reflect.New(rt)
+		return ProxyValue(fp)
+	}
+	return nil, ErrNotSlice
+}
+
 func (p *proxyList) Len() int {
 	if v, ok := p.elem(reflect.Slice); ok {
 		return v.Len()
@@ -98,6 +105,7 @@ func (p *proxyList) SetIdx(i int, l lit.Lit) (lit.Indexer, error) {
 	}
 	return p, lit.ErrIdxBounds
 }
+
 func (p *proxyList) IterIdx(it func(int, lit.Lit) error) error {
 	if v, ok := p.elem(reflect.Slice); ok {
 		for i, n := 0, v.Len(); i < n; i++ {

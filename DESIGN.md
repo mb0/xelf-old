@@ -361,11 +361,6 @@ We could change the literal parser api to work with raw lex trees until a concre
 required and then directly write into a provided proxy literal. This would would reduce allocations
 especially for large container literals.
 
-We need an optional interface for container proxies to return new element proxies. Either we use a
-`NewElem() Proxy` method, that just returns a new element proxy, exclusively for list and dicts. Or
-we use `KeyProxy(string) Proxy` and `IdxProxy(int) Proxy` for indexer and keyer respectivly, that
-return an existing element proxy or create and add a new one.
-
 We should add more test and clear some Todo items. Especially record, function and form conversion
 is not implemented, as are many edge-cases that generally need investigations.
 

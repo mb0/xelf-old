@@ -32,9 +32,9 @@ func MakeDictCap(t typ.Type, cap int) (*Dict, error) {
 	return &Dict{t.Elem(), list}, nil
 }
 
-func (d *Dict) Typ() typ.Type     { return typ.Dict(d.Elem) }
-func (d *Dict) Element() typ.Type { return d.Elem }
-func (d *Dict) IsZero() bool      { return d == nil || len(d.List) == 0 }
+func (d *Dict) Typ() typ.Type           { return typ.Dict(d.Elem) }
+func (d *Dict) Element() (Proxy, error) { return ZeroProxy(d.Elem), nil }
+func (d *Dict) IsZero() bool            { return d == nil || len(d.List) == 0 }
 
 func (d *Dict) Len() int {
 	if d == nil {

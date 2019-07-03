@@ -6,7 +6,6 @@ import (
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lit"
-	"github.com/mb0/xelf/typ"
 )
 
 type proxyDict struct{ proxy }
@@ -43,7 +42,15 @@ func (p *proxyDict) Assign(l lit.Lit) error {
 	})
 }
 
-func (p *proxyDict) Element() typ.Type { return p.typ.Elem() }
+func (p *proxyDict) Element() (lit.Proxy, error) {
+	if v, ok := p.elem(reflect.Map); ok {
+		rt := v.Type().Elem()
+		fp := reflect.New(rt)
+		return ProxyValue(fp)
+	}
+	return nil, ErrNotMap
+}
+
 func (p *proxyDict) Len() int {
 	if v, ok := p.elem(reflect.Map); ok {
 		return v.Len()
@@ -71,7 +78,7 @@ func (p *proxyDict) SetKey(k string, l lit.Lit) (lit.Keyer, error) {
 		v.SetMapIndex(reflect.ValueOf(k), ev.Elem())
 		return p, nil
 	}
-	return p, cor.Errorf("nil keyer")
+	return p, cor.Errorf("not a map keyer")
 }
 
 func (p *proxyDict) Keys() (res []string) {
