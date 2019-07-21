@@ -135,9 +135,11 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint typ.Type) (El, error) {
 				}
 				res = l.(typ.Type)
 			}
-			res, err := typ.Unify(c.Ctx, res, hint)
-			if err != nil {
-				return nil, err
+			if hint != typ.Void {
+				res, err = typ.Unify(c.Ctx, res, hint)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		c.Unres = append(c.Unres, ref)
