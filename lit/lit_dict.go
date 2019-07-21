@@ -1,8 +1,11 @@
 package lit
 
 import (
+	"bytes"
+
 	"github.com/mb0/xelf/bfr"
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/typ"
 )
 
@@ -110,6 +113,14 @@ func (d *Dict) IterKey(it func(string, Lit) error) error {
 
 func (d *Dict) String() string               { return bfr.String(d) }
 func (d *Dict) MarshalJSON() ([]byte, error) { return bfr.JSON(d) }
+func (d *Dict) UnmarshalJSON(b []byte) error {
+	t, err := lex.New(bytes.NewReader(b)).Scan()
+	if err != nil {
+		return err
+	}
+	_, err = parseDict(t, d)
+	return err
+}
 func (d *Dict) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('{')
 	for i, e := range d.List {

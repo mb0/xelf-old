@@ -33,6 +33,11 @@ func (v Span) String() string { return sglQuoteString(v.Char()) }
 
 func (v Time) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
 func (v Span) MarshalJSON() ([]byte, error) { return dblQuoteBytes(v.Char()) }
+func (v *Span) UnmarshalText(b []byte) error {
+	s, err := cor.ParseSpan(string(b))
+	*v = Span(s)
+	return err
+}
 
 func (v Time) WriteBfr(b *bfr.Ctx) error { return b.Quote(v.Char()) }
 func (v Span) WriteBfr(b *bfr.Ctx) error { return b.Quote(v.Char()) }
