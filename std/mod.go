@@ -17,17 +17,34 @@ var (
 )
 
 // catSpec concatenates one or more arguments to a str, raw or idxer literal.
-var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @2)",
+var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @1)",
 	func(x exp.ReslReq) (exp.El, error) {
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+		fst, ok := x.Arg(0).(*exp.Atom)
 		if err != nil {
+			if err != exp.ErrUnres || !x.Part || !ok {
+				return x.Call, err
+			}
+			t := x.Layout.Sig
+			r := &t.Params[len(t.Params)-1]
+			x.Call.Type = t
+			switch r.Type.Kind & typ.MaskElem {
+			case typ.KindChar:
+				if _, opt := r.Type.Deopt(); opt {
+					r.Type = typ.Opt(typ.Str)
+				} else {
+					r.Type = typ.Str
+				}
+			}
 			return x.Call, err
 		}
-		fst := x.Arg(0).(*exp.Atom)
 		t, opt := fst.Typ().Deopt()
 		var res lit.Lit
 		switch t.Kind & typ.MaskRef {
 		case typ.KindChar, typ.KindStr:
+			if err != nil {
+				return x.Call, err
+			}
 			var b strings.Builder
 			err = catChar(&b, false, fst.Lit, x.Args(1))
 			if err != nil {

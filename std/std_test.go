@@ -117,6 +117,7 @@ func TestStdResolve(t *testing.T) {
 		{`(max 1 2 3)`, lit.Num(3)},
 		{`(max 3 2 1)`, lit.Num(3)},
 		{`(cat 'a' 'b' 'c')`, lit.Str("abc")},
+		{`('a' 'b' 'c')`, lit.Str("abc")},
 		{`(cat (raw 'a') 'b' 'c')`, lit.Raw("abc")},
 		{`(cat [1] [2] [3])`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
 		{`(apd [] 1 2 3)`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
