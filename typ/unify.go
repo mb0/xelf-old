@@ -103,13 +103,24 @@ func mergeHint(v, o Type) Type {
 		if v.Info == nil {
 			v.Info = &Info{}
 		}
-		v.Params = append(v.Params, o.Params...)
+		addHints(v.Info, o.Params)
 	}
 	if !op && o.Info != nil {
-		o.Params = append(o.Params, v.Params...)
+		addHints(o.Info, v.Params)
 	}
 	// TODO merge
 	return v
+}
+func addHints(n *Info, ps []Param) {
+Outer:
+	for _, p := range ps {
+		for _, o := range n.Params {
+			if o.Type.Equal(p.Type) {
+				continue Outer
+			}
+		}
+		n.Params = append(n.Params, p)
+	}
 }
 
 func checkHint(c *Ctx, t, v Type) (res error) {

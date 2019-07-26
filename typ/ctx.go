@@ -45,14 +45,7 @@ func (c *Ctx) Apply(t Type) Type {
 }
 
 func (c *Ctx) apply(t Type, hist []Type) (_ Type, isvar bool) {
-	for isVar(t) {
-		isvar = true
-		if s, ok := c.binds.Get(t.Kind); ok {
-			t = s
-			continue
-		}
-		break
-	}
+	t, isvar = c.unvar(t)
 	if !t.HasParams() {
 		return t, isvar
 	}
@@ -63,8 +56,9 @@ func (c *Ctx) apply(t Type, hist []Type) (_ Type, isvar bool) {
 		}
 	}
 	var ps []Param
+	hist = append(hist, t)
 	for i, p := range t.Params {
-		pt, ok := c.apply(p.Type, append(hist, t))
+		pt, ok := c.apply(p.Type, hist)
 		if ok && ps == nil {
 			ps = make([]Param, i, len(t.Params))
 			copy(ps, t.Params)
@@ -78,6 +72,55 @@ func (c *Ctx) apply(t Type, hist []Type) (_ Type, isvar bool) {
 		n := *t.Info
 		n.Params = ps
 		return Type{t.Kind, &n}, true
+	}
+	return t, isvar
+}
+
+// Realize returns the finalized type of t or an error.
+// The finalized type is independent of this context.
+func (c *Ctx) Realize(t Type) (_ Type, err error) { return c.realize(t, nil) }
+func (c *Ctx) realize(t Type, hist [][2]Type) (_ Type, err error) {
+	t, _ = c.unvar(t)
+	if isVar(t) {
+		if !t.HasParams() {
+			return t, cor.Errorf("immature type %s", t)
+		}
+		t = Type{KindAlt, t.Info}
+	}
+	for i := 0; i < len(hist); i++ {
+		h := hist[len(hist)-1-i]
+		if t.Info == h[0].Info {
+			return h[1], nil
+		}
+	}
+	if t.Kind&MaskRef == KindAlt {
+		t, err = Choose(t)
+	}
+	if !t.HasParams() {
+		return t, nil
+	}
+	n := *t.Info
+	n.Params = append(([]Param)(nil), t.Params...)
+	res := Type{t.Kind, &n}
+	hist = append(hist, [2]Type{t, res})
+	for i, p := range n.Params {
+		pt, err := c.realize(p.Type, hist)
+		if err != nil {
+			return res, err
+		}
+		n.Params[i].Type = pt
+	}
+	return res, nil
+}
+
+func (c *Ctx) unvar(t Type) (_ Type, isvar bool) {
+	for isVar(t) {
+		isvar = true
+		if s, ok := c.binds.Get(t.Kind); ok {
+			t = s
+			continue
+		}
+		break
 	}
 	return t, isvar
 }
@@ -113,8 +156,9 @@ func (c *Ctx) inst(t Type, m Binds, hist []Type) (Type, Binds) {
 		n := *t.Info
 		r := Type{Kind: t.Kind, Info: &n}
 		r.Params = make([]Param, 0, len(t.Params))
+		hist = append(hist, t)
 		for _, p := range t.Params {
-			p.Type, m = c.inst(p.Type, m, append(hist, t))
+			p.Type, m = c.inst(p.Type, m, hist)
 			r.Params = append(r.Params, p)
 		}
 		return r, m

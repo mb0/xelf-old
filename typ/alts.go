@@ -21,13 +21,23 @@ func Alt(alts ...Type) (res Type) {
 
 // Choose returns type t with all type alternatives reduced to its most specific representation.
 func Choose(t Type) (_ Type, err error) {
+	return choose(t, nil)
+}
+func choose(t Type, hist []*Info) (_ Type, err error) {
 	if t.Kind&MaskRef != KindAlt {
 		if !t.HasParams() {
 			return t, nil
 		}
+		for i := 0; i < len(hist); i++ {
+			h := hist[len(hist)-1-i]
+			if t.Info == h {
+				return t, nil
+			}
+		}
+		hist = append(hist, t.Info)
 		var ps []Param
 		for i, p := range t.Params {
-			p.Type, err = Choose(p.Type)
+			p.Type, err = choose(p.Type, hist)
 			if err != nil {
 				return Void, err
 			}
