@@ -24,7 +24,14 @@ var withSpec = core.impl("(form 'with' any :rest list|expr @)",
 		if err != nil {
 			return x.Call, err
 		}
-		return rest[len(rest)-1], nil
+		last := rest[len(rest)-1]
+		if !x.Exec {
+			ps := x.Call.Type.Params
+			p := &ps[len(ps)-1]
+			p.Type = last.Typ()
+			return x.Call, nil
+		}
+		return last, nil
 	})
 
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
@@ -53,7 +60,14 @@ var letSpec = decl.impl("(form 'let' :tags dict|any :plain list|expr @)",
 		if err != nil {
 			return x.Call, err
 		}
-		return rest[len(rest)-1], nil
+		last := rest[len(rest)-1]
+		if !x.Exec {
+			ps := x.Call.Type.Params
+			p := &ps[len(ps)-1]
+			p.Type = last.Typ()
+			return x.Call, nil
+		}
+		return last, nil
 	})
 
 // fnSpec declares a function literal from its arguments.
@@ -68,7 +82,7 @@ var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :plain list|expr @)",
 			// construct sig from decls
 			fs := make([]typ.Param, 0, len(tags))
 			for _, d := range tags {
-				l, err := x.Ctx.Resolve(x.Env, d.El, typ.Void)
+				l, err := x.Ctx.Resolve(x.Env, d.El, typ.Typ)
 				if err != nil {
 					return x.Call, err
 				}
@@ -87,7 +101,7 @@ var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :plain list|expr @)",
 		// signature afterwards.
 		res := x.New()
 		mock := &mockScope{par: x.Env, ctx: x.Ctx.Ctx}
-		x.With(false, false).Resolve(mock, last, res)
+		x.With(true, false).Resolve(mock, last, res)
 		ps, err := mock.params()
 		if err != nil {
 			return nil, err

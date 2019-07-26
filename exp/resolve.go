@@ -125,8 +125,9 @@ func (c *Ctx) resolveDyn(env Env, d *Dyn, h typ.Type) (El, error) {
 
 func (c *Ctx) resolveSym(env Env, ref *Sym, hint typ.Type) (El, error) {
 	r, _, path, err := findDef(env, ref.Name)
-	if r == nil || r.Lit == nil || err == ErrUnres {
-		if r != nil && r.Type != typ.Void {
+	if err == ErrUnres {
+		c.Unres = append(c.Unres, ref)
+		if r.Type != typ.Void {
 			res := r.Type
 			if path != "" {
 				l, err := lit.Select(res, path)
@@ -141,8 +142,10 @@ func (c *Ctx) resolveSym(env Env, ref *Sym, hint typ.Type) (El, error) {
 					return nil, err
 				}
 			}
+			if res == typ.Void {
+				return ref, ErrUntyp
+			}
 		}
-		c.Unres = append(c.Unres, ref)
 		return ref, ErrUnres
 	}
 	if err != nil {
@@ -173,8 +176,8 @@ func (c *Ctx) resolveType(env Env, t typ.Type) (_ typ.Type, err error) {
 		key = "~" + key
 	}
 	def, _, path, err := findDef(env, key)
-	if def == nil || err != nil {
-		return t, ErrUnres
+	if err != nil {
+		return t, ErrUntyp
 	}
 	s := def.Type
 	if def.Lit != nil && s == typ.Typ {
@@ -199,15 +202,16 @@ func findDef(env Env, sym string) (r *Def, name, path string, err error) {
 		return nil, "", "", cor.Error("empty symbol")
 	}
 	// check prefixes
-	var lookup bool
 	switch x := sym[0]; x {
 	case '~':
-		return LookupSupports(env, sym, x), sym, "", nil
+		r = LookupSupports(env, sym, x)
+		break
 	case '$', '/':
 		tmp := sym[1:]
 		if len(tmp) > 0 && tmp[0] == x {
 			env = lastSupports(env, x)
-			return env.Get(tmp), sym, "", nil
+			r = env.Get(tmp)
+			break
 		}
 		env = Supports(env, x)
 		if env == nil {
@@ -221,12 +225,12 @@ func findDef(env Env, sym string) (r *Def, name, path string, err error) {
 			}
 		}
 		sym = string(x) + tmp
-		return env.Get(sym), sym, "", nil
+		r = env.Get(sym)
 	case '.':
 		if len(sym) > 1 && sym[1] == '?' {
-			tmp := "." + sym[2:]
-			return LookupSupports(env, tmp, x), tmp, "", nil
-
+			sym = "." + sym[2:]
+			r = LookupSupports(env, sym, x)
+			break
 		}
 		env = Supports(env, x)
 		if env == nil {
@@ -240,18 +244,20 @@ func findDef(env Env, sym string) (r *Def, name, path string, err error) {
 				return nil, "", "", cor.Errorf("no env found for prefix %q", x)
 			}
 		}
+		r = env.Get(sym)
 	default:
-		lookup = true
 		// check for path
 		idx := strings.IndexByte(sym, '.')
 		if idx > 0 {
 			sym, path = sym[:idx], sym[idx+1:]
 		}
-	}
-	if lookup {
 		r = Lookup(env, sym)
-	} else {
-		r = env.Get(sym)
+	}
+	if r == nil {
+		return nil, sym, path, ErrUntyp
+	}
+	if r.Lit == nil {
+		return r, sym, path, ErrUnres
 	}
 	return r, sym, path, nil
 }

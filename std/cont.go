@@ -224,7 +224,7 @@ func (r *fIter) accumulate(x exp.ReslReq, acc *exp.Atom, el lit.Lit, idx int, ke
 		r.args[r.k] = &exp.Atom{Lit: lit.Str(key)}
 	}
 	call := &exp.Call{Spec: r.Spec, Args: r.args}
-	res, err := x.With(false, false).Resolve(x.Env, call, typ.Void)
+	res, err := x.With(false, true).Resolve(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, cor.Errorf("accumulate: %w", err)
 	}

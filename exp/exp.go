@@ -64,7 +64,12 @@ type (
 	}
 )
 
-func (x *Atom) Typ() typ.Type  { return x.Lit.Typ() }
+func (x *Atom) Typ() typ.Type {
+	if x != nil && x.Lit != nil {
+		return x.Lit.Typ()
+	}
+	return typ.Void
+}
 func (x *Sym) Typ() typ.Type   { return typ.Sym }
 func (x *Dyn) Typ() typ.Type   { return typ.Dyn }
 func (x *Call) Typ() typ.Type  { return typ.Call }

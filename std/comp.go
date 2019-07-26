@@ -17,7 +17,7 @@ var eqSpec = core.impl("(form 'eq' @1 :plain list|@1 bool)",
 var neSpec = core.impl("(form 'ne' @1 :plain list|@1 bool)",
 	func(x exp.ReslReq) (exp.El, error) {
 		res, err := resolveBinaryComp(x, true, lit.Equiv)
-		if err != nil {
+		if err != nil || !x.Exec {
 			return res, err
 		}
 		a := res.(*exp.Atom)
@@ -32,13 +32,11 @@ var equalSpec = core.impl("(form 'equal' @1 :plain list|@1 bool)",
 	})
 
 var inSpec = core.implResl("(form 'in' @1 list|@1 bool)",
-	// @1 list|@1 : bool
 	func(x exp.ReslReq) (exp.El, error) {
 		return inOrNi(x, false)
 	})
 
 var niSpec = core.implResl("(form 'ni' @1 list|@1 bool)",
-	// @1 list|@1 : bool
 	func(x exp.ReslReq) (exp.El, error) {
 		return inOrNi(x, true)
 	})
@@ -105,8 +103,11 @@ type cmpf = func(a, b lit.Lit) bool
 
 func resolveBinaryComp(x exp.ReslReq, sym bool, cmp cmpf) (exp.El, error) {
 	err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+	if !x.Part && !x.Exec {
+		return x.Call, err
+	}
 	if err == exp.ErrUnres {
-		if !x.Part {
+		if !x.Part || x.Exec {
 			return x.Call, err
 		}
 	} else if err != nil {

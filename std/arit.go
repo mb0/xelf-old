@@ -53,6 +53,9 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 			x.Call.Args = append(x.Call.Args[:1], ctx.unres...)
 			return x.Call, exp.ErrUnres
 		}
+		if !x.Exec && !x.Part {
+			return x.Call, nil
+		}
 		var l lit.Lit = lit.Num(n.Num() - ctx.res)
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
@@ -60,13 +63,12 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 				return nil, err
 			}
 		}
-		la := &exp.Atom{Lit: l}
 		if len(ctx.unres) != 0 {
-			x.Call.Args = append(x.Call.Args[:0], la)
+			x.Call.Args = append(x.Call.Args[:0], &exp.Atom{Lit: l})
 			x.Call.Args = append(x.Call.Args, ctx.unres...)
 			return x.Call, exp.ErrUnres
 		}
-		return la, nil
+		return &exp.Atom{Lit: l}, nil
 	})
 
 // divSpec divides the product of the rest from the first argument.
@@ -101,6 +103,9 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 		if ctx.res == 0 {
 			return nil, cor.Error("zero devision")
 		}
+		if !x.Exec && !x.Part {
+			return x.Call, nil
+		}
 		isint := fst.Typ().Kind&typ.MaskElem == typ.KindInt
 		if isint {
 			ctx.res = float64(int64(n.Num()) / int64(ctx.res))
@@ -124,7 +129,7 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 	})
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
-var remSpec = core.implResl("(form 'rem' @1:int @:int @1)",
+var remSpec = core.implResl("(form 'rem' @1:int @:int int)",
 	func(x exp.ReslReq) (exp.El, error) {
 		res := x.Arg(0).(*exp.Atom).Lit.(lit.Numeric).Num()
 		mod := x.Arg(1).(*exp.Atom).Lit.(lit.Numeric).Num()
@@ -249,7 +254,7 @@ func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(ctx.unres) == 0 {
+	if (x.Part || x.Exec) && len(ctx.unres) == 0 {
 		var l lit.Lit = lit.Num(ctx.res)
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
@@ -259,11 +264,14 @@ func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
 		}
 		return &exp.Atom{Lit: l}, nil
 	}
-	if ctx.idx >= 0 {
-		ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
+	if x.Part && len(ctx.unres) > 0 {
+		if ctx.idx >= 0 && ctx.idx < len(ctx.unres) {
+			ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
+		}
+		x.Call.Args = ctx.unres
+		return x.Call, exp.ErrUnres
 	}
-	x.Call.Args = ctx.unres
-	return x.Call, exp.ErrUnres
+	return x.Call, nil
 }
 
 type numCtx struct {

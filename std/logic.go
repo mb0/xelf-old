@@ -48,12 +48,17 @@ var orSpec = core.impl("(form 'or' :plain? list bool)",
 			if err != nil {
 				return nil, err
 			}
-			a := el.(*exp.Atom)
-			if !a.Lit.IsZero() {
-				return &exp.Atom{Lit: lit.True}, nil
+			if x.Part || x.Exec {
+				a := el.(*exp.Atom)
+				if !a.Lit.IsZero() {
+					return &exp.Atom{Lit: lit.True}, nil
+				}
 			}
 		}
-		return &exp.Atom{Lit: lit.False}, nil
+		if x.Part || x.Exec {
+			return &exp.Atom{Lit: lit.False}, nil
+		}
+		return x.Call, nil
 	})
 
 // andSpec resolves the arguments as short-circuiting logical 'and' to a bool literal.
@@ -88,12 +93,17 @@ func resolveAnd(x exp.ReslReq) (exp.El, error) {
 		if err != nil {
 			return nil, err
 		}
-		a := el.(*exp.Atom)
-		if a.Lit.IsZero() {
-			return &exp.Atom{Lit: lit.False}, nil
+		if x.Part || x.Exec {
+			a := el.(*exp.Atom)
+			if a.Lit.IsZero() {
+				return &exp.Atom{Lit: lit.False}, nil
+			}
 		}
 	}
-	return &exp.Atom{Lit: lit.True}, nil
+	if x.Part || x.Exec {
+		return &exp.Atom{Lit: lit.True}, nil
+	}
+	return x.Call, nil
 }
 
 // boolSpec resolves the arguments similar to short-circuiting logical 'and' to a bool literal.
@@ -116,6 +126,9 @@ func init() {
 				}
 				return x.Call, err
 			}
+			if !x.Exec && !x.Part {
+				return x.Call, nil
+			}
 			a := res.(*exp.Atom)
 			if len(x.Call.Args) == 0 {
 				a.Lit = lit.False
@@ -133,6 +146,9 @@ func init() {
 					x.Call = simplifyBool(x.Call, res.(*exp.Call).Args)
 				}
 				return x.Call, err
+			}
+			if !x.Exec && !x.Part {
+				return x.Call, nil
 			}
 			a := res.(*exp.Atom)
 			if len(x.Call.Args) == 0 {
@@ -173,18 +189,20 @@ func simplifyBool(e *exp.Call, args []exp.El) *exp.Call {
 
 // ifSpec resolves the arguments as condition, action pairs as part of an if-else condition.
 // The odd end is the else action otherwise a zero value of the first action's type is used.
-var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
+var ifSpec = core.impl("(form 'if' ~any ~any :plain? list : @)",
 	func(x exp.ReslReq) (exp.El, error) {
 		// collect all possible action types in an alternative, then choose the common type
 		alt := typ.NewAlt()
 		ctx := x.WithExec(false)
 		var i int
+		var unres bool
 		for i = 0; i+1 < len(x.Call.Args); i += 2 {
 			hint := x.New()
 			_, err := ctx.Resolve(x.Env, x.Call.Args[i+1], hint)
 			if err != nil && err != exp.ErrUnres {
 				return nil, err
 			}
+			unres = unres || err == exp.ErrUnres
 			alt = typ.Alt(alt, ctx.Apply(hint))
 		}
 		if i < len(x.Call.Args) {
@@ -193,15 +211,21 @@ var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
 			if err != nil && err != exp.ErrUnres {
 				return nil, err
 			}
+			unres = unres || err == exp.ErrUnres
 			alt = typ.Alt(alt, ctx.Apply(hint))
 		}
 		alt, err := typ.Choose(alt)
 		if err == nil && x.Hint != typ.Void {
 			alt, err = typ.Unify(ctx.Ctx, alt, x.Hint)
+			if alt != typ.Void {
+				ps := x.Call.Type.Params
+				ps[len(ps)-1].Type = ctx.Inst(alt)
+			}
 		}
 		if err != nil {
 			return nil, err
 		}
+		exec := x.Part || x.Exec
 		for i = 0; i+1 < len(x.Call.Args); i += 2 {
 			cond, err := x.Ctx.Resolve(x.Env, x.Call.Args[i], typ.Any)
 			if err != nil {
@@ -210,13 +234,20 @@ var ifSpec = core.impl("(form 'if' bool @ :plain? : @)",
 				}
 				// previous conditions did not match
 				x.Call.Args = x.Call.Args[i:]
-				x.Ctx = x.WithExec(false)
 				return x.Call, err
 			}
-			a := cond.(*exp.Atom)
-			if !a.Lit.IsZero() {
-				return x.Ctx.Resolve(x.Env, x.Call.Args[i+1], alt)
+			if exec {
+				a := cond.(*exp.Atom)
+				if !a.Lit.IsZero() {
+					return x.Ctx.Resolve(x.Env, x.Call.Args[i+1], alt)
+				}
 			}
+		}
+		if !exec {
+			if unres {
+				return x.Call, exp.ErrUnres
+			}
+			return x.Call, nil
 		}
 		if i < len(x.Call.Args) { // we have an else expression
 			return x.Ctx.Resolve(x.Env, x.Call.Args[i], alt)

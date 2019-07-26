@@ -59,7 +59,10 @@ func (x *Named) Traverse(v Visitor) error {
 		return muteSkip(err)
 	}
 	if x.El != nil {
-		x.El.Traverse(v)
+		err = x.El.Traverse(v)
+		if err != nil {
+			return muteSkip(err)
+		}
 	}
 	return v.LeaveNamed(x)
 }

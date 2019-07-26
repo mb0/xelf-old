@@ -14,7 +14,7 @@ func TestStdFail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse err: %v", err)
 	}
-	c := exp.NewCtx(false, true)
+	c := exp.NewCtx(true, true)
 	_, err = c.Resolve(Std, x, typ.Void)
 	if err == nil {
 		t.Fatalf("want err got nothing")
@@ -24,7 +24,7 @@ func TestStdFail(t *testing.T) {
 		t.Fatalf("want err unres got %v", err)
 	}
 }
-func TestStdResolve(t *testing.T) {
+func TestStdResolveExec(t *testing.T) {
 	tests := []struct {
 		raw  string
 		want lit.Lit
@@ -254,20 +254,20 @@ func TestStdResolvePart(t *testing.T) {
 		{`(eq 1 x 1)`, `(eq 1 x)`, "bool"},
 		{`(eq 1 1 x)`, `(eq 1 x)`, "bool"},
 		{`(eq x 1 1)`, `(eq x 1)`, "bool"},
-		{`(eq a b 1)`, `(eq a b 1)`, "bool"},
+		{`(eq x y 1)`, `(eq x y 1)`, "bool"},
 		{`(lt 0 1 x)`, `(lt 1 x)`, "bool"},
 		{`(lt 0 x 2)`, `(lt 0 x 2)`, "bool"},
 		{`(lt x 1 2)`, `(lt x 1)`, "bool"},
-		{`(add x 2 3)`, `(add x 5)`, "@1:num"},
+		{`(add x 2 3)`, `(add x 5)`, "~num"},
 		{`(add 1 x 3)`, `(add 4 x)`, "~num"},
 		{`(add 1 2 x)`, `(add 3 x)`, "~num"},
-		{`(sub x 2 3)`, `(sub x 5)`, "@1:num"},
+		{`(sub x 2 3)`, `(sub x 5)`, "~num"},
 		{`(sub 1 x 3)`, `(sub -2 x)`, "~num"},
 		{`(sub 1 2 x)`, `(sub -1 x)`, "~num"},
-		{`(mul x 2 3)`, `(mul x 6)`, "@1:num"},
+		{`(mul x 2 3)`, `(mul x 6)`, "~num"},
 		{`(mul 6 x 3)`, `(mul 18 x)`, "~num"},
 		{`(mul 6 2 x)`, `(mul 12 x)`, "~num"},
-		{`(div x 2 3)`, `(div x 6)`, "@1:num"},
+		{`(div x 2 3)`, `(div x 6)`, "~num"},
 		{`(div 6 x 3)`, `(div 2 x)`, "~num"},
 		{`(div 6 2 x)`, `(div 3 x)`, "~num"},
 		{`(1 2 x)`, `(add 3 x)`, "~num"},
@@ -284,6 +284,9 @@ func TestStdResolvePart(t *testing.T) {
 		{`(bool (not (bool x)))`, `(not x)`, "bool"},
 		{`(bool (not (bool (not x))))`, `(bool x)`, "bool"},
 	}
+	env := exp.NewScope(Std)
+	env.Def("x", &exp.Def{Type: typ.Num})
+	env.Def("y", &exp.Def{Type: typ.Num})
 	for _, test := range tests {
 		x, err := exp.ParseString(Std, test.raw)
 		if err != nil {
@@ -292,10 +295,69 @@ func TestStdResolvePart(t *testing.T) {
 		}
 		c := exp.NewCtx(true, false)
 		hint := c.New()
-		r, err := c.Resolve(exp.NewScope(Std), x, hint)
+		r, err := c.Resolve(env, x, hint)
 		if err != nil && err != exp.ErrUnres {
-			t.Errorf("%s resolve err expect ErrUnres, got: %v\n%v", test.raw, err, c.Unres)
+			t.Errorf("%s resolve err expect ErrUnres, got: %+v\n%v", test.raw, err, c.Unres)
 			continue
+		}
+		if got := r.String(); got != test.want {
+			t.Errorf("%s want %s got %s", test.raw, test.want, got)
+		}
+		if got := elType(r); got.String() != test.typ {
+			t.Errorf("%s want %s got %s\n%v", test.raw, test.typ, got, c.Ctx)
+		}
+	}
+}
+
+func TestStdResolve(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want string
+		typ  string
+	}{
+		{`(or 0 1)`, `(or 0 1)`, "bool"},
+		{`(and 0 1)`, `(and 0 1)`, "bool"},
+		{`(bool 0)`, `(bool 0)`, "bool"},
+		{`(not 0)`, `(not 0)`, "bool"},
+		{`(if 0 1 2)`, `(if 0 1 2)`, "~num"},
+		{`(add 0 1)`, `(add 0 1)`, "~num"},
+		{`(mul 0 1)`, `(mul 0 1)`, "~num"},
+		{`(sub 0 1)`, `(sub 0 1)`, "~num"},
+		{`(div 0 1)`, `(div 0 1)`, "~num"},
+		{`(rem 0 1)`, `(rem 0 1)`, "int"},
+		{`(abs -1)`, `(abs -1)`, "~num"},
+		{`(neg -1)`, `(neg -1)`, "~num"},
+		{`(min 0 1)`, `(min 0 1)`, "~num"},
+		{`(max 0 1)`, `(max 0 1)`, "~num"},
+		{`(eq 0 1)`, `(eq 0 1)`, "bool"},
+		{`(ne 0 1)`, `(ne 0 1)`, "bool"},
+		{`(in 0 [1])`, `(in 0 [1])`, "bool"},
+		{`(ni 0 [1])`, `(ni 0 [1])`, "bool"},
+		{`(lt 0 1)`, `(lt 0 1)`, "bool"},
+		{`(cat [0] [1])`, `(cat [0] [1])`, "list"},
+		{`(apd [0] 1)`, `(apd [0] 1)`, "list"},
+		{`(set {a:0} :b 1)`, `(set {a:0} :b 1)`, "dict"},
+		{`(with {a:0} .a)`, `(with {a:0} .a)`, "~num"},
+		{`(let :a 0 a)`, `(let :a 0 a)`, "~num"},
+		{`(fn (add _ 1))`, `(fn (add _ 1))`, "(func num num)"},
+		{`(dyn str '')`, `(con str '')`, "str"},
+		{`((fn (add _ 1)) 1)`, `((fn (add _ 1)) 1)`, "~num"},
+	}
+	for _, test := range tests {
+		x, err := exp.ParseString(Std, test.raw)
+		if err != nil {
+			t.Errorf("%s parse err: %v", test.raw, err)
+			continue
+		}
+		c := exp.NewCtx(false, false)
+		r, err := c.Resolve(Std, x, c.New())
+		if err != nil {
+			t.Errorf("%s resolve err: %v\n%v", test.raw, err, c.Unres)
+			continue
+		}
+		err = exp.Realize(c, r)
+		if err != nil {
+			t.Errorf("instanciate err for %s %s: %v", r, callType(r), err)
 		}
 		if got := r.String(); got != test.want {
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)
@@ -315,6 +377,19 @@ func elType(el exp.El) typ.Type {
 	case typ.KindCall:
 		x := el.(*exp.Call)
 		return x.Res()
+	}
+	return t
+}
+
+func callType(el exp.El) typ.Type {
+	t := el.Typ()
+	switch t.Kind {
+	case typ.KindSym:
+		s := el.(*exp.Sym)
+		return s.Type
+	case typ.KindCall:
+		x := el.(*exp.Call)
+		return x.Type
 	}
 	return t
 }

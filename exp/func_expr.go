@@ -75,14 +75,17 @@ func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint typ.Type) (El, error) 
 			return x, err
 		}
 	}
-	rt := x.Spec.Res()
-	if rt == typ.Void {
-		return &Atom{Lit: rt}, nil
+	if c.Exec {
+		rt := x.Spec.Res()
+		if rt == typ.Void {
+			return &Atom{Lit: rt}, nil
+		}
+		a := res.(*Atom)
+		a.Lit, err = lit.Convert(a.Lit, rt, 0)
+		if err != nil {
+			return nil, err
+		}
+		return a, nil
 	}
-	a := res.(*Atom)
-	a.Lit, err = lit.Convert(a.Lit, rt, 0)
-	if err != nil {
-		return nil, err
-	}
-	return a, nil
+	return x, nil
 }

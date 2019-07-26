@@ -46,21 +46,26 @@ func (sp *Spec) IsZero() bool {
 func (sp *Spec) String() string { return bfr.String(sp) }
 func (sp *Spec) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('(')
-	err := sp.Type.WriteBfr(b)
-	if err != nil {
-		return err
-	}
-	if sp.Resl == nil {
-		b.WriteString("()")
-	} else {
-		if v, ok := sp.Resl.(bfr.Writer); ok {
-			b.WriteByte(' ')
-			if err = v.WriteBfr(b); err != nil {
-				return err
-			}
-		} else {
-			b.WriteString(" _")
+	switch r := sp.Resl.(type) {
+	case *ExprBody:
+		b.WriteString("fn")
+		if err := r.WriteBfr(b); err != nil {
+			return err
 		}
+	case bfr.Writer:
+		err := sp.Type.WriteBfr(b)
+		if err != nil {
+			return err
+		}
+		if err = r.WriteBfr(b); err != nil {
+			return err
+		}
+	default:
+		err := sp.Type.WriteBfr(b)
+		if err != nil {
+			return err
+		}
+		b.WriteString("_")
 	}
 	return b.WriteByte(')')
 }

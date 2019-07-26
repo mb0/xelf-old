@@ -120,6 +120,9 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 		if t == typ.Void { // just in case we have a dynamic comment
 			return &exp.Atom{Lit: typ.Void}, nil
 		}
+		if !x.Part && !x.Exec {
+			return x.Call, nil
+		}
 		args := x.Args(1)
 		decls, err := x.Unis(2)
 		if err != nil {
