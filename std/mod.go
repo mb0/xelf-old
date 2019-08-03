@@ -17,41 +17,27 @@ var (
 )
 
 // catSpec concatenates one or more arguments to a str, raw or idxer literal.
-var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @1)",
-	func(x exp.ReslReq) (exp.El, error) {
+var catSpec = core.add(SpecRX("(form 'cat' (@1:alt str raw idxr) :plain list @1)",
+	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
-		fst, ok := x.Arg(0).(*exp.Atom)
-		if err != nil {
-			if err != exp.ErrUnres || !x.Part || !ok {
-				return x.Call, err
+		t := x.Layout.Sig
+		r := &t.Params[len(t.Params)-1]
+		switch r.Type.Kind & typ.MaskElem {
+		case typ.KindChar:
+			if _, opt := r.Type.Deopt(); opt {
+				r.Type = typ.Opt(typ.Str)
+			} else {
+				r.Type = typ.Str
 			}
-			t := x.Layout.Sig
-			r := &t.Params[len(t.Params)-1]
-			x.Call.Type = t
-			switch r.Type.Kind & typ.MaskElem {
-			case typ.KindChar:
-				if _, opt := r.Type.Deopt(); opt {
-					r.Type = typ.Opt(typ.Str)
-				} else {
-					r.Type = typ.Str
-				}
-			}
-			return x.Call, err
 		}
+		x.Call.Type = t
+		return x.Call, err
+	},
+	func(x CallCtx) (_ exp.El, err error) {
 		if !x.Exec {
-			t := x.Layout.Sig
-			r := &t.Params[len(t.Params)-1]
-			x.Call.Type = t
-			switch r.Type.Kind & typ.MaskElem {
-			case typ.KindChar:
-				if _, opt := r.Type.Deopt(); opt {
-					r.Type = typ.Opt(typ.Str)
-				} else {
-					r.Type = typ.Str
-				}
-			}
-			return x.Call, nil
+			return x.Call, exp.ErrUnres
 		}
+		fst := x.Arg(0).(*exp.Atom)
 		t, opt := fst.Typ().Deopt()
 		var res lit.Lit
 		switch t.Kind & typ.MaskRef {
@@ -103,17 +89,24 @@ var catSpec = core.impl("(form 'cat' (@1:alt str raw idxr) :plain list @1)",
 			res = lit.Some{res}
 		}
 		return &exp.Atom{Lit: res}, nil
-	})
+	}))
 
 // apdSpec appends the rest literal arguments to the first literal appender argument.
-var apdSpec = core.impl("(form 'apd' @1:list|@2 :plain list|@2 @1)",
-	func(x exp.ReslReq) (exp.El, error) {
+var apdSpec = core.add(SpecRX("(form 'apd' @1:list|@2 :plain list|@2 @1)",
+	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
-		if err != nil || !x.Exec {
-			x.Call.Type = x.Layout.Sig
+		if err != nil {
 			return x.Call, err
 		}
-		apd, ok := x.Arg(0).(*exp.Atom).Lit.(lit.Appender)
+		x.Call.Type = x.Layout.Sig
+		return x.Call, nil
+	},
+	func(x CallCtx) (_ exp.El, err error) {
+		atm, ok := x.Arg(0).(*exp.Atom)
+		if !ok {
+			return nil, exp.ErrUnres
+		}
+		apd, ok := atm.Lit.(lit.Appender)
 		if !ok {
 			return nil, cor.Errorf("cannot append to %T", x.Arg(0))
 		}
@@ -128,17 +121,15 @@ var apdSpec = core.impl("(form 'apd' @1:list|@2 :plain list|@2 @1)",
 			return nil, cor.Errorf("cannot append arg %T", arg)
 		}
 		return &exp.Atom{Lit: apd}, nil
-	})
+	}))
 
-// setSpec sets the first keyer literal with the following declaration arguments.
-var setSpec = core.impl("(form 'set' @1:keyr :plain? list|keyr :tags? dict @1)",
-	func(x exp.ReslReq) (exp.El, error) {
-		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
-		if err != nil || !x.Exec {
-			x.Call.Type = x.Layout.Sig
-			return x.Call, err
+// setSpec sets the first keyer literal with the following tag arguments.
+var setSpec = core.add(SpecDX("(form 'set' @1:keyr :plain? list|keyr :tags? dict @1)",
+	func(x CallCtx) (exp.El, error) {
+		fst, ok := x.Arg(0).(*exp.Atom)
+		if !ok {
+			return nil, exp.ErrUnres
 		}
-		fst := x.Arg(0).(*exp.Atom)
 		res, ok := deopt(fst.Lit).(lit.Keyer)
 		if !ok {
 			return nil, errSetKeyer
@@ -166,7 +157,7 @@ var setSpec = core.impl("(form 'set' @1:keyr :plain? list|keyr :tags? dict @1)",
 			a.Lit = lit.Some{a.Lit}
 		}
 		return a, nil
-	})
+	}))
 
 func catChar(b bfr.B, raw bool, fst lit.Lit, args []exp.El) error {
 	err := writeChar(b, fst)

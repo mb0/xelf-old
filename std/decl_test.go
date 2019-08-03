@@ -1,6 +1,7 @@
 package std
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mb0/xelf/exp"
@@ -13,8 +14,8 @@ func TestInferFn(t *testing.T) {
 		sig typ.Type
 	}{
 		{"(fn (add _ 1))", typ.Func("", []typ.Param{
-			{Type: typ.Var(2, typ.Num)},
-			{Type: typ.Var(2, typ.Num)},
+			{Type: typ.Var(7, typ.Num)},
+			{Type: typ.Var(7, typ.Num)},
 		})},
 	}
 	for _, test := range tests {
@@ -23,7 +24,7 @@ func TestInferFn(t *testing.T) {
 			t.Errorf("parse %s error: %v", test.raw, err)
 			continue
 		}
-		ctx := exp.NewCtx(true, false)
+		ctx := exp.NewCtx(false, true)
 		l, err := ctx.Resolve(Std, x, typ.Void)
 		if err != nil {
 			t.Errorf("exec %s error: %v", x, err)

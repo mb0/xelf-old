@@ -12,13 +12,13 @@ var errConType = cor.StrError("the 'con' expression must start with a type")
 // dynSpec resolves a dynamic expressions. If the first element resolves to a type it is
 // resolves as the 'con' expression. If it is a literal it selects an appropriate combine
 // expression for that literal. The time and uuid literals have no such combine expression.
-var dynSpec = core.impl("(form 'dyn' @1 :rest? list @2)",
-	func(x exp.ReslReq) (_ exp.El, err error) {
+var dynSpec = core.add(SpecX("(form 'dyn' @1 :rest? list @2)",
+	func(x CallCtx) (_ exp.El, err error) {
 		if len(x.Call.Args) == 0 {
 			return &exp.Atom{Lit: typ.Void}, nil
 		}
 		return defaultDyn(x.Ctx, x.Env, &exp.Dyn{Els: x.Call.Args}, x.Hint)
-	})
+	}))
 
 func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, err error) {
 	if len(d.Els) == 0 {
@@ -95,33 +95,34 @@ func defaultDyn(c *exp.Ctx, env exp.Env, d *exp.Dyn, hint typ.Type) (_ exp.El, e
 //    With one literal compatible to that type it returns the converted literal.
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
-var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
-	func(x exp.ReslReq) (exp.El, error) {
+var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
+	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Resolve(x.Ctx.WithExec(false), x.Env, x.Hint)
+		if a, ok := x.Arg(0).(*exp.Atom); ok {
+			if t, ok := a.Lit.(typ.Type); ok {
+				if x.Hint != typ.Void {
+					_, err := typ.Unify(x.Ctx.Ctx, x.Hint, t)
+					if err != nil {
+						return nil, err
+					}
+				}
+				x.Call.Type = x.Apply(x.Call.Type)
+			}
+		}
+		return x.Call, err
+	},
+	func(x CallCtx) (exp.El, error) {
 		// resolve all arguments
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			t, ok := x.Arg(0).(*exp.Atom).Lit.(typ.Type)
-			if ok && x.Hint != typ.Void {
-				_, err := typ.Unify(x.Ctx.Ctx, x.Hint, t)
-				if err == nil {
-					x.Call.Type = x.Apply(x.Call.Type)
-				}
-			}
 			return x.Call, err
 		}
 		t, ok := x.Arg(0).(*exp.Atom).Lit.(typ.Type)
 		if !ok {
 			return nil, errConType
 		}
-		if x.Hint != typ.Void {
-			typ.Unify(x.Ctx.Ctx, x.Hint, t)
-			x.Call.Type = x.Apply(x.Call.Type)
-		}
 		if t == typ.Void { // just in case we have a dynamic comment
 			return &exp.Atom{Lit: typ.Void}, nil
-		}
-		if !x.Part && !x.Exec {
-			return x.Call, nil
 		}
 		args := x.Args(1)
 		decls, err := x.Unis(2)
@@ -179,4 +180,4 @@ var conSpec = core.impl("(form 'con' typ :plain? list :tags? dict @)",
 			return &exp.Atom{Lit: res}, nil
 		}
 		return nil, cor.Error("not implemented")
-	})
+	}))

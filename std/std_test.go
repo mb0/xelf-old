@@ -21,8 +21,8 @@ func TestStdFail(t *testing.T) {
 		t.Fatalf("want err got nothing")
 	}
 	_, err = c.WithExec(false).Resolve(Std, x, typ.Void)
-	if err != exp.ErrUnres {
-		t.Fatalf("want err unres got %v", err)
+	if err != nil {
+		t.Fatalf("want no err got %v", err)
 	}
 }
 func TestStdResolveExec(t *testing.T) {
@@ -231,7 +231,7 @@ func TestStdResolveExec(t *testing.T) {
 		}
 		a := r.(*exp.Atom)
 		if !reflect.DeepEqual(a.Lit, test.want) {
-			t.Errorf("%s want %s got %s %[3]T", test.raw, test.want, a.Lit)
+			t.Errorf("%s want %s got %s %s", test.raw, test.want, a.Lit, a.Lit.Typ())
 		}
 	}
 }
@@ -321,7 +321,8 @@ func TestStdResolve(t *testing.T) {
 		{`(bool 0)`, `(bool 0)`, "bool"},
 		{`(not 0)`, `(not 0)`, "bool"},
 		{`(if 0 1 2)`, `(if 0 1 2)`, "~num"},
-		{`(add 0 1)`, `(add 0 1)`, "~num"},
+		{`(0 1)`, `(add 0 1)`, "~num"},
+		{`(d 1)`, `(d 1)`, "dyn"},
 		{`(mul 0 1)`, `(mul 0 1)`, "~num"},
 		{`(sub 0 1)`, `(sub 0 1)`, "~num"},
 		{`(div 0 1)`, `(div 0 1)`, "~num"},
@@ -336,15 +337,18 @@ func TestStdResolve(t *testing.T) {
 		{`(ni 0 [1])`, `(ni 0 [1])`, "bool"},
 		{`(lt 0 1)`, `(lt 0 1)`, "bool"},
 		{`(cat [0] [1])`, `(cat [0] [1])`, "list"},
-		{`(apd [0] 1)`, `(apd [0] 1)`, "list"},
+		{`([0] 1)`, `(apd [0] 1)`, "list"},
 		{`(set {a:0} :b 1)`, `(set {a:0} :b 1)`, "dict"},
 		{`(with {a:0} .a)`, `(with {a:0} .a)`, "~num"},
 		{`(let :a 0 a)`, `(let :a 0 a)`, "~num"},
-		{`(fn (add _ 1))`, `(fn (add _ 1))`, "(func num num)"},
-		{`(dyn str '')`, `(con str '')`, "str"},
-		{`((fn (add _ 1)) 1)`, `((fn (add _ 1)) 1)`, "~num"},
+		{`(fn (add 1 _))`, `(fn (add 1 _))`, "(func num num)"},
+		{`(fn (add d _))`, `(fn (add d _))`, "(func num int)"},
+		{`(str '')`, `(con str '')`, "str"},
+		{`((fn (add 1 _)) 1)`, `((fn (add 1 _)) 1)`, "~num"},
+		{`((fn (add d _)) 1)`, `((fn (add d _)) 1)`, "int"},
 	}
 	env := exp.NewScope(Std)
+	env.Def("d", &exp.Def{Type: typ.Int})
 	for _, test := range tests {
 		x, err := exp.Read(env, strings.NewReader(test.raw))
 		if err != nil {
@@ -353,13 +357,13 @@ func TestStdResolve(t *testing.T) {
 		}
 		c := exp.NewCtx(false, false)
 		r, err := c.Resolve(env, x, c.New())
-		if err != nil {
+		if err != nil && err != exp.ErrUnres {
 			t.Errorf("%s resolve err: %v\n%v", test.raw, err, c.Unres)
 			continue
 		}
 		err = exp.Realize(c, r)
 		if err != nil {
-			t.Errorf("instanciate err for %s %s: %v", r, callType(r), err)
+			t.Errorf("realize err for %s %s: %v", r, callType(r), err)
 		}
 		if got := r.String(); got != test.want {
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)

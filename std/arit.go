@@ -14,21 +14,21 @@ func opAdd(r, n float64) (float64, error) { return r + n, nil }
 func opMul(r, n float64) (float64, error) { return r * n, nil }
 
 // addSpec adds up all arguments and converts the sum to the first argument's type.
-var addSpec = core.impl("(form 'add' @1:num :plain list|num : @1)",
-	func(x exp.ReslReq) (exp.El, error) {
-		return resNums(x, 0, opAdd)
-	})
+var addSpec = core.add(SpecDXX("(form 'add' @1:num :plain list|num : @1)",
+	func(x CallCtx) (exp.El, error) {
+		return execNums(x, 0, opAdd)
+	}))
 
 // mulSpec multiplies all arguments and converts the product to the first argument's type.
-var mulSpec = core.impl("(form 'mul' @1:num :plain list|num : @1)",
-	func(x exp.ReslReq) (exp.El, error) {
-		return resNums(x, 1, opMul)
-	})
+var mulSpec = core.add(SpecDXX("(form 'mul' @1:num :plain list|num : @1)",
+	func(x CallCtx) (exp.El, error) {
+		return execNums(x, 1, opMul)
+	}))
 
 // subSpec subtracts the sum of the rest from the first argument and
 // converts to the first argument's type.
-var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
-	func(x exp.ReslReq) (exp.El, error) {
+var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
+	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
 			if err != exp.ErrUnres || !x.Part {
@@ -69,13 +69,13 @@ var subSpec = core.impl("(form 'sub' @1:num :plain list|@:num : @1)",
 			return x.Call, exp.ErrUnres
 		}
 		return &exp.Atom{Lit: l}, nil
-	})
+	}))
 
 // divSpec divides the product of the rest from the first argument.
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
-var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
-	func(x exp.ReslReq) (exp.El, error) {
+var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
+	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 		if err != nil {
 			if err != exp.ErrUnres || !x.Part {
@@ -126,29 +126,37 @@ var divSpec = core.impl("(form 'div' @1:num :plain list|@:num : @1)",
 			return x.Call, exp.ErrUnres
 		}
 		return la, nil
-	})
+	}))
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
-var remSpec = core.implResl("(form 'rem' @1:int @:int int)",
-	func(x exp.ReslReq) (exp.El, error) {
+var remSpec = core.add(SpecDX("(form 'rem' @1:int @:int int)",
+	func(x CallCtx) (exp.El, error) {
+		if !x.Exec {
+			return nil, exp.ErrUnres
+		}
 		res := x.Arg(0).(*exp.Atom).Lit.(lit.Numeric).Num()
 		mod := x.Arg(1).(*exp.Atom).Lit.(lit.Numeric).Num()
 		return &exp.Atom{Lit: lit.Int(res) % lit.Int(mod)}, nil
-	})
+	}))
 
 // absSpec returns the argument with the absolute numeric value.
-var absSpec = core.implResl("(form 'abs' @1:num @1)",
-	func(x exp.ReslReq) (fst exp.El, err error) {
+var absSpec = core.add(SpecDX("(form 'abs' @1:num @1)",
+	func(x CallCtx) (fst exp.El, err error) {
 		return sign(x, false)
-	})
+	}))
 
 // negSpec returns the argument with the negated numeric value.
-var negSpec = core.implResl("(form 'neg' @1:num @1)",
-	func(x exp.ReslReq) (fst exp.El, err error) {
+var negSpec = core.add(SpecDX("(form 'neg' @1:num @1)",
+	func(x CallCtx) (fst exp.El, err error) {
 		return sign(x, true)
-	})
+	}))
 
-func sign(x exp.ReslReq, neg bool) (_ exp.El, err error) {
+func sign(x CallCtx, neg bool) (_ exp.El, err error) {
+	err = x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+	if err != nil {
+		return x.Call, err
+	}
+
 	fst := x.Arg(0).(*exp.Atom)
 	switch v := fst.Lit.(type) {
 	case lit.Int:
@@ -186,30 +194,29 @@ func sign(x exp.ReslReq, neg bool) (_ exp.El, err error) {
 	return fst, nil
 }
 
-// minSpec returns the argument with the smalles numeric value or an error.
-var minSpec = core.impl("(form 'min' @1:num :plain? list|@1 @1)",
-	func(x exp.ReslReq) (exp.El, error) {
+// minSpec returns the argument with the smallest numeric value or an error.
+var minSpec = core.add(SpecDX("(form 'min' @1:num :plain? list|@1 @1)",
+	func(x CallCtx) (exp.El, error) {
 		var i int
-		return resNums(x, 0, func(r, n float64) (float64, error) {
+		return execNums(x, 0, func(r, n float64) (float64, error) {
 			if i++; i > 0 && r < n {
 				return r, nil
 			}
 			return n, nil
 		})
-	})
+	}))
 
 // maxSpec returns the argument with the greatest numeric value or an error.
-var maxSpec = core.impl("(form 'max' @1:num :plain? list|@1 @1)",
-	// @1:num plain? list|@1 : @1
-	func(x exp.ReslReq) (exp.El, error) {
+var maxSpec = core.add(SpecDX("(form 'max' @1:num :plain? list|@1 @1)",
+	func(x CallCtx) (exp.El, error) {
 		var i int
-		return resNums(x, 0, func(r, n float64) (float64, error) {
+		return execNums(x, 0, func(r, n float64) (float64, error) {
 			if i++; i > 0 && r > n {
 				return r, nil
 			}
 			return n, nil
 		})
-	})
+	}))
 
 func getNumer(e exp.El) lit.Numeric {
 	if a, ok := e.(*exp.Atom); ok {
@@ -231,7 +238,7 @@ func deopt(l lit.Lit) lit.Lit {
 	return l
 }
 
-func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
+func execNums(x CallCtx, res float64, f numOp) (exp.El, error) {
 	err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
 	if err != nil {
 		if err != exp.ErrUnres || !x.Part {
@@ -254,7 +261,7 @@ func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
 	if err != nil {
 		return nil, err
 	}
-	if (x.Part || x.Exec) && len(ctx.unres) == 0 {
+	if len(ctx.unres) == 0 {
 		var l lit.Lit = lit.Num(ctx.res)
 		if fst.Typ() != typ.Num {
 			l, err = lit.Convert(l, fst.Typ(), 0)
@@ -264,14 +271,13 @@ func resNums(x exp.ReslReq, res float64, f numOp) (exp.El, error) {
 		}
 		return &exp.Atom{Lit: l}, nil
 	}
-	if x.Part && len(ctx.unres) > 0 {
+	if x.Part {
 		if ctx.idx >= 0 && ctx.idx < len(ctx.unres) {
 			ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 		}
 		x.Call.Args = ctx.unres
-		return x.Call, exp.ErrUnres
 	}
-	return x.Call, nil
+	return x.Call, exp.ErrUnres
 }
 
 type numCtx struct {

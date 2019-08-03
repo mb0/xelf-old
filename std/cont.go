@@ -59,35 +59,35 @@ type litLener interface {
 	Len() int
 }
 
-var lenSpec = core.implResl("(form 'len' (@:alt cont str raw) int)",
-	func(x exp.ReslReq) (exp.El, error) {
+var lenSpec = core.add(SpecDX("(form 'len' (@:alt cont str raw) int)",
+	func(x CallCtx) (exp.El, error) {
 		fst := x.Arg(0).(*exp.Atom)
 		if v, ok := deopt(fst.Lit).(litLener); ok {
 			return &exp.Atom{lit.Int(v.Len()), x.Call.Source()}, nil
 		}
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
-	})
+	}))
 
-var fstSpec = decl.implResl("(form 'fst' list|@1 :pred? (func @ bool) @2)",
-	func(x exp.ReslReq) (exp.El, error) {
+var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @ bool) @2)",
+	func(x CallCtx) (exp.El, error) {
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), 0)
-	})
+	}))
 
-var lstSpec = decl.implResl("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
-	func(x exp.ReslReq) (exp.El, error) {
+var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
+	func(x CallCtx) (exp.El, error) {
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), -1)
-	})
+	}))
 
-var nthSpec = decl.implResl("(form 'nth' cont|@1 int :pred? (func @1 bool) @2)",
-	func(x exp.ReslReq) (exp.El, error) {
+var nthSpec = decl.add(SpecDX("(form 'nth' cont|@1 int :pred? (func @1 bool) @2)",
+	func(x CallCtx) (exp.El, error) {
 		l, ok := x.Arg(1).(*exp.Atom).Lit.(lit.Numeric)
 		if !ok {
 			return nil, cor.Errorf("want number got %s", x.Arg(1))
 		}
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(2), int(l.Num()))
-	})
+	}))
 
-func nth(x exp.ReslReq, cont *exp.Atom, pred exp.El, idx int) (_ exp.El, err error) {
+func nth(x CallCtx, cont *exp.Atom, pred exp.El, idx int) (_ exp.El, err error) {
 	if pred != nil {
 		iter, err := getIter(x, pred, cont.Typ(), false)
 		if err != nil {
@@ -136,7 +136,7 @@ type fIter struct {
 	ator          bool
 }
 
-func getIter(x exp.ReslReq, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error) {
+func getIter(x CallCtx, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error) {
 	e, err := x.Ctx.With(false, false).Resolve(x.Env, e, typ.Void)
 	if err != nil && err != exp.ErrUnres {
 		return nil, err
@@ -197,7 +197,7 @@ func getIter(x exp.ReslReq, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error
 	return r, nil
 }
 
-func (r *fIter) resolve(x exp.ReslReq, el lit.Lit, idx int, key string) (lit.Lit, error) {
+func (r *fIter) resolve(x CallCtx, el lit.Lit, idx int, key string) (lit.Lit, error) {
 	r.args[0] = &exp.Atom{Lit: el}
 	if r.i > 0 {
 		r.args[r.i] = &exp.Atom{Lit: lit.Int(idx)}
@@ -212,7 +212,7 @@ func (r *fIter) resolve(x exp.ReslReq, el lit.Lit, idx int, key string) (lit.Lit
 	}
 	return res.(*exp.Atom).Lit, nil
 }
-func (r *fIter) accumulate(x exp.ReslReq, acc *exp.Atom, el lit.Lit, idx int, key string) (*exp.Atom, error) {
+func (r *fIter) accumulate(x CallCtx, acc *exp.Atom, el lit.Lit, idx int, key string) (*exp.Atom, error) {
 	r.args[0] = acc
 	if r.v > 0 {
 		r.args[r.v] = &exp.Atom{Lit: el}
@@ -231,7 +231,7 @@ func (r *fIter) accumulate(x exp.ReslReq, acc *exp.Atom, el lit.Lit, idx int, ke
 	return res.(*exp.Atom), nil
 }
 
-func (r *fIter) filter(x exp.ReslReq, cont *exp.Atom) (lit.Lit, error) {
+func (r *fIter) filter(x CallCtx, cont *exp.Atom) (lit.Lit, error) {
 	switch v := deopt(cont.Lit).(type) {
 	case lit.Keyer:
 		out := lit.Zero(v.Typ()).(lit.Keyer)
@@ -277,8 +277,8 @@ func (r *fIter) filter(x exp.ReslReq, cont *exp.Atom) (lit.Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
-var filterSpec = decl.implResl("(form 'filter' cont|@1 (func @1 bool) @2)",
-	func(x exp.ReslReq) (exp.El, error) {
+var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
+	func(x CallCtx) (exp.El, error) {
 		cont := x.Arg(0).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
@@ -289,10 +289,10 @@ var filterSpec = decl.implResl("(form 'filter' cont|@1 (func @1 bool) @2)",
 			return nil, err
 		}
 		return &exp.Atom{res, x.Call.Source()}, nil
-	})
+	}))
 
-var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
-	func(x exp.ReslReq) (exp.El, error) {
+var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
+	func(x CallCtx) (exp.El, error) {
 		cont := x.Arg(0).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
@@ -365,10 +365,16 @@ var mapSpec = decl.implResl("(form 'map' cont|@1 (func @1 @2) @3)",
 			return &exp.Atom{out, x.Call.Source()}, nil
 		}
 		return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
-	})
+	}))
 
-var foldSpec = decl.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
-	func(x exp.ReslReq) (exp.El, error) {
+var foldSpec = decl.add(SpecDX("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
+	func(x CallCtx) (exp.El, error) {
+		if x.Exec {
+			err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+			if err != nil {
+				return nil, err
+			}
+		}
 		cont := x.Arg(0).(*exp.Atom)
 		acc := x.Arg(1).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(2), acc.Typ(), true)
@@ -407,10 +413,16 @@ var foldSpec = decl.implResl("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 			return acc, nil
 		}
 		return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
-	})
+	}))
 
-var foldrSpec = decl.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
-	func(x exp.ReslReq) (exp.El, error) {
+var foldrSpec = decl.add(SpecDX("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
+	func(x CallCtx) (exp.El, error) {
+		if x.Exec {
+			err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+			if err != nil {
+				return nil, err
+			}
+		}
 		cont := x.Arg(0).(*exp.Atom)
 		acc := x.Arg(1).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(2), acc.Typ(), true)
@@ -450,4 +462,4 @@ var foldrSpec = decl.implResl("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 			return acc, nil
 		}
 		return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
-	})
+	}))

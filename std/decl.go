@@ -8,8 +8,8 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var withSpec = core.impl("(form 'with' any :rest list|expr @)",
-	func(x exp.ReslReq) (exp.El, error) {
+var withSpec = core.add(SpecX("(form 'with' any :rest list|expr @)",
+	func(x CallCtx) (exp.El, error) {
 		dot := x.Arg(0)
 		el, err := x.Ctx.Resolve(x.Env, dot, typ.Void)
 		if err != nil {
@@ -32,12 +32,12 @@ var withSpec = core.impl("(form 'with' any :rest list|expr @)",
 			return x.Call, nil
 		}
 		return last, nil
-	})
+	}))
 
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-var letSpec = decl.impl("(form 'let' :tags dict|any :plain list|expr @)",
-	func(x exp.ReslReq) (exp.El, error) {
+var letSpec = decl.add(SpecX("(form 'let' :tags dict|any :plain list|expr @)",
+	func(x CallCtx) (exp.El, error) {
 		decls, err := x.Unis(0)
 		if err != nil {
 			return nil, err
@@ -68,11 +68,11 @@ var letSpec = decl.impl("(form 'let' :tags dict|any :plain list|expr @)",
 			return x.Call, nil
 		}
 		return last, nil
-	})
+	}))
 
 // fnSpec declares a function literal from its arguments.
-var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :plain list|expr @)",
-	func(x exp.ReslReq) (exp.El, error) {
+var fnSpec = decl.add(SpecX("(form 'fn' :tags? dict|typ :plain list|expr @)",
+	func(x CallCtx) (exp.El, error) {
 		tags, err := x.Unis(0)
 		if err != nil {
 			return nil, err
@@ -109,7 +109,7 @@ var fnSpec = decl.impl("(form 'fn' :tags? dict|typ :plain list|expr @)",
 		ps = append(ps, typ.Param{Type: x.Apply(res)})
 		spec := &exp.Spec{typ.Func("", ps), &exp.ExprBody{rest, x.Env}}
 		return &exp.Atom{Lit: spec}, nil
-	})
+	}))
 
 type mockScope struct {
 	par  exp.Env

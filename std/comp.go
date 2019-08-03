@@ -9,13 +9,13 @@ import (
 
 // eqSpec returns a bool whether the arguments are equivalent literals.
 // The result is negated, if the expression symbol is 'ne'.
-var eqSpec = core.impl("(form 'eq' @1 :plain list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var eqSpec = core.add(SpecXX("(form 'eq' @1 :plain list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return resolveBinaryComp(x, true, lit.Equiv)
-	})
+	}))
 
-var neSpec = core.impl("(form 'ne' @1 :plain list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var neSpec = core.add(SpecXX("(form 'ne' @1 :plain list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		res, err := resolveBinaryComp(x, true, lit.Equiv)
 		if err != nil || !x.Exec {
 			return res, err
@@ -23,25 +23,25 @@ var neSpec = core.impl("(form 'ne' @1 :plain list|@1 bool)",
 		a := res.(*exp.Atom)
 		a.Lit = !a.Lit.(lit.Bool)
 		return a, nil
-	})
+	}))
 
 // equalSpec returns a bool whether the arguments are same types or same literals.
-var equalSpec = core.impl("(form 'equal' @1 :plain list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var equalSpec = core.add(SpecXX("(form 'equal' @1 :plain list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return resolveBinaryComp(x, true, lit.Equal)
-	})
+	}))
 
-var inSpec = core.implResl("(form 'in' @1 list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var inSpec = core.add(SpecDXX("(form 'in' @1 list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return inOrNi(x, false)
-	})
+	}))
 
-var niSpec = core.implResl("(form 'ni' @1 list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var niSpec = core.add(SpecDXX("(form 'ni' @1 list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return inOrNi(x, true)
-	})
+	}))
 
-func inOrNi(x exp.ReslReq, neg bool) (exp.El, error) {
+func inOrNi(x CallCtx, neg bool) (exp.El, error) {
 	a := x.Arg(0).(*exp.Atom)
 	b := x.Arg(1).(*exp.Atom)
 	list, ok := b.Lit.(lit.Indexer)
@@ -66,52 +66,48 @@ func inOrNi(x exp.ReslReq, neg bool) (exp.El, error) {
 
 // ltSpec returns a bool whether the arguments are monotonic increasing literals.
 // Or the inverse, if the expression symbol is 'ge'.
-var ltSpec = core.impl("(form 'lt' @1 :plain list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var ltSpec = core.add(SpecXX("(form 'lt' @1 :plain list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(a, b)
 			return ok && res
 		})
-	})
+	}))
 
-var geSpec = core.impl("(form 'ge' @1 :plain list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var geSpec = core.add(SpecXX("(form 'ge' @1 :plain list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(a, b)
 			return ok && !res
 		})
-	})
+	}))
 
-// specGt returns a bool whether the arguments are monotonic decreasing literals.
+// gtSpec returns a bool whether the arguments are monotonic decreasing literals.
 // Or the inverse, if the expression symbol is 'le'.
-var gtSpec = core.impl("(form 'gt' @1 :plain list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+var gtSpec = core.add(SpecXX("(form 'gt' @1 :plain list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(b, a)
 			return ok && res
 		})
-	})
-var leSpec = core.impl("(form 'le' @1 :plain list|@1 bool)",
-	func(x exp.ReslReq) (exp.El, error) {
+	}))
+var leSpec = core.add(SpecXX("(form 'le' @1 :plain list|@1 bool)",
+	func(x CallCtx) (exp.El, error) {
 		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(b, a)
 			return ok && !res
 		})
-	})
+	}))
 
 type cmpf = func(a, b lit.Lit) bool
 
-func resolveBinaryComp(x exp.ReslReq, sym bool, cmp cmpf) (exp.El, error) {
+func resolveBinaryComp(x CallCtx, sym bool, cmp cmpf) (exp.El, error) {
 	err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
-	if !x.Part && !x.Exec {
-		return x.Call, err
+	if x.Part && err == exp.ErrUnres {
+		err = nil
 	}
-	if err == exp.ErrUnres {
-		if !x.Part || x.Exec {
-			return x.Call, err
-		}
-	} else if err != nil {
-		return nil, err
+	if err != nil || (!x.Part && !x.Exec) {
+		return x.Call, err
 	}
 	var res, init bool
 	var unres []exp.El

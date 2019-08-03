@@ -8,11 +8,6 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Resolve creates a new non-executing resolution context and resolves x with with given env.
-func Resolve(env Env, x El) (El, error) {
-	return NewCtx(true, false).Resolve(env, x, typ.Void)
-}
-
 // Execute creates a new executing resolution context and evaluates x with with given env.
 func Execute(env Env, x El) (El, error) {
 	return NewCtx(false, true).Resolve(env, x, typ.Void)

@@ -33,38 +33,3 @@ func MustSig(sig string) typ.Type {
 	}
 	return s
 }
-
-type LayoutResolverFunc = func(*Ctx, Env, *Call, *Layout, typ.Type) (El, error)
-
-type ReslReq struct {
-	*Ctx
-	Env  Env
-	Call *Call
-	*Layout
-	Hint typ.Type
-}
-type ReslReqFunc = func(ReslReq) (El, error)
-
-func ImplementReq(sig string, resolve bool, r ReslReqFunc) *Spec {
-	s := MustSig(sig)
-	return &Spec{s, ReslFunc(func(c *Ctx, env Env, e *Call, hint typ.Type) (El, error) {
-		if e.Type == typ.Void {
-			return nil, cor.Errorf("type not instantiated for %s %s", s, e.Type)
-		}
-		lo, err := LayoutArgs(e.Type, e.Args)
-		if err != nil {
-			return nil, err
-		}
-		if resolve {
-			err = lo.Resolve(c, env, hint)
-			e.Type = lo.Sig
-			if err != nil {
-				return e, err
-			}
-			if !c.Exec && !c.Part {
-				return e, nil
-			}
-		}
-		return r(ReslReq{c, env, e, lo, hint})
-	})}
-}
