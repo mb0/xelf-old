@@ -12,7 +12,7 @@ import (
 
 // Read returns a Tree read from r or an error.
 func Read(r io.Reader) (*Tree, error) {
-	return New(r).Scan()
+	return New(r).Tree()
 }
 
 // Lexer is simple token lexer.
@@ -36,9 +36,9 @@ func New(r io.Reader) *Lexer {
 	return l
 }
 
-// Lex reads and returns the next token or an error.
+// Token reads and returns the next token or an error.
 // If simple is true, symbols can only be ascii names.
-func (l *Lexer) Lex(simple bool) (Token, error) {
+func (l *Lexer) Token(simple bool) (Token, error) {
 	r := l.next()
 	for cor.Space(r) {
 		r = l.next()
@@ -68,10 +68,10 @@ func (l *Lexer) Lex(simple bool) (Token, error) {
 	return t, ErrorAt(t, ErrUnexpected)
 }
 
-// Scan scans and returns the next tree or an error.
+// Tree scans and returns the next tree or an error.
 // Symbols nested in sequences with curly or square brackets are read as simple names.
-func (l *Lexer) Scan() (*Tree, error) {
-	t, err := l.Lex(false)
+func (l *Lexer) Tree() (*Tree, error) {
+	t, err := l.Token(false)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 		return res, nil
 	}
 	simple := end != ')'
-	t, err := l.Lex(simple)
+	t, err := l.Token(simple)
 	if err != nil {
 		return res, err
 	}
@@ -233,7 +233,7 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 			return a, err
 		}
 		res.Seq = append(res.Seq, a)
-		t, err = l.Lex(simple)
+		t, err = l.Token(simple)
 		if err != nil {
 			return res, err
 		}
