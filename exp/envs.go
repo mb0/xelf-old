@@ -111,16 +111,15 @@ func (ds *DataScope) Get(s string) *Def {
 	return nil
 }
 
-// ParamScope wraps a scope and provides parameter resolution.
-// It is also used as part of the prog scope and for signature definitions.
-type ParamScope struct {
-	*Scope
-	Param *lit.Rec
+// ParamEnv provides parameter resolution.
+type ParamEnv struct {
+	Par   Env
+	Param lit.Lit
 }
 
-func (ps *ParamScope) Supports(x byte) bool { return x == '$' }
-
-func (ps *ParamScope) Get(s string) *Def {
+func (ps *ParamEnv) Parent() Env          { return ps.Par }
+func (ps *ParamEnv) Supports(x byte) bool { return x == '$' }
+func (ps *ParamEnv) Get(s string) *Def {
 	if s[0] == '$' {
 		l, err := lit.Select(ps.Param, s[1:])
 		if err != nil {
@@ -128,18 +127,18 @@ func (ps *ParamScope) Get(s string) *Def {
 		}
 		return NewDef(l)
 	}
-	return ps.Scope.Get(s)
+	return nil
 }
 
-// ProgScope wraps a param scope and provides global result resolution.
-type ProgScope struct {
-	ParamScope
+// ProgEnv provides global result resolution.
+type ProgEnv struct {
+	Par    Env
 	Result *lit.Dict
 }
 
-func (ps *ProgScope) Supports(x byte) bool { return x == '$' || x == '/' }
-
-func (ps *ProgScope) Get(s string) *Def {
+func (ps *ProgEnv) Parent() Env          { return ps.Par }
+func (ps *ProgEnv) Supports(x byte) bool { return x == '/' }
+func (ps *ProgEnv) Get(s string) *Def {
 	if s[0] == '/' {
 		l, err := lit.Select(ps.Result, s[1:])
 		if err != nil {
@@ -147,5 +146,5 @@ func (ps *ProgScope) Get(s string) *Def {
 		}
 		return NewDef(l)
 	}
-	return ps.ParamScope.Get(s)
+	return nil
 }
