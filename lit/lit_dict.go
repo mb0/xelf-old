@@ -114,7 +114,7 @@ func (d *Dict) IterKey(it func(string, Lit) error) error {
 func (d *Dict) String() string               { return bfr.String(d) }
 func (d *Dict) MarshalJSON() ([]byte, error) { return bfr.JSON(d) }
 func (d *Dict) UnmarshalJSON(b []byte) error {
-	t, err := lex.New(bytes.NewReader(b)).Scan()
+	t, err := lex.Read(bytes.NewReader(b))
 	if err != nil {
 		return err
 	}

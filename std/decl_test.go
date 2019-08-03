@@ -18,7 +18,7 @@ func TestInferFn(t *testing.T) {
 		})},
 	}
 	for _, test := range tests {
-		x, err := exp.ParseString(Std, test.raw)
+		x, err := exp.Read(Std, strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("parse %s error: %v", test.raw, err)
 			continue

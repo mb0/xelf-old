@@ -1,6 +1,8 @@
 package exp
 
 import (
+	"strings"
+
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
@@ -12,7 +14,7 @@ func (rf ReslFunc) Resolve(c *Ctx, env Env, e *Call, hint typ.Type) (El, error) 
 }
 
 func Sig(sig string) (typ.Type, error) {
-	s, err := typ.ParseString(sig)
+	s, err := typ.Read(strings.NewReader(sig))
 	if err != nil {
 		return typ.Void, cor.Errorf("cannot parse signature %s: %v", sig, err)
 	}

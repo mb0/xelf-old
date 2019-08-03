@@ -20,7 +20,7 @@ func TestLexer(t *testing.T) {
 		{"[00]", nil, "number zero must be separated by whitespace"},
 	}
 	for _, test := range tests {
-		got, err := Scan(test.raw)
+		got, err := Read(strings.NewReader(test.raw))
 		if test.err != "" {
 			if err == nil {
 				t.Errorf("expect error %s got nil", test.err)

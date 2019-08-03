@@ -170,7 +170,7 @@ func getKey(l Lit, key string) (Lit, error) {
 	case Keyer:
 		return v.Key(key)
 	}
-	return nil, cor.Errorf("key segment expects keyer got %s", l.Typ())
+	return nil, cor.Errorf("key segment expects keyer got %s", l)
 }
 
 func getIdx(l Lit, idx int) (Lit, error) {

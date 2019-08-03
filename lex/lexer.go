@@ -10,9 +10,9 @@ import (
 	"github.com/mb0/xelf/cor"
 )
 
-// Scan returns a Tree scanned from s or an error.
-func Scan(s string) (*Tree, error) {
-	return New(strings.NewReader(s)).Scan()
+// Read returns a Tree read from r or an error.
+func Read(r io.Reader) (*Tree, error) {
+	return New(r).Scan()
 }
 
 // Lexer is simple token lexer.

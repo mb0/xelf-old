@@ -94,7 +94,7 @@ func (l *List) IterIdx(it func(int, Lit) error) error {
 func (l *List) String() string               { return bfr.String(l) }
 func (l *List) MarshalJSON() ([]byte, error) { return bfr.JSON(l) }
 func (l *List) UnmarshalJSON(b []byte) error {
-	t, err := lex.New(bytes.NewReader(b)).Scan()
+	t, err := lex.Read(bytes.NewReader(b))
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package typ
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -64,7 +65,7 @@ func TestString(t *testing.T) {
 		if got := string(raw); got != want {
 			t.Errorf("%s string want %s got %s", test.raw, want, got)
 		}
-		typ, err := ParseString(raw)
+		typ, err := Read(strings.NewReader(raw))
 		if err != nil {
 			t.Errorf("%s parse error: %v", test.raw, err)
 			continue
@@ -113,7 +114,7 @@ func TestTypeSelfRef(t *testing.T) {
 		if got := string(raw); got != test.raw {
 			t.Errorf("%s string got %v", test.raw, got)
 		}
-		typ, err := ParseString(raw)
+		typ, err := Read(strings.NewReader(raw))
 		if err != nil {
 			t.Errorf("%s parse error: %v", test.raw, err)
 			continue

@@ -2,6 +2,7 @@ package lit
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mb0/xelf/typ"
@@ -52,7 +53,7 @@ func TestRead(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		l, err := ParseString(test.str)
+		l, err := Read(strings.NewReader(test.str))
 		if err != nil {
 			t.Errorf("read %s err %v", test.str, err)
 			continue

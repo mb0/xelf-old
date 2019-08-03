@@ -1,6 +1,7 @@
 package typ
 
 import (
+	"io"
 	"strconv"
 	"strings"
 
@@ -15,9 +16,9 @@ var (
 	ErrParamType = cor.StrError("expect param type")
 )
 
-// ParseString scans and parses string s and returns a type or an error.
-func ParseString(s string) (Type, error) {
-	a, err := lex.Scan(s)
+// Read scans and parses from r and returns a type or an error.
+func Read(r io.Reader) (Type, error) {
+	a, err := lex.Read(r)
 	if err != nil {
 		return Void, err
 	}

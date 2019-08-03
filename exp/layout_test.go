@@ -2,6 +2,7 @@ package exp
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mb0/xelf/typ"
@@ -53,12 +54,12 @@ func TestLayout(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		form, err := typ.ParseString(test.sig)
+		form, err := typ.Read(strings.NewReader(test.sig))
 		if err != nil {
 			t.Errorf("parse sig %s err: %v", test.sig, err)
 			continue
 		}
-		el, err := ParseString(Builtin{}, test.raw)
+		el, err := Read(Builtin{}, strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("parse raw %s err: %v", test.raw, err)
 			continue

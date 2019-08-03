@@ -2,6 +2,7 @@ package std
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mb0/xelf/exp"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestStdFail(t *testing.T) {
-	x, err := exp.ParseString(Std, `(fail 'oops')`)
+	x, err := exp.Read(Std, strings.NewReader(`(fail 'oops')`))
 	if err != nil {
 		t.Fatalf("parse err: %v", err)
 	}
@@ -217,7 +218,7 @@ func TestStdResolveExec(t *testing.T) {
 		)))`, lit.True},
 	}
 	for _, test := range tests {
-		x, err := exp.ParseString(Std, test.raw)
+		x, err := exp.Read(Std, strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
@@ -288,7 +289,7 @@ func TestStdResolvePart(t *testing.T) {
 	env.Def("x", &exp.Def{Type: typ.Num})
 	env.Def("y", &exp.Def{Type: typ.Num})
 	for _, test := range tests {
-		x, err := exp.ParseString(Std, test.raw)
+		x, err := exp.Read(Std, strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
@@ -343,14 +344,15 @@ func TestStdResolve(t *testing.T) {
 		{`(dyn str '')`, `(con str '')`, "str"},
 		{`((fn (add _ 1)) 1)`, `((fn (add _ 1)) 1)`, "~num"},
 	}
+	env := exp.NewScope(Std)
 	for _, test := range tests {
-		x, err := exp.ParseString(Std, test.raw)
+		x, err := exp.Read(env, strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
 		c := exp.NewCtx(false, false)
-		r, err := c.Resolve(Std, x, c.New())
+		r, err := c.Resolve(env, x, c.New())
 		if err != nil {
 			t.Errorf("%s resolve err: %v\n%v", test.raw, err, c.Unres)
 			continue

@@ -1,6 +1,7 @@
 package lit
 
 import (
+	"io"
 	"strconv"
 
 	"github.com/mb0/xelf/cor"
@@ -14,9 +15,9 @@ var (
 	ErrUnknown = cor.StrError("unknown literal")
 )
 
-// ParseString scans and parses string s and returns a literal or an error.
-func ParseString(s string) (Lit, error) {
-	a, err := lex.Scan(s)
+// Read reads and parses from r and returns a literal or an error.
+func Read(r io.Reader) (Lit, error) {
+	a, err := lex.Read(r)
 	if err != nil {
 		return nil, err
 	}

@@ -1,15 +1,17 @@
 package exp
 
 import (
+	"io"
+
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
 
-// ParseString scans and parses string s and returns an element or an error.
-func ParseString(env Env, s string) (El, error) {
-	a, err := lex.Scan(s)
+// Read scans and parses from r and returns an element or an error.
+func Read(env Env, r io.Reader) (El, error) {
+	a, err := lex.Read(r)
 	if err != nil {
 		return nil, err
 	}

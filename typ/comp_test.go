@@ -1,6 +1,9 @@
 package typ
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestComp(t *testing.T) {
 	tests := []struct {
@@ -48,11 +51,11 @@ func TestComp(t *testing.T) {
 		{CmpCheckDictAny, "dict", "(rec :x :y int)"},
 	}
 	for _, test := range tests {
-		s, err := ParseString(test.src)
+		s, err := Read(strings.NewReader(test.src))
 		if err != nil {
 			t.Errorf("parse src %s err: %v", test.src, err)
 		}
-		d, err := ParseString(test.dst)
+		d, err := Read(strings.NewReader(test.dst))
 		if err != nil {
 			t.Errorf("parse dst %s err: %v", test.dst, err)
 		}

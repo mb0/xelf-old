@@ -136,7 +136,7 @@ func (t *Type) UnmarshalJSON(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	r, err := ParseString(tmp.Typ)
+	r, err := Read(strings.NewReader(tmp.Typ))
 	if err != nil {
 		return err
 	}
