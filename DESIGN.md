@@ -164,8 +164,8 @@ Symbols, Names and Keys
 
 Xelf symbols are ASCII identifiers that allow a large number of punctuation characters. Some
 punctuation characters already have a designated meaning. As prefix ':+-@~', as suffix '?' and the
-prefixes '$/.' for special scope lookups. All other punctuation characters can be used in client
-libs. Built-in expression resolvers all use short ASCII names instead of punctuation.
+prefixes '$/.' for special scope lookups. All other punctuation characters can be used in language
+extensions. Built-in expression resolvers all use short ASCII names instead of punctuation.
 
 By using only the ASCII character set we can avoid any encoding issues or substitutions in
 environments without unicode identifier support.
@@ -203,10 +203,8 @@ in language extensions.
 Predefined Symbols
 ------------------
 
-Only the literal symbols null, false and true as well as the void type are hard keywords. All other
+The literal symbols null, false and true as well as common type names are hard keywords. All other
 types are just built-in symbols that can be overwritten in sub environment.
-
-The schema prefix can be used to refer to built-in types, even if shadowed by a another definition.
 
 Type References and Variables
 -----------------------------
@@ -216,8 +214,8 @@ start with the at-sign followed by a symbol '@name' and can refer to a generaliz
 any container with a underscore path segment `@mylist._`.
 
 Type variables represent unresolved types and are used during type inference and checking. They
-start with reference prefix followed by a numeric type variable id '@123'. The naked at-sign '@'
-without id represents a new type variable with any new id.
+start with reference prefix followed by a numeric id '@123'. The naked at-sign '@' without id
+represents a new type variable with any new id.
 
 Type variables can have one parameter acting as constraint, that is usually a base type or a type
 alternative. For example '@1:num' or '(@:alt str raw list)'.
@@ -252,13 +250,10 @@ represents the immediate data scope's literal, each additional dot moves one dat
 first dot is followed by a question mark '?' the default resolver tries each data scope, starting
 with the immediate one.
 
-The dollar '$' and slash '/' prefixes have a similar effect as the data scope, but are exclusively
-used for parameter and result paths. Both use the immediate environment supporting the prefix and
-can be followed by dots to select a supporting parent. A double prefix '$$' or '//' will select the
-outermost supporting environment.
+The dollar '$' and slash '/' prefixes are used for global parameter and result paths.
 
 The with expression takes a literal as first argument that creates a data scope. Normal functions
-and loop expressions provide their arguments as a data scope as well.
+provide their arguments as a data scope as well.
 
 Type references not starting with dots first try to resolve as relative path symbol and after that
 as plain symbol.
@@ -266,40 +261,32 @@ as plain symbol.
 Expressions
 -----------
 
-Xelf language elements can be atoms, symbols or expressions. Expressions can either be named,
-dynamic or call expressions. All elements share a common interface, that includes a string and write
-bfr method as well as a traverse and type method. The returned type identifies the kind of the
-language element.
+Xelf language elements can be atoms, symbols, named elements or dynamic and call expressions. All
+elements share a common interface, that includes a string and write bfr method as well as a traverse
+and type method. The returned type identifies the kind of the language element.
 
-Named expressions start with a tag or declaration symbol and are handled by the parent's
+Named elements start with a tag or declaration symbol and are handled by the parent's
 specification. They are formed automatically by the parser from tag and declaration tokens.
 
 Dynamic expressions are expressions, where the resolver is yet unknown and may start with a literal
 or sub expression. Dynamic expressions starting with a literal are resolved with the configurable
 dyn resolver.
 
-Calls are all expressions where a specification was found.
+Calls are expressions where a specification was found and the arguments layout constructed.
 
 Expression Resolution
 ---------------------
 
-Dynamic expressions direct a considerable part of the resolution process, and provide a configurable
-way to extend the language with new syntax. Because the dyn resolver plays this central role, it
-does not use a lookup from the environment on every call and instead caches a reference in the
-resolution context. Changing the dyn resolver is still possible by clearing the context cached spec.
+Resolution and evaluation require a program that holds a type context and encapsulates the
+resolution machinery.
 
-The default dyn resolver resolves the first arg and delegates to a resolver based on it. If the
-first argument is form or function it is called directly. If it is a type the expression is treated
-as the 'con' type conversion form. For other literals a appropriate combination operator is used if
-available. Users can redefine and reuse the dyn resolver to add custom delegations.
+Dynamic expressions resolve the first argument and construct a call based on it. If the first
+argument is form or function it is called directly. If it is a type the expression is treated as the
+'con' type construction or conversion form. For other literals a appropriate combination operator is
+looked up from the program and used if available. Language extensions can change the dyn lookup.
 
-There is only one resolver interface for all aspects of the resolution process to keep it simple.
-For that reason a context is passed in that indicates whether an expression can execute or can
-return a partially resolved expression. The context also encapsulates the default resolution
-machinery that resolvers can choose to resolve arguments.
-
-The form resolvers provided by xelf are grouped into the core, std and library resolvers. The core
-built-ins include basic operators, conditional and the 'dyn' and 'con' resolvers. The std built-ins
+The resolvers provided by xelf are grouped into the core, std and library resolvers. The core
+built-ins include basic operators, conditional and the 'con' resolver. The std built-ins
 have basic resolvers that include declarations. The library built-ins in package utl provide extra
 functionality centered around one type.
 
