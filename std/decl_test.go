@@ -14,9 +14,8 @@ func TestInferFn(t *testing.T) {
 		sig typ.Type
 	}{
 		{"(fn (add _ 1))", typ.Func("", []typ.Param{
-			// TODO reduce type variable instantiation
-			{Type: typ.Var(7, typ.Num)},
-			{Type: typ.Var(7, typ.Num)},
+			{Type: typ.Var(2, typ.Num)},
+			{Type: typ.Var(2, typ.Num)},
 		})},
 	}
 	for _, test := range tests {
@@ -25,8 +24,7 @@ func TestInferFn(t *testing.T) {
 			t.Errorf("parse %s error: %v", test.raw, err)
 			continue
 		}
-		ctx := exp.NewProg()
-		l, err := ctx.Eval(Std, x, typ.Void)
+		l, err := exp.Eval(Std, x)
 		if err != nil {
 			t.Errorf("exec %s error: %v", x, err)
 			continue
@@ -37,7 +35,7 @@ func TestInferFn(t *testing.T) {
 			continue
 		}
 		if !test.sig.Equal(s.Type) {
-			t.Errorf("for %s want %s got %s\n%v", x, test.sig, s.Type, ctx.Ctx)
+			t.Errorf("for %s want %s got %s", x, test.sig, s.Type)
 		}
 	}
 }

@@ -62,45 +62,47 @@ func DefaultResl(x CallCtx) (exp.El, error) {
 	return x.Call, err
 }
 
-type ReslRXP struct {
-	R, X, P Evaler
+type SpecImpl struct {
+	resl Evaler
+	eval Evaler
+	part bool
 }
 
-func (r ReslRXP) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+func (r *SpecImpl) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	req := CallCtx{p, env, c, h}
-	if r.R == nil {
-		return r.X(req)
+	if r.resl == nil {
+		return r.eval(req)
 	}
-	res, err := r.R(req)
+	res, err := r.resl(req)
 	if err != nil {
-		if r.P != nil && err == exp.ErrUnres {
-			return r.P(req)
+		if r.part && err == exp.ErrUnres {
+			return r.eval(req)
 		}
 		return res, err
 	}
 	return res, nil
 }
 
-func (r ReslRXP) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+func (r *SpecImpl) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	req := CallCtx{p, env, c, h}
-	if r.R != nil {
-		v, err := r.R(req)
+	if r.resl != nil {
+		v, err := r.resl(req)
 		if err != nil {
-			if r.P != nil && err == exp.ErrUnres {
-				return r.P(req)
+			if r.part && err == exp.ErrUnres {
+				return r.eval(req)
 			}
 			return v, err
 		}
 	}
-	return r.X(req)
+	return r.eval(req)
 }
 
-func SpecXX(sig string, x Evaler) *exp.Spec    { return Impl(sig, ReslRXP{x, x, nil}) }
-func SpecRX(sig string, r, x Evaler) *exp.Spec { return Impl(sig, ReslRXP{r, x, nil}) }
-func SpecDX(sig string, x Evaler) *exp.Spec    { return Impl(sig, ReslRXP{DefaultResl, x, nil}) }
-func SpecDXX(sig string, x Evaler) *exp.Spec   { return Impl(sig, ReslRXP{DefaultResl, x, x}) }
+func SpecXX(sig string, x Evaler) *exp.Spec    { return newSpec(sig, nil, x, false) }
+func SpecRX(sig string, r, x Evaler) *exp.Spec { return newSpec(sig, r, x, false) }
+func SpecDX(sig string, x Evaler) *exp.Spec    { return newSpec(sig, DefaultResl, x, false) }
+func SpecDXX(sig string, x Evaler) *exp.Spec   { return newSpec(sig, DefaultResl, x, true) }
 
-func Impl(sig string, rxp ReslRXP) *exp.Spec {
+func newSpec(sig string, r, x Evaler, part bool) *exp.Spec {
 	s := exp.MustSig(sig)
-	return &exp.Spec{s, rxp}
+	return &exp.Spec{s, &SpecImpl{r, x, part}}
 }

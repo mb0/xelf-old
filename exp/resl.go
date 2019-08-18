@@ -9,6 +9,8 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+func Resl(env Env, el El) (El, error) { return NewProg().Resl(env, el, typ.Void) }
+
 // ReslAll resolves all element or returns the first error.
 func (p *Prog) ReslAll(env Env, els []El, h typ.Type) (res []El, err error) {
 	return doAll(p, env, els, h, (*Prog).Resl)
@@ -34,7 +36,14 @@ func (p *Prog) Resl(env Env, el El, h typ.Type) (_ El, err error) {
 		}
 		v.El = x
 	case *Dyn:
-		return p.ReslDyn(env, v, h)
+		res, err := p.dynCall(env, v)
+		if err != nil {
+			return v, err
+		}
+		if call, ok := res.(*Call); ok {
+			return call.Spec.Resl(p, env, call, h)
+		}
+		return res, nil
 	case *Call:
 		return v.Spec.Resl(p, env, v, h)
 	}
@@ -44,68 +53,6 @@ func (p *Prog) Resl(env Env, el El, h typ.Type) (_ El, err error) {
 func Ignore(src lex.Src) (El, error) {
 	return &Atom{Lit: typ.Void, Src: src}, ErrVoid
 }
-
-func (p *Prog) ReslDyn(env Env, d *Dyn, h typ.Type) (El, error) {
-	res, err := p.dynCall(env, d)
-	if err != nil {
-		return d, err
-	}
-	if call, ok := res.(*Call); ok {
-		return call.Spec.Resl(p, env, call, h)
-	}
-	return res, nil
-}
-
-func (p *Prog) dynCall(env Env, d *Dyn) (El, error) {
-	if d == nil || len(d.Els) == 0 {
-		return Ignore(d.Src)
-	}
-	fst, err := p.Resl(env, d.Els[0], typ.Void)
-	if err != nil && err != ErrUnres {
-		return d, err
-	}
-	t, l := ResInfo(fst)
-	var sym string
-	var cons bool
-	switch t.Kind & typ.MaskElem {
-	case typ.KindVoid:
-		if fst.Typ() == typ.Typ {
-			return Ignore(d.Src)
-		}
-		return d, ErrUnres
-	case typ.KindTyp:
-		lt, ok := l.(typ.Type)
-		if !ok {
-			return d, ErrUnres
-		}
-		if lt == typ.Void {
-			return Ignore(d.Src)
-		}
-	case typ.KindFunc, typ.KindForm:
-		ls, ok := l.(*Spec)
-		if !ok {
-			return d, ErrUnres
-		}
-		return p.NewCall(ls, d.Els[1:], d.Src)
-	}
-	if len(d.Els) == 1 && t.Kind&typ.KindAny != 0 {
-		return fst, nil
-	}
-	sym, cons = p.Dyn(t)
-	if sym == "" {
-		return d, cor.Errorf("dyn unexpected first element %s %s", fst, fst.Typ())
-	}
-	args := d.Els
-	if cons {
-		args = args[1:]
-	}
-	call, err := p.BuiltinCall(env, sym, args, d.Src)
-	if err != nil {
-		return d, err
-	}
-	return call, nil
-}
-
 func (p *Prog) reslAtom(env Env, a *Atom, hint typ.Type) (El, error) {
 	switch a.Typ().Kind & typ.MaskRef {
 	case typ.KindTyp: // resolve type references
@@ -223,6 +170,7 @@ func (p *Prog) reslDot(env Env, a *Sym) error {
 		}
 	}
 	if d == nil {
+		p.Unres = append(p.Unres, a)
 		return ErrUnres
 	}
 	a.Type = d.Type
@@ -236,14 +184,64 @@ func (p *Prog) reslAbs(env Env, a *Sym) error {
 	if env == nil {
 		return cor.Errorf("no env found for path symbol %s", a.Name)
 	}
-	// TODO think about who should select into the path
 	d := env.Get(n)
 	if d == nil {
+		p.Unres = append(p.Unres, a)
 		return ErrUnres
 	}
 	a.Type = d.Type
 	a.Lit = d.Lit
 	return nil
+}
+
+func (p *Prog) dynCall(env Env, d *Dyn) (El, error) {
+	if d == nil || len(d.Els) == 0 {
+		return Ignore(d.Src)
+	}
+	fst, err := p.Resl(env, d.Els[0], typ.Void)
+	if err != nil && err != ErrUnres {
+		return d, err
+	}
+	t, l := ResInfo(fst)
+	var sym string
+	var cons bool
+	switch t.Kind & typ.MaskElem {
+	case typ.KindVoid:
+		if fst.Typ() == typ.Typ {
+			return Ignore(d.Src)
+		}
+		return d, ErrUnres
+	case typ.KindTyp:
+		lt, ok := l.(typ.Type)
+		if !ok {
+			return d, ErrUnres
+		}
+		if lt == typ.Void {
+			return Ignore(d.Src)
+		}
+	case typ.KindFunc, typ.KindForm:
+		ls, ok := l.(*Spec)
+		if !ok {
+			return d, ErrUnres
+		}
+		return p.NewCall(ls, d.Els[1:], d.Src)
+	}
+	if len(d.Els) == 1 && t.Kind&typ.KindAny != 0 {
+		return fst, nil
+	}
+	sym, cons = p.Dyn(t)
+	if sym == "" {
+		return d, cor.Errorf("dyn unexpected first element %s %s", fst, fst.Typ())
+	}
+	args := d.Els
+	if cons {
+		args = args[1:]
+	}
+	call, err := p.BuiltinCall(env, sym, args, d.Src)
+	if err != nil {
+		return d, err
+	}
+	return call, nil
 }
 
 func replaceRef(t, el typ.Type) (typ.Type, bool) {
