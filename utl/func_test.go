@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mb0/xelf/exp"
+	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/std"
 	"github.com/mb0/xelf/typ"
@@ -82,9 +83,13 @@ func TestFuncResolver(t *testing.T) {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
 		}
-		ctx := exp.NewCtx(false, true)
-		call := &exp.Call{Spec: r, Args: test.args}
-		res, err := r.Resolve(ctx, std.Std, call, typ.Void)
+		ctx := exp.NewCtx()
+		call, err := ctx.NewCall(r, test.args, lex.Src{})
+		if err != nil {
+			t.Errorf("for %T want err %v", test.fun, err)
+			continue
+		}
+		res, err := r.Execute(ctx, std.Std, call, typ.Void)
 		if err != nil {
 			if test.err == nil || test.err.Error() != err.Error() {
 				t.Errorf("for %T want err %v got %v", test.fun, test.err, err)

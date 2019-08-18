@@ -59,18 +59,18 @@ func TestLayout(t *testing.T) {
 			t.Errorf("parse sig %s err: %v", test.sig, err)
 			continue
 		}
-		el, err := Read(Builtin{}, strings.NewReader(test.raw))
+		el, err := Read(strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("parse raw %s err: %v", test.raw, err)
 			continue
 		}
-		l, err := LayoutArgs(form, el.(*Dyn).Els[1:])
+		l, err := FormLayout(form, el.(*Dyn).Els[1:])
 		if err != nil {
 			t.Errorf("layout %s %s %s err: %v", test.sig, test.raw, form, err)
 			continue
 		}
-		res := make([]string, 0, len(l.args))
-		for _, args := range l.args {
+		res := make([]string, 0, len(l.Groups))
+		for _, args := range l.Groups {
 			res = append(res, (&Dyn{Els: args}).String())
 		}
 		if !reflect.DeepEqual(res, test.args) {

@@ -49,6 +49,6 @@ func (v *realizer) VisitSym(a *Sym) error {
 	return nil
 }
 func (v *realizer) EnterCall(a *Call) error {
-	a.Type = v.visit(a.Type)
+	a.Sig = v.visit(a.Sig)
 	return nil
 }

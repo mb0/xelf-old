@@ -14,18 +14,19 @@ func TestInferFn(t *testing.T) {
 		sig typ.Type
 	}{
 		{"(fn (add _ 1))", typ.Func("", []typ.Param{
+			// TODO reduce type variable instantiation
 			{Type: typ.Var(7, typ.Num)},
 			{Type: typ.Var(7, typ.Num)},
 		})},
 	}
 	for _, test := range tests {
-		x, err := exp.Read(Std, strings.NewReader(test.raw))
+		x, err := exp.Read(strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("parse %s error: %v", test.raw, err)
 			continue
 		}
-		ctx := exp.NewCtx(false, true)
-		l, err := ctx.Resolve(Std, x, typ.Void)
+		ctx := exp.NewCtx()
+		l, err := ctx.Eval(Std, x, typ.Void)
 		if err != nil {
 			t.Errorf("exec %s error: %v", x, err)
 			continue

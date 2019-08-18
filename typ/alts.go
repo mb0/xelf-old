@@ -79,10 +79,17 @@ func choose(t Type, hist []*Info) (_ Type, err error) {
 	return a, nil
 }
 
+func fixAny(t Type) Kind {
+	if t.Kind&KindAny == KindAny {
+		return 0
+	}
+	return t.Kind
+}
+
 func hasAlt(t, alt Type) bool {
 	ps := t.Params
 	i := sort.Search(len(ps), func(i int) bool {
-		return ps[i].Kind >= alt.Kind
+		return fixAny(ps[i].Type) >= fixAny(alt)
 	})
 	return i < len(ps) && ps[i].Type == alt
 }
@@ -91,7 +98,7 @@ func addAlt(t, a Type) Type {
 	if a.Kind != KindAlt {
 		ps := t.Params
 		i := sort.Search(len(ps), func(i int) bool {
-			return ps[i].Kind >= a.Kind
+			return fixAny(ps[i].Type) >= fixAny(a)
 		})
 		if i >= len(ps) {
 			ps = append(ps, Param{Type: a})

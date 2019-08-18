@@ -1,13 +1,32 @@
 package exp
 
 import (
+	"strings"
+
 	"github.com/mb0/xelf/bfr"
+	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
-type Spec struct {
-	typ.Type
-	Resl
+func Sig(sig string) (typ.Type, error) {
+	s, err := typ.Read(strings.NewReader(sig))
+	if err != nil {
+		return typ.Void, cor.Errorf("cannot parse signature %s: %v", sig, err)
+	}
+	switch s.Kind {
+	case typ.KindForm, typ.KindFunc:
+	default:
+		return typ.Void, cor.Errorf("not a form or func signature %s", sig)
+	}
+	return s, nil
+}
+
+func MustSig(sig string) typ.Type {
+	s, err := Sig(sig)
+	if err != nil {
+		panic(cor.Errorf("implement spec error: %v", err))
+	}
+	return s
 }
 
 type Resl interface {
@@ -20,6 +39,12 @@ type Resl interface {
 	// If the resolution cannot proceed with execution it returns the special error ErrExec.
 	// Any other error ends the whole resolution process.
 	Resolve(c *Ctx, env Env, e *Call, hint typ.Type) (El, error)
+	Execute(c *Ctx, env Env, e *Call, hint typ.Type) (El, error)
+}
+
+type Spec struct {
+	typ.Type
+	Resl
 }
 
 // Arg returns the argument parameters or nil.

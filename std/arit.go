@@ -29,20 +29,20 @@ var mulSpec = core.add(SpecDXX("(form 'mul' @1:num :plain list|num : @1)",
 // converts to the first argument's type.
 var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
 		if err != nil {
 			if err != exp.ErrUnres || !x.Part {
 				return x.Call, err
 			}
 		}
-		x.Call.Type = x.Layout.Sig
-		fst := x.Layout.Arg(0)
+		fst := x.Arg(0)
+		rest := x.Args(1)
 		n := getNumer(fst)
 		ctx := numCtx{}
 		if n == nil {
 			ctx.idx = -1
 		}
-		err = redNums(x.Args(1), &ctx, opAdd)
+		err = redNums(rest, &ctx, opAdd)
 		if err != nil {
 			return nil, err
 		}
@@ -50,11 +50,8 @@ var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 			if ctx.idx >= 0 {
 				ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 			}
-			x.Call.Args = append(x.Call.Args[:1], ctx.unres...)
+			x.Groups[1] = ctx.unres
 			return x.Call, exp.ErrUnres
-		}
-		if !x.Exec && !x.Part {
-			return x.Call, nil
 		}
 		var l lit.Lit = lit.Num(n.Num() - ctx.res)
 		if fst.Typ() != typ.Num {
@@ -64,8 +61,8 @@ var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 			}
 		}
 		if len(ctx.unres) != 0 {
-			x.Call.Args = append(x.Call.Args[:0], &exp.Atom{Lit: l})
-			x.Call.Args = append(x.Call.Args, ctx.unres...)
+			x.Groups[0] = []exp.El{&exp.Atom{Lit: l, Src: fst.Source()}}
+			x.Groups[1] = ctx.unres
 			return x.Call, exp.ErrUnres
 		}
 		return &exp.Atom{Lit: l}, nil
@@ -76,13 +73,12 @@ var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 // The result is converted to the first argument's type.
 var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
 		if err != nil {
 			if err != exp.ErrUnres || !x.Part {
 				return x.Call, err
 			}
 		}
-		x.Call.Type = x.Sig
 		fst := x.Arg(0)
 		n := getNumer(fst)
 		ctx := numCtx{res: 1}
@@ -97,14 +93,11 @@ var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 			if ctx.idx >= 0 {
 				ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 			}
-			x.Call.Args = append(x.Call.Args[:1], ctx.unres...)
+			x.Call.Groups[1] = ctx.unres
 			return x.Call, exp.ErrUnres
 		}
 		if ctx.res == 0 {
 			return nil, cor.Error("zero devision")
-		}
-		if !x.Exec && !x.Part {
-			return x.Call, nil
 		}
 		isint := fst.Typ().Kind&typ.MaskElem == typ.KindInt
 		if isint {
@@ -119,40 +112,51 @@ var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 				return nil, err
 			}
 		}
-		la := &exp.Atom{Lit: l}
+		la := &exp.Atom{Lit: l, Src: fst.Source()}
 		if len(ctx.unres) != 0 {
-			x.Call.Args = append(x.Call.Args[:0], la)
-			x.Call.Args = append(x.Call.Args, ctx.unres...)
+			x.Groups[0] = []exp.El{la}
+			x.Groups[1] = ctx.unres
 			return x.Call, exp.ErrUnres
 		}
 		return la, nil
 	}))
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
-var remSpec = core.add(SpecDX("(form 'rem' @1:int @:int int)",
-	func(x CallCtx) (exp.El, error) {
-		if !x.Exec {
-			return nil, exp.ErrUnres
+var remSpec = core.add(SpecDX("(form 'rem' @1:int @:int int)", func(x CallCtx) (exp.El, error) {
+	err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+	if err != nil {
+		return nil, err
+	}
+
+	res, aok := getNum(x.Arg(0))
+	mod, bok := getNum(x.Arg(1))
+	if !aok || !bok {
+		return x.Call, exp.ErrUnres
+	}
+	return &exp.Atom{Lit: lit.Int(res.Num()) % lit.Int(mod.Num())}, nil
+}))
+
+func getNum(el exp.El) (lit.Numeric, bool) {
+	if a, ok := el.(*exp.Atom); ok {
+		if n, ok := a.Lit.(lit.Numeric); ok {
+			return n, ok
 		}
-		res := x.Arg(0).(*exp.Atom).Lit.(lit.Numeric).Num()
-		mod := x.Arg(1).(*exp.Atom).Lit.(lit.Numeric).Num()
-		return &exp.Atom{Lit: lit.Int(res) % lit.Int(mod)}, nil
-	}))
+	}
+	return nil, false
+}
 
 // absSpec returns the argument with the absolute numeric value.
-var absSpec = core.add(SpecDX("(form 'abs' @1:num @1)",
-	func(x CallCtx) (fst exp.El, err error) {
-		return sign(x, false)
-	}))
+var absSpec = core.add(SpecDX("(form 'abs' @1:num @1)", func(x CallCtx) (fst exp.El, err error) {
+	return sign(x, false)
+}))
 
 // negSpec returns the argument with the negated numeric value.
-var negSpec = core.add(SpecDX("(form 'neg' @1:num @1)",
-	func(x CallCtx) (fst exp.El, err error) {
-		return sign(x, true)
-	}))
+var negSpec = core.add(SpecDX("(form 'neg' @1:num @1)", func(x CallCtx) (fst exp.El, err error) {
+	return sign(x, true)
+}))
 
 func sign(x CallCtx, neg bool) (_ exp.El, err error) {
-	err = x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+	err = x.Layout.Eval(x.Ctx, x.Env, x.Hint)
 	if err != nil {
 		return x.Call, err
 	}
@@ -239,13 +243,12 @@ func deopt(l lit.Lit) lit.Lit {
 }
 
 func execNums(x CallCtx, res float64, f numOp) (exp.El, error) {
-	err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+	err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
 	if err != nil {
 		if err != exp.ErrUnres || !x.Part {
 			return x.Call, err
 		}
 	}
-	x.Call.Type = x.Sig
 	part := err != nil
 	ctx := numCtx{res: res, idx: -1}
 	fst := x.Arg(0)
@@ -275,7 +278,8 @@ func execNums(x CallCtx, res float64, f numOp) (exp.El, error) {
 		if ctx.idx >= 0 && ctx.idx < len(ctx.unres) {
 			ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 		}
-		x.Call.Args = ctx.unres
+		x.Groups[0] = ctx.unres[:1]
+		x.Groups[1] = ctx.unres[1:]
 	}
 	return x.Call, exp.ErrUnres
 }

@@ -61,25 +61,41 @@ type litLener interface {
 
 var lenSpec = core.add(SpecDX("(form 'len' (@:alt cont str raw) int)",
 	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
 		fst := x.Arg(0).(*exp.Atom)
 		if v, ok := deopt(fst.Lit).(litLener); ok {
-			return &exp.Atom{lit.Int(v.Len()), x.Call.Source()}, nil
+			return &exp.Atom{lit.Int(v.Len()), x.Source()}, nil
 		}
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 	}))
 
 var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @ bool) @2)",
 	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), 0)
 	}))
 
 var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), -1)
 	}))
 
 var nthSpec = decl.add(SpecDX("(form 'nth' cont|@1 int :pred? (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
 		l, ok := x.Arg(1).(*exp.Atom).Lit.(lit.Numeric)
 		if !ok {
 			return nil, cor.Errorf("want number got %s", x.Arg(1))
@@ -137,7 +153,7 @@ type fIter struct {
 }
 
 func getIter(x CallCtx, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error) {
-	e, err := x.Ctx.With(false, false).Resolve(x.Env, e, typ.Void)
+	e, err := x.Ctx.Resl(x.Env, e, typ.Void)
 	if err != nil && err != exp.ErrUnres {
 		return nil, err
 	}
@@ -197,7 +213,7 @@ func getIter(x CallCtx, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error) {
 	return r, nil
 }
 
-func (r *fIter) resolve(x CallCtx, el lit.Lit, idx int, key string) (lit.Lit, error) {
+func (r *fIter) eval(x CallCtx, el lit.Lit, idx int, key string) (lit.Lit, error) {
 	r.args[0] = &exp.Atom{Lit: el}
 	if r.i > 0 {
 		r.args[r.i] = &exp.Atom{Lit: lit.Int(idx)}
@@ -205,8 +221,11 @@ func (r *fIter) resolve(x CallCtx, el lit.Lit, idx int, key string) (lit.Lit, er
 	if r.k > 0 {
 		r.args[r.k] = &exp.Atom{Lit: lit.Str(key)}
 	}
-	call := &exp.Call{Spec: r.Spec, Args: r.args}
-	res, err := x.Ctx.Resolve(x.Env, call, typ.Void)
+	call, err := x.NewCall(r.Spec, r.args, x.Src)
+	if err != nil {
+		return nil, err
+	}
+	res, err := x.Ctx.Eval(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -223,10 +242,13 @@ func (r *fIter) accumulate(x CallCtx, acc *exp.Atom, el lit.Lit, idx int, key st
 	if r.k > 0 {
 		r.args[r.k] = &exp.Atom{Lit: lit.Str(key)}
 	}
-	call := &exp.Call{Spec: r.Spec, Args: r.args}
-	res, err := x.With(false, true).Resolve(x.Env, call, typ.Void)
+	call, err := x.NewCall(r.Spec, r.args, x.Src)
 	if err != nil {
-		return nil, cor.Errorf("accumulate: %w", err)
+		return nil, err
+	}
+	res, err := x.WithPart(false).Eval(x.Env, call, typ.Void)
+	if err != nil {
+		return nil, err
 	}
 	return res.(*exp.Atom), nil
 }
@@ -237,7 +259,7 @@ func (r *fIter) filter(x CallCtx, cont *exp.Atom) (lit.Lit, error) {
 		out := lit.Zero(v.Typ()).(lit.Keyer)
 		idx := 0
 		err := v.IterKey(func(key string, el lit.Lit) error {
-			res, err := r.resolve(x, el, idx, key)
+			res, err := r.eval(x, el, idx, key)
 			if err != nil {
 				return err
 			}
@@ -257,7 +279,7 @@ func (r *fIter) filter(x CallCtx, cont *exp.Atom) (lit.Lit, error) {
 		}
 		out := lit.Zero(v.Typ()).(lit.Appender)
 		err := v.IterIdx(func(idx int, el lit.Lit) error {
-			res, err := r.resolve(x, el, idx, "")
+			res, err := r.eval(x, el, idx, "")
 			if err != nil {
 				return err
 			}
@@ -279,6 +301,10 @@ func (r *fIter) filter(x CallCtx, cont *exp.Atom) (lit.Lit, error) {
 
 var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
 		cont := x.Arg(0).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
@@ -288,11 +314,15 @@ var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
 		if err != nil {
 			return nil, err
 		}
-		return &exp.Atom{res, x.Call.Source()}, nil
+		return &exp.Atom{res, x.Src}, nil
 	}))
 
 var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
 	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
 		cont := x.Arg(0).(*exp.Atom)
 		iter, err := getIter(x, x.Arg(1), cont.Typ(), false)
 		if err != nil {
@@ -328,7 +358,7 @@ var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
 			out := lit.Zero(rt).(lit.Keyer)
 			idx := 0
 			err := v.IterKey(func(key string, el lit.Lit) error {
-				res, err := iter.resolve(x, el, idx, key)
+				res, err := iter.eval(x, el, idx, key)
 				if err != nil {
 					return err
 				}
@@ -342,14 +372,14 @@ var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
 			if err != nil {
 				return nil, err
 			}
-			return &exp.Atom{out, x.Call.Source()}, nil
+			return &exp.Atom{out, x.Src}, nil
 		case lit.Indexer:
 			out := lit.Zero(rt).(lit.Appender)
 			if iter.k > 0 {
 				return nil, cor.Errorf("iter key parameter for idxer %s", cont.Typ())
 			}
 			err := v.IterIdx(func(idx int, el lit.Lit) error {
-				res, err := iter.resolve(x, el, idx, "")
+				res, err := iter.eval(x, el, idx, "")
 				if err != nil {
 					return err
 				}
@@ -362,18 +392,16 @@ var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
 			if err != nil {
 				return nil, err
 			}
-			return &exp.Atom{out, x.Call.Source()}, nil
+			return &exp.Atom{out, x.Src}, nil
 		}
 		return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
 	}))
 
 var foldSpec = decl.add(SpecDX("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x CallCtx) (exp.El, error) {
-		if x.Exec {
-			err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
-			if err != nil {
-				return nil, err
-			}
+		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		if err != nil {
+			return nil, err
 		}
 		cont := x.Arg(0).(*exp.Atom)
 		acc := x.Arg(1).(*exp.Atom)
@@ -417,11 +445,9 @@ var foldSpec = decl.add(SpecDX("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 
 var foldrSpec = decl.add(SpecDX("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x CallCtx) (exp.El, error) {
-		if x.Exec {
-			err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
-			if err != nil {
-				return nil, err
-			}
+		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		if err != nil {
+			return nil, err
 		}
 		cont := x.Arg(0).(*exp.Atom)
 		acc := x.Arg(1).(*exp.Atom)

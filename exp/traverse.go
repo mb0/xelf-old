@@ -68,6 +68,9 @@ func (x *Named) Traverse(v Visitor) error {
 }
 
 func (x *Dyn) Traverse(v Visitor) error {
+	if x == nil {
+		return nil
+	}
 	err := v.EnterDyn(x)
 	if err != nil {
 		return muteSkip(err)
@@ -84,7 +87,9 @@ func (x *Call) Traverse(v Visitor) error {
 	if err != nil {
 		return muteSkip(err)
 	}
-	err = Traverse(v, x.Args...)
+	for _, g := range x.Groups {
+		err = Traverse(v, g...)
+	}
 	if err != nil {
 		return err
 	}

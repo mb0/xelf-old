@@ -9,16 +9,16 @@ import (
 
 // eqSpec returns a bool whether the arguments are equivalent literals.
 // The result is negated, if the expression symbol is 'ne'.
-var eqSpec = core.add(SpecXX("(form 'eq' @1 :plain list|@1 bool)",
+var eqSpec = core.add(SpecDXX("(form 'eq' @ :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
-		return resolveBinaryComp(x, true, lit.Equiv)
+		return evalBinaryComp(x, true, lit.Equiv)
 	}))
 
-var neSpec = core.add(SpecXX("(form 'ne' @1 :plain list|@1 bool)",
+var neSpec = core.add(SpecDXX("(form 'ne' @ :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
-		res, err := resolveBinaryComp(x, true, lit.Equiv)
-		if err != nil || !x.Exec {
-			return res, err
+		res, err := evalBinaryComp(x, true, lit.Equiv)
+		if err != nil {
+			return nil, err
 		}
 		a := res.(*exp.Atom)
 		a.Lit = !a.Lit.(lit.Bool)
@@ -26,9 +26,9 @@ var neSpec = core.add(SpecXX("(form 'ne' @1 :plain list|@1 bool)",
 	}))
 
 // equalSpec returns a bool whether the arguments are same types or same literals.
-var equalSpec = core.add(SpecXX("(form 'equal' @1 :plain list|@1 bool)",
+var equalSpec = core.add(SpecDXX("(form 'equal' @ :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
-		return resolveBinaryComp(x, true, lit.Equal)
+		return evalBinaryComp(x, true, lit.Equal)
 	}))
 
 var inSpec = core.add(SpecDXX("(form 'in' @1 list|@1 bool)",
@@ -42,6 +42,10 @@ var niSpec = core.add(SpecDXX("(form 'ni' @1 list|@1 bool)",
 	}))
 
 func inOrNi(x CallCtx, neg bool) (exp.El, error) {
+	err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+	if err != nil {
+		return nil, err
+	}
 	a := x.Arg(0).(*exp.Atom)
 	b := x.Arg(1).(*exp.Atom)
 	list, ok := b.Lit.(lit.Indexer)
@@ -49,7 +53,7 @@ func inOrNi(x CallCtx, neg bool) (exp.El, error) {
 		return nil, cor.Errorf("expect idxer got %s", b.Typ())
 	}
 	var found bool
-	err := list.IterIdx(func(idx int, el lit.Lit) error {
+	err = list.IterIdx(func(idx int, el lit.Lit) error {
 		if found = lit.Equal(el, a.Lit); found {
 			return lit.BreakIter
 		}
@@ -66,17 +70,17 @@ func inOrNi(x CallCtx, neg bool) (exp.El, error) {
 
 // ltSpec returns a bool whether the arguments are monotonic increasing literals.
 // Or the inverse, if the expression symbol is 'ge'.
-var ltSpec = core.add(SpecXX("(form 'lt' @1 :plain list|@1 bool)",
+var ltSpec = core.add(SpecDXX("(form 'lt' @ :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
-		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
+		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(a, b)
 			return ok && res
 		})
 	}))
 
-var geSpec = core.add(SpecXX("(form 'ge' @1 :plain list|@1 bool)",
+var geSpec = core.add(SpecDXX("(form 'ge' @ :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
-		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
+		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(a, b)
 			return ok && !res
 		})
@@ -84,16 +88,16 @@ var geSpec = core.add(SpecXX("(form 'ge' @1 :plain list|@1 bool)",
 
 // gtSpec returns a bool whether the arguments are monotonic decreasing literals.
 // Or the inverse, if the expression symbol is 'le'.
-var gtSpec = core.add(SpecXX("(form 'gt' @1 :plain list|@1 bool)",
+var gtSpec = core.add(SpecDXX("(form 'gt' @ :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
-		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
+		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(b, a)
 			return ok && res
 		})
 	}))
-var leSpec = core.add(SpecXX("(form 'le' @1 :plain list|@1 bool)",
+var leSpec = core.add(SpecDXX("(form 'le' @ :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
-		return resolveBinaryComp(x, false, func(a, b lit.Lit) bool {
+		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(b, a)
 			return ok && !res
 		})
@@ -101,22 +105,22 @@ var leSpec = core.add(SpecXX("(form 'le' @1 :plain list|@1 bool)",
 
 type cmpf = func(a, b lit.Lit) bool
 
-func resolveBinaryComp(x CallCtx, sym bool, cmp cmpf) (exp.El, error) {
-	err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+func evalBinaryComp(x CallCtx, sym bool, cmp cmpf) (exp.El, error) {
+	err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
 	if x.Part && err == exp.ErrUnres {
 		err = nil
 	}
-	if err != nil || (!x.Part && !x.Exec) {
-		return x.Call, err
+	if err != nil {
+		return nil, err
 	}
 	var res, init bool
 	var unres []exp.El
 	var last *exp.Atom
-	for _, args := range x.Layout.All() {
+	for _, args := range x.Groups {
 		for _, arg := range args {
 			if arg.Typ().Kind&typ.KindAny == 0 {
 				if len(unres) == 0 {
-					unres = make([]exp.El, 0, len(x.Call.Args))
+					unres = make([]exp.El, 0, 1+len(x.Groups[1]))
 					if res {
 						init = true
 						unres = append(unres, last)
@@ -140,8 +144,9 @@ func resolveBinaryComp(x CallCtx, sym bool, cmp cmpf) (exp.El, error) {
 		}
 	}
 	if len(unres) != 0 {
-		x.Call.Args = unres
-		return x.Call, exp.ErrUnres
+		call := *x.Call
+		call.Groups = [][]exp.El{unres[:1], unres[1:]}
+		return &call, exp.ErrUnres
 	}
 	return &exp.Atom{Lit: lit.True}, nil
 }

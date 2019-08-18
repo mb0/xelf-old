@@ -8,70 +8,106 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var withSpec = core.add(SpecX("(form 'with' any :rest list|expr @)",
+var withSpec = core.add(SpecRX("(form 'with' any :act expr @)",
 	func(x CallCtx) (exp.El, error) {
 		dot := x.Arg(0)
-		el, err := x.Ctx.Resolve(x.Env, dot, typ.Void)
+		el, err := x.Ctx.Resl(x.Env, dot, typ.Void)
 		if err != nil {
 			return x.Call, err
 		}
-		env := &exp.DataScope{x.Env, el.(*exp.Atom).Lit}
-		rest := x.Args(1)
-		if len(rest) == 0 {
-			return nil, cor.Errorf("with must have body expressions")
+		t := elResType(el)
+		env := &exp.DataScope{x.Env, exp.Def{Type: t}}
+		if a, ok := el.(*exp.Atom); ok {
+			env.Lit = a.Lit
 		}
-		rest, err = x.ResolveAll(env, rest, typ.Void)
+		act := x.Arg(1)
+		if act == nil {
+			return nil, cor.Errorf("with must have an action")
+		}
+		act, err = x.Ctx.Resl(env, act, x.Hint)
+		if err != nil {
+			return x.Call, cor.Errorf("resl with act: %s", err)
+			return x.Call, err
+		}
+		ps := x.Sig.Params
+		p := &ps[len(ps)-1]
+		p.Type = elResType(act)
+		return x.Call, nil
+	},
+	func(x CallCtx) (exp.El, error) {
+		dot := x.Arg(0)
+		el, err := x.Ctx.Eval(x.Env, dot, typ.Void)
 		if err != nil {
 			return x.Call, err
 		}
-		last := rest[len(rest)-1]
-		if !x.Exec {
-			ps := x.Call.Type.Params
-			p := &ps[len(ps)-1]
-			p.Type = last.Typ()
-			return x.Call, nil
+		dl := el.(*exp.Atom).Lit
+		env := &exp.DataScope{x.Env, exp.Def{Type: dl.Typ(), Lit: dl}}
+		act := x.Arg(1)
+		if act == nil {
+			return nil, cor.Errorf("with must have an action")
 		}
-		return last, nil
+		act, err = x.Ctx.Eval(env, act, x.Hint)
+		if err != nil {
+			return x.Call, err
+		}
+		return act, nil
 	}))
 
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-var letSpec = decl.add(SpecX("(form 'let' :tags dict|any :plain list|expr @)",
+var letSpec = decl.add(SpecRX("(form 'let' :tags dict|any :action expr @)",
 	func(x CallCtx) (exp.El, error) {
+		act := x.Arg(1)
 		decls, err := x.Unis(0)
 		if err != nil {
 			return nil, err
 		}
-		rest := x.Args(1)
-		if len(rest) == 0 || len(decls) == 0 {
-			return nil, cor.Errorf("let must have declarations and a body")
+		if act == nil || len(decls) == 0 {
+			return nil, cor.Errorf("let must have tags and an action")
 		}
 		s := exp.NewScope(x.Env)
-		if len(decls) > 0 {
-			res, err := letDecls(x.Ctx, s, decls)
-			if err != nil {
-				return x.Call, err
-			}
-			if len(rest) == 0 {
-				return res, nil
-			}
-		}
-		rest, err = x.ResolveAll(s, rest, typ.Void)
+		_, err = reslLetDecls(x.Ctx, s, decls)
 		if err != nil {
 			return x.Call, err
 		}
-		last := rest[len(rest)-1]
-		if !x.Exec {
-			ps := x.Call.Type.Params
-			p := &ps[len(ps)-1]
-			p.Type = last.Typ()
-			return x.Call, nil
+		act, err = x.Ctx.Resl(s, act, typ.Void)
+		if err != nil {
+			return x.Call, err
 		}
-		return last, nil
+		ps := x.Sig.Params
+		p := &ps[len(ps)-1]
+		p.Type = elResType(act)
+		return x.Call, nil
+	},
+	func(x CallCtx) (exp.El, error) {
+		act := x.Arg(1)
+		decls, _ := x.Unis(0)
+		s := exp.NewScope(x.Env)
+		_, err := evalLetDecls(x.Ctx, s, decls)
+		if err != nil {
+			return x.Call, err
+		}
+		res, err := x.Ctx.Eval(s, act, typ.Void)
+		if err != nil {
+			return x.Call, err
+		}
+		return res, nil
 	}))
 
+func elResType(el exp.El) typ.Type {
+	switch v := el.(type) {
+	case *exp.Sym:
+		return v.Type
+	case *exp.Atom:
+		return v.Lit.Typ()
+	case *exp.Call:
+		return v.Res()
+	}
+	return typ.Void
+}
+
 // fnSpec declares a function literal from its arguments.
-var fnSpec = decl.add(SpecX("(form 'fn' :tags? dict|typ :plain list|expr @)",
+var fnSpec = decl.add(SpecXX("(form 'fn' :tags? dict|typ :plain list|expr @)",
 	func(x CallCtx) (exp.El, error) {
 		tags, err := x.Unis(0)
 		if err != nil {
@@ -82,7 +118,7 @@ var fnSpec = decl.add(SpecX("(form 'fn' :tags? dict|typ :plain list|expr @)",
 			// construct sig from decls
 			fs := make([]typ.Param, 0, len(tags))
 			for _, d := range tags {
-				l, err := x.Ctx.Resolve(x.Env, d.El, typ.Typ)
+				l, err := x.Ctx.Resl(x.Env, d.El, typ.Typ)
 				if err != nil {
 					return x.Call, err
 				}
@@ -92,7 +128,7 @@ var fnSpec = decl.add(SpecX("(form 'fn' :tags? dict|typ :plain list|expr @)",
 				}
 				fs = append(fs, typ.Param{Name: d.Name[1:], Type: dt})
 			}
-			return &exp.Atom{&exp.Spec{typ.Func("", fs), &exp.ExprBody{rest, x.Env}}, x.Call.Source()}, nil
+			return &exp.Atom{&exp.Spec{typ.Func("", fs), &exp.ExprBody{rest, x.Env}}, x.Src}, nil
 		}
 		last := rest[len(rest)-1]
 		// the last action's type is resolved in a mock function scope, that collects all
@@ -101,7 +137,7 @@ var fnSpec = decl.add(SpecX("(form 'fn' :tags? dict|typ :plain list|expr @)",
 		// signature afterwards.
 		res := x.New()
 		mock := &mockScope{par: x.Env, ctx: x.Ctx.Ctx}
-		x.With(true, false).Resolve(mock, last, res)
+		x.Resl(mock, last, res)
 		ps, err := mock.params()
 		if err != nil {
 			return nil, err
@@ -168,7 +204,7 @@ func (ms *mockScope) params() ([]typ.Param, error) {
 	return ps, nil
 }
 
-func letDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
+func reslLetDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
 	for _, d := range decls {
 		if len(d.Name) < 2 {
 			return nil, cor.Error("unnamed declaration")
@@ -176,7 +212,27 @@ func letDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err e
 		if d.El == nil {
 			return nil, cor.Error("naked declaration")
 		}
-		res, err = c.Resolve(env, d.El, typ.Void)
+		res, err = c.Resl(env, d.El, typ.Void)
+		if err != nil {
+			return nil, err
+		}
+		// TODO remove literal definition
+		switch a := res.(type) {
+		case *exp.Atom:
+			err = env.Def(d.Key(), exp.NewDef(a.Lit))
+		default:
+			r := elResType(res)
+			err = env.Def(d.Key(), &exp.Def{Type: r})
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+func evalLetDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
+	for _, d := range decls {
+		res, err = c.Eval(env, d.El, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -184,7 +240,7 @@ func letDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err e
 		case *exp.Atom:
 			err = env.Def(d.Key(), exp.NewDef(a.Lit))
 		default:
-			return nil, cor.Errorf("unexpected element as declaration value %v", res)
+			err = exp.ErrUnres
 		}
 		if err != nil {
 			return nil, err

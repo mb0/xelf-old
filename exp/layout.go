@@ -36,17 +36,29 @@ import (
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
 type Layout struct {
-	Sig  typ.Type
-	args [][]El
+	Sig    typ.Type
+	Groups [][]El
 }
 
-func (l *Layout) All() [][]El { return l.args }
+func (l *Layout) All() (res []El) {
+	for _, g := range l.Groups {
+		res = append(res, g...)
+	}
+	return res
+}
+
+func (l *Layout) Count() (n int) {
+	for _, g := range l.Groups {
+		n += len(g)
+	}
+	return n
+}
 
 func (l *Layout) Args(idx int) []El {
-	if l == nil || idx < 0 || idx >= len(l.args) {
+	if l == nil || idx < 0 || idx >= len(l.Groups) {
 		return nil
 	}
-	return l.args[idx]
+	return l.Groups[idx]
 }
 
 func (l *Layout) Arg(idx int) El {
@@ -115,7 +127,7 @@ func (l *Layout) Unis(idx int) ([]*Named, error) {
 	return res, nil
 }
 
-func (l *Layout) Resolve(c *Ctx, env Env, hint typ.Type) error {
+func (l *Layout) Resl(c *Ctx, env Env, hint typ.Type) error {
 	if l == nil {
 		return nil
 	}
@@ -125,10 +137,10 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint typ.Type) error {
 		inst.Ref = l.Sig.Ref
 	}
 	for i, p := range l.Sig.Params[:len(l.Sig.Params)-1] {
-		if i >= len(l.args) {
+		if i >= len(l.Groups) {
 			break
 		}
-		args := l.args[i]
+		args := l.Groups[i]
 		if len(args) == 0 {
 			inst.Params = append(inst.Params, p)
 			continue
@@ -136,13 +148,16 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint typ.Type) error {
 		switch key := p.Key(); key {
 		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
 			v := c.New()
-			args, err := c.ResolveAll(env, args, v)
+			c.Bind(v.Kind, typ.NewAlt(p.Type.Elem()))
+			var err error
+			args, err = c.ReslAll(env, args, v)
 			if err != nil {
 				if err != ErrUnres {
 					return err
 				}
 				res = err
 			}
+			v = c.Apply(v)
 			switch key {
 			case "tags", "decls", "unis":
 				p.Type = typ.Dict(v)
@@ -150,12 +165,10 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint typ.Type) error {
 				p.Type = typ.List(v)
 			}
 			inst.Params = append(inst.Params, p)
-			if !c.Part {
-				l.args[i] = args
-			}
+			l.Groups[i] = args
 		default: // explicit param
 			v := c.New()
-			el, err := c.Resolve(env, args[0], v)
+			el, err := c.Resl(env, args[0], v)
 			if err != nil {
 				if err != ErrUnres {
 					return err
@@ -164,11 +177,7 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint typ.Type) error {
 			}
 			p.Type = v
 			inst.Params = append(inst.Params, p)
-			if c.Part {
-				args[0] = el
-			} else {
-				l.args[i] = []El{el}
-			}
+			l.Groups[i] = []El{el}
 		}
 	}
 	if hint == typ.Void {
@@ -177,19 +186,54 @@ func (l *Layout) Resolve(c *Ctx, env Env, hint typ.Type) error {
 	inst.Params = append(inst.Params, typ.Param{Type: hint})
 	r, err := typ.Unify(c.Ctx, l.Sig, inst)
 	if err != nil {
-		return cor.Errorf("unify sig %s %s %s with %s: %v",
-			l.Sig, inst, c.Apply(l.Sig), c.Apply(inst), err)
+		return cor.Errorf("unify sig %s with %s: %v",
+			c.Apply(l.Sig), c.Apply(inst), err)
 	}
 	l.Sig = r
 	return res
 }
-func LayoutCall(x *Call) (*Layout, error) {
-	if x.Type == typ.Void {
-		return nil, cor.Errorf("uninstanciated spec type in call %s", x)
+
+func (l *Layout) Eval(c *Ctx, env Env, hint typ.Type) error {
+	if l == nil {
+		return nil
 	}
-	return LayoutArgs(x.Type, x.Args)
+	for i, p := range l.Sig.Params[:len(l.Sig.Params)-1] {
+		if i >= len(l.Groups) {
+			break
+		}
+		args := l.Groups[i]
+		if len(args) == 0 {
+			continue
+		}
+		switch key := p.Key(); key {
+		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
+			args, err := c.EvalAll(env, args, typ.Void)
+			if err != nil {
+				return err
+			}
+			l.Groups[i] = args
+		default: // explicit param
+			el, err := c.Eval(env, args[0], typ.Void)
+			if err != nil {
+				return err
+			}
+			l.Groups[i] = []El{el}
+		}
+	}
+	return nil
 }
-func LayoutArgs(sig typ.Type, args []El) (*Layout, error) {
+
+func SigLayout(sig typ.Type, args []El) (*Layout, error) {
+	switch sig.Kind {
+	case typ.KindFunc:
+		return FuncLayout(sig, args)
+	case typ.KindForm:
+		return FormLayout(sig, args)
+	}
+	return nil, cor.Errorf("unexpected layout sig %s", sig)
+}
+
+func FormLayout(sig typ.Type, args []El) (*Layout, error) {
 	if !isSig(sig) {
 		return nil, cor.Errorf("invalid signature %s", sig)
 	}
@@ -220,6 +264,9 @@ Loop:
 			tmp, args = consumeUnis(args)
 		default: // explicit param
 			if len(args) > 0 {
+				if args[0] == nil {
+					return nil, cor.Errorf("arg is null for %s", sig)
+				}
 				if _, _, _, ok := isSpecial(args[0], ":+-"); ok {
 					if !p.Opt() {
 						break Loop
@@ -238,7 +285,7 @@ Loop:
 	if len(args) > 0 {
 		return nil, cor.Errorf("unexpected tail element %s", args[0])
 	}
-	return &Layout{sig, res}, nil
+	return &Layout{Sig: sig, Groups: res}, nil
 }
 
 func isSig(t typ.Type) bool {

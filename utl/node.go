@@ -73,10 +73,6 @@ func (r *NodeResolver) getNode() (Node, error) {
 }
 
 func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
-	lo, err := exp.LayoutCall(x)
-	if err != nil {
-		return nil, err
-	}
 	node, err := r.getNode()
 	if err != nil {
 		return nil, err
@@ -87,13 +83,13 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type)
 	for i, fp := range fps {
 		switch fp.Key() {
 		case "plain", "tags", "args":
-			err = r.Tags.Resolve(c, env, lo.Tags(i), node)
+			err = r.Tags.Resolve(c, env, x.Tags(i), node)
 			if err != nil {
 				return nil, err
 			}
 		case "rest", "tail":
 			if r.Tail.KeySetter != nil {
-				tail := lo.Args(i)
+				tail := x.Args(i)
 				named := &exp.Named{Name: "::", El: &exp.Dyn{Els: tail}}
 				l, err := r.Tail.prepper(KeyRule{})(c, env, named)
 				if err != nil {
@@ -104,23 +100,23 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type)
 					return nil, err
 				}
 			} else {
-				err = r.Tags.Resolve(c, env, lo.Tags(i), node)
+				err = r.Tags.Resolve(c, env, x.Tags(i), node)
 				if err != nil {
 					return nil, err
 				}
 			}
 		case "unis":
-			decls, err = lo.Unis(i)
+			decls, err = x.Unis(i)
 			if err != nil {
 				return nil, err
 			}
 		case "decls":
-			decls, err = lo.Decls(i)
+			decls, err = x.Decls(i)
 			if err != nil {
 				return nil, err
 			}
 		default:
-			t := &exp.Named{Name: fp.Name, El: &exp.Dyn{Els: lo.Args(i)}}
+			t := &exp.Named{Name: fp.Name, El: &exp.Dyn{Els: x.Args(i)}}
 			r.Tags.ResolveTag(c, env, t, i, node)
 		}
 	}
@@ -138,6 +134,10 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type)
 		}
 	}
 	return &exp.Atom{Lit: node}, nil
+}
+
+func (r *NodeResolver) Execute(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
+	return r.Resolve(c, env, x, h)
 }
 
 var refNode = reflect.TypeOf((*Node)(nil)).Elem()

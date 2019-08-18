@@ -14,6 +14,7 @@ func TestChoose(t *testing.T) {
 		{Alt(Int, Real), Num},
 		{Alt(Int, Real, Span), Num},
 		{Alt(Num, Int), Int},
+		{Alt(Any, Num, Int), Any},
 		{Alt(Num, Int, Span), Num},
 		{Alt(Num, Int, Real, Span), Num},
 		{Alt(Span, Real), Num},

@@ -17,7 +17,7 @@ var (
 	ErrNotStruct   = cor.StrError("proxy not a struct")
 )
 
-// Assign assigns the value of l to the interface pointer value or returns an error
+// AssignTo assigns the value of l to the interface pointer value or returns an error
 func AssignTo(l lit.Lit, ptr interface{}) error {
 	if a, ok := ptr.(lit.Proxy); ok {
 		return assignTo(l, a)
@@ -25,7 +25,7 @@ func AssignTo(l lit.Lit, ptr interface{}) error {
 	return AssignToValue(l, reflect.ValueOf(ptr))
 }
 
-// AssignTo assigns the value of l to the reflect pointer value or returns an error
+// AssignToValue assigns the value of l to the reflect pointer value or returns an error
 func AssignToValue(l lit.Lit, ptr reflect.Value) (err error) {
 	if !ptr.IsValid() || ptr.Kind() != reflect.Ptr {
 		return ErrRequiresPtr

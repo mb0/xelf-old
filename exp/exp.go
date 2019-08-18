@@ -55,14 +55,26 @@ type (
 
 	// Call is an expression with a defined specification.
 	Call struct {
-		// Type is the instantiated and possibly resolved spec type in this context or void
-		Type typ.Type
 		// Spec is the form or func specification
 		Spec *Spec
-		Args []El
+		Layout
 		lex.Src
 	}
 )
+
+func ResType(el El) typ.Type { t, _ := ResInfo(el); return t }
+
+func ResInfo(el El) (typ.Type, lit.Lit) {
+	switch v := el.(type) {
+	case *Atom:
+		return v.Typ(), v.Lit
+	case *Sym:
+		return v.Type, v.Lit
+	case *Call:
+		return v.Res(), nil
+	} // case *Dyn, *Named:
+	return typ.Void, nil
+}
 
 func (x *Atom) Typ() typ.Type {
 	if x != nil && x.Lit != nil {
@@ -104,7 +116,7 @@ func (x *Call) WriteBfr(b *bfr.Ctx) error {
 	if name == "" {
 		name = x.Spec.String()
 	}
-	return writeExpr(b, name, x.Args)
+	return writeExpr(b, name, x.All())
 }
 
 func writeExpr(b *bfr.Ctx, name string, args []El) error {
@@ -128,8 +140,8 @@ func (x *Sym) Key() string { return cor.Keyed(x.Name) }
 
 // Res returns the result type or void.
 func (x *Call) Res() typ.Type {
-	if isSig(x.Type) {
-		return x.Type.Params[len(x.Type.Params)-1].Type
+	if isSig(x.Sig) {
+		return x.Sig.Params[len(x.Sig.Params)-1].Type
 	}
 	return x.Spec.Res()
 }

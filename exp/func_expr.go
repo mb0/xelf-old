@@ -26,6 +26,49 @@ func (f *ExprBody) WriteBfr(b *bfr.Ctx) error {
 	return nil
 }
 
+func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint typ.Type) (El, error) {
+	// build a parameter record from all arguments
+	_, err := ReslFuncArgs(c, env, x)
+	if err != nil {
+		return x, err
+	}
+	env = NewFuncScope(env, x)
+	// and execute all body elements using the new scope
+	for _, e := range f.Els {
+		_, err = c.WithPart(false).Resl(env, e, typ.Void)
+		if err != nil {
+			return x, err
+		}
+	}
+	return x, nil
+}
+
+func (f *ExprBody) Execute(c *Ctx, env Env, x *Call, hint typ.Type) (El, error) {
+	_, err := EvalFuncArgs(c, env, x)
+	if err != nil {
+		return x, err
+	}
+	env = NewFuncScope(env, x)
+	// and execute all body elements using the new scope
+	var res El
+	for _, e := range f.Els {
+		res, err = c.WithPart(false).Eval(env, e, typ.Void)
+		if err != nil {
+			return x, err
+		}
+	}
+	rt := x.Spec.Res()
+	if rt == typ.Void {
+		return &Atom{Lit: rt}, nil
+	}
+	a := res.(*Atom)
+	a.Lit, err = lit.Convert(a.Lit, rt, 0)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
 type FuncScope struct {
 	DataScope
 }
@@ -37,55 +80,26 @@ func (f *FuncScope) Get(s string) *Def {
 	return f.DataScope.Get(s)
 }
 
-func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint typ.Type) (El, error) {
-	// build a parameter record from all arguments
-	lo, err := ResolveFuncArgs(c, env, x)
-	if err != nil {
-		return x, err
-	}
-	// use the calling env to resolve parameters
+func NewFuncScope(par Env, x *Call) *FuncScope {
 	ps := x.Spec.Arg()
 	keyed := make([]lit.Keyed, 0, len(ps))
 	for i, p := range ps {
-		a := lo.args[i]
-		kl := lit.Keyed{p.Key(), nil}
-		if len(a) == 0 { // can only be optional parameter; use zero value
-			kl.Lit = lit.Zero(p.Type)
-		} else {
-			kl.Lit = a[0].(*Atom).Lit
+		a := x.Groups[i]
+		kl := lit.Keyed{p.Key(), lit.Zero(p.Type)}
+		if len(a) > 0 {
+			if at, ok := a[0].(*Atom); ok {
+				kl.Lit = at.Lit
+			}
 		}
 		if kl.Key == "" {
-			// otherwise use a synthetic name
 			kl.Key = fmt.Sprintf("arg%d", i)
 		}
 		keyed = append(keyed, kl)
 	}
-	s := DataScope{env, lit.Nil}
+	s := DataScope{par, Def{Lit: lit.Nil}}
 	if len(keyed) > 0 {
-		s.Dot = &lit.Rec{Type: typ.Rec(ps), Dict: lit.Dict{List: keyed}}
+		s.Type = typ.Rec(ps)
+		s.Lit = &lit.Rec{Type: s.Type, Dict: lit.Dict{List: keyed}}
 	}
-	// switch the function scope's parent to the declaration environment
-	env = NewScope(&FuncScope{s})
-	// and execute all body elements using the new scope
-	var res El
-	for _, e := range f.Els {
-		var err error
-		res, err = c.WithPart(false).Resolve(env, e, typ.Void)
-		if err != nil {
-			return x, err
-		}
-	}
-	if c.Exec {
-		rt := x.Spec.Res()
-		if rt == typ.Void {
-			return &Atom{Lit: rt}, nil
-		}
-		a := res.(*Atom)
-		a.Lit, err = lit.Convert(a.Lit, rt, 0)
-		if err != nil {
-			return nil, err
-		}
-		return a, nil
-	}
-	return x, nil
+	return &FuncScope{s}
 }

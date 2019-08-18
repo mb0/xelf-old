@@ -2,7 +2,6 @@
 package std
 
 import (
-	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/typ"
 )
@@ -52,51 +51,56 @@ func (m formMap) add(s *exp.Spec) *exp.Spec {
 
 type CallCtx struct {
 	*exp.Ctx
-	Env  exp.Env
-	Call *exp.Call
-	*exp.Layout
+	Env exp.Env
+	*exp.Call
 	Hint typ.Type
 }
 type Evaler func(CallCtx) (exp.El, error)
 
 func DefaultResl(x CallCtx) (exp.El, error) {
-	err := x.Layout.Resolve(x.Ctx.WithExec(false), x.Env, x.Hint)
-	x.Call.Type = x.Layout.Sig
+	err := x.Layout.Resl(x.Ctx, x.Env, x.Hint)
 	return x.Call, err
 }
 
-func SpecDX(sig string, x Evaler) *exp.Spec     { return FullSpec(sig, DefaultResl, x, nil) }
-func SpecDXX(sig string, x Evaler) *exp.Spec    { return FullSpec(sig, DefaultResl, x, x) }
-func SpecX(sig string, x Evaler) *exp.Spec      { return FullSpec(sig, nil, x, nil) }
-func SpecXX(sig string, x Evaler) *exp.Spec     { return FullSpec(sig, nil, x, x) }
-func SpecRX(sig string, r, x Evaler) *exp.Spec  { return FullSpec(sig, r, x, nil) }
-func SpecRXX(sig string, r, x Evaler) *exp.Spec { return FullSpec(sig, r, x, x) }
+type ReslRXP struct {
+	R, X, P Evaler
+}
 
-func FullSpec(sig string, r, x, p Evaler) *exp.Spec {
+func (r ReslRXP) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, hint typ.Type) (exp.El, error) {
+	req := CallCtx{c, env, x, hint}
+	if r.R == nil {
+		return r.X(req)
+	}
+	res, err := r.R(req)
+	if err != nil {
+		if r.P != nil && c.Part && err == exp.ErrUnres {
+			return r.P(req)
+		}
+		return res, err
+	}
+	return res, nil
+}
+
+func (r ReslRXP) Execute(c *exp.Ctx, env exp.Env, x *exp.Call, hint typ.Type) (exp.El, error) {
+	req := CallCtx{c, env, x, hint}
+	if r.R != nil {
+		v, err := r.R(req)
+		if err != nil {
+			if r.P != nil && c.Part && err == exp.ErrUnres {
+				return r.P(req)
+			}
+			return v, err
+		}
+	}
+	return r.X(req)
+}
+
+func SpecXX(sig string, x Evaler) *exp.Spec    { return Impl(sig, ReslRXP{x, x, nil}) }
+func SpecRX(sig string, r, x Evaler) *exp.Spec { return Impl(sig, ReslRXP{r, x, nil}) }
+func SpecDX(sig string, x Evaler) *exp.Spec    { return Impl(sig, ReslRXP{DefaultResl, x, nil}) }
+func SpecDXX(sig string, x Evaler) *exp.Spec   { return Impl(sig, ReslRXP{DefaultResl, x, x}) }
+
+func Impl(sig string, rxp ReslRXP) *exp.Spec {
 	s := exp.MustSig(sig)
-	return &exp.Spec{s, exp.ReslFunc(
-		func(c *exp.Ctx, env exp.Env, e *exp.Call, hint typ.Type) (exp.El, error) {
-			if e.Type == typ.Void {
-				return nil, cor.Errorf("type not instantiated for %s %s", s, e.Type)
-			}
-			lo, err := exp.LayoutArgs(e.Type, e.Args)
-			if err != nil {
-				return nil, err
-			}
-			req := CallCtx{c, env, e, lo, hint}
-			if r != nil {
-				_, err = r(req)
-				if err != nil {
-					if p != nil && c.Part && err == exp.ErrUnres {
-						return p(req)
-					}
-					return e, err
-				}
-			}
-			if r == nil || c.Exec {
-				return x(req)
-			}
-			return e, nil
-		},
-	)}
+	return &exp.Spec{s, rxp}
 }

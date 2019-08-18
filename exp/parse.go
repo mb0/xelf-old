@@ -9,18 +9,20 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+var ErrVoid = cor.StrError("void")
+
 // Read scans and parses from r and returns an element or an error.
-func Read(env Env, r io.Reader) (El, error) {
+func Read(r io.Reader) (El, error) {
 	a, err := lex.Read(r)
 	if err != nil {
 		return nil, err
 	}
-	return Parse(env, a)
+	return Parse(a)
 }
 
 // Parse parses the syntax tree a and returns an element or an error.
 // It needs a static environment to distinguish elements.
-func Parse(env Env, a *lex.Tree) (El, error) {
+func Parse(a *lex.Tree) (El, error) {
 	switch a.Tok {
 	case lex.Number, lex.String, '[', '{':
 		l, err := lit.Parse(a)
@@ -29,19 +31,7 @@ func Parse(env Env, a *lex.Tree) (El, error) {
 		}
 		return &Atom{Lit: l, Src: a.Src}, nil
 	case lex.Symbol:
-		switch a.Raw[0] {
-		case '~', '@':
-			t, err := typ.Parse(a)
-			if err != nil {
-				return nil, err
-			}
-			return &Atom{Lit: t, Src: a.Src}, nil
-		case '.', '$', '/': // paths
-			return &Sym{Name: a.Raw, Src: a.Src}, nil
-		}
 		switch a.Raw {
-		case "void":
-			return &Atom{Lit: typ.Void, Src: a.Src}, nil
 		case "null":
 			return &Atom{Lit: lit.Nil, Src: a.Src}, nil
 		case "false":
@@ -49,9 +39,13 @@ func Parse(env Env, a *lex.Tree) (El, error) {
 		case "true":
 			return &Atom{Lit: lit.True, Src: a.Src}, nil
 		}
-		def := Lookup(env, a.Raw)
-		if def != nil {
-			return &Sym{Name: a.Raw, Src: a.Src, Type: def.Type, Lit: def.Lit}, nil
+		switch a.Raw[0] {
+		case '~', '@':
+			t, err := typ.Parse(a)
+			if err != nil {
+				return nil, err
+			}
+			return &Atom{Lit: t, Src: a.Src}, nil
 		}
 		t, err := typ.Parse(a)
 		if err == nil && t.Kind.Prom() {
@@ -61,10 +55,11 @@ func Parse(env Env, a *lex.Tree) (El, error) {
 	case lex.Tag, lex.Decl:
 		return &Named{Name: a.Raw, Src: a.Src}, nil
 	case '(':
+		// TODO move comment and named handling to resl
 		if len(a.Seq) == 0 { // empty expression is void
-			return nil, nil
+			return nil, ErrVoid
 		}
-		fst, err := Parse(env, a.Seq[0])
+		fst, err := Parse(a.Seq[0])
 		if err != nil || fst == nil {
 			return nil, err
 		}
@@ -75,7 +70,7 @@ func Parse(env Env, a *lex.Tree) (El, error) {
 			}
 			tt := t.Lit.(typ.Type)
 			if tt == typ.Void {
-				return nil, nil
+				return nil, ErrVoid
 			}
 			r, p := typ.NeedsInfo(tt)
 			if r || p {
@@ -86,34 +81,23 @@ func Parse(env Env, a *lex.Tree) (El, error) {
 				return &Atom{tt, a.Src}, nil
 			}
 		case *Named:
+			fst = nil
 			if t.Name[0] == ':' {
-				def := Lookup(env, t.Name)
-				if def == nil {
-					return nil, errStartingTag(t.Name)
-				}
-				spec, ok := def.Lit.(*Spec)
-				if !ok {
-					return nil, errStartingTag(t.Name)
-				}
-				return &Call{Spec: spec, Args: t.Args(), Src: t.Src}, nil
+				fst = &Sym{Name: t.Name, Src: t.Src}
 			}
-			dyn, err := parseDyn(env, a.Seq[1:], nil)
+			d, err := parseDyn(a.Seq[1:], fst)
 			if err != nil {
 				return nil, err
 			}
-			t.El = dyn
+			if fst != nil {
+				d.Src = a.Src
+				return d, nil
+			}
+			t.El = d
 			t.Src = a.Src
 			return t, nil
-		case *Sym:
-			if spec, ok := t.Lit.(*Spec); ok {
-				els, _, err := parseArgs(env, a.Seq[1:], nil)
-				if err != nil {
-					return nil, err
-				}
-				return &Call{Spec: spec, Args: els, Src: a.Src}, nil
-			}
 		}
-		d, err := parseDyn(env, a.Seq[1:], fst)
+		d, err := parseDyn(a.Seq[1:], fst)
 		if err != nil {
 			return nil, err
 		}
@@ -128,15 +112,15 @@ func errStartingTag(name string) error {
 		"conversion spec, got %v", name)
 }
 
-func parseDyn(env Env, seq []*lex.Tree, el El) (_ *Dyn, err error) {
-	args, src, err := parseArgs(env, seq, el)
+func parseDyn(seq []*lex.Tree, el El) (_ *Dyn, err error) {
+	args, src, err := parseArgs(seq, el)
 	if err != nil {
 		return nil, err
 	}
 	return &Dyn{Els: args, Src: src}, nil
 }
 
-func parseArgs(env Env, seq []*lex.Tree, el El) (args []El, src lex.Src, err error) {
+func parseArgs(seq []*lex.Tree, el El) (args []El, src lex.Src, err error) {
 	args = make([]El, 0, len(seq)+1)
 	if el != nil {
 		args = append(args, el)
@@ -148,13 +132,14 @@ func parseArgs(env Env, seq []*lex.Tree, el El) (args []El, src lex.Src, err err
 			src.Pos = t.Pos
 		}
 		src.End = t.End
-		el, err = Parse(env, t)
+		el, err = Parse(t)
+		if err == ErrVoid {
+			continue
+		}
 		if err != nil {
 			return nil, src, err
 		}
 		switch v := el.(type) {
-		case nil:
-			continue
 		case *Named:
 			if tag != nil {
 				args = append(args, tag)

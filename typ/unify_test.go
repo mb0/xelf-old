@@ -25,6 +25,8 @@ func TestUnify(t *testing.T) {
 		{Var(1, Num), Var(1), Var(1, Num)},
 		{Var(1), Var(1, Num), Var(1, Num)},
 		{Alt(Num), Int, Int},
+		{Alt(Any), Int, Int},
+		{Alt(Any, Num), Int, Any},
 		{Alt(Num, Int), Int, Int},
 		{Alt(Num, Int), Real, Num},
 		{Alt(Num, Int), Num, Int},
@@ -52,7 +54,7 @@ func TestUnify(t *testing.T) {
 		}
 		_, err = Unify(c, r, b)
 		if err != nil {
-			t.Errorf("unify error for %s %s: %v", test.a, test.b, err)
+			t.Errorf("unify error for %s %s: %v", r, test.b, err)
 			continue
 		}
 		got := c.Apply(r)

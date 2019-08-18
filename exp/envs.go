@@ -86,7 +86,7 @@ func (s *Scope) Get(sym string) *Def {
 // DataScope is a child environment that supports relative paths and is backed by a literal
 type DataScope struct {
 	Par Env
-	Dot lit.Lit
+	Def
 }
 
 // NewDataScope returns a data scope with the given parent environment.
@@ -102,11 +102,20 @@ func (ds *DataScope) Supports(x byte) bool { return x == '.' }
 // Get returns a literal resolver for the relative path s or nil.
 func (ds *DataScope) Get(s string) *Def {
 	if s[0] == '.' {
-		l, err := lit.Select(ds.Dot, s[1:])
-		if err != nil {
-			return nil
+		if ds.Lit != nil {
+			l, err := lit.Select(ds.Lit, s[1:])
+			if err != nil {
+				return nil
+			}
+			return NewDef(l)
 		}
-		return NewDef(l)
+		if ds.Type != typ.Void {
+			t, err := lit.Select(ds.Type, s[1:])
+			if err != nil {
+				return nil
+			}
+			return &Def{Type: t.(typ.Type)}
+		}
 	}
 	return nil
 }
@@ -120,14 +129,39 @@ type ParamEnv struct {
 func (ps *ParamEnv) Parent() Env          { return ps.Par }
 func (ps *ParamEnv) Supports(x byte) bool { return x == '$' }
 func (ps *ParamEnv) Get(s string) *Def {
-	if s[0] == '$' {
-		l, err := lit.Select(ps.Param, s[1:])
-		if err != nil {
-			return nil
-		}
-		return NewDef(l)
+	if s[0] != '$' {
+		return nil
 	}
-	return nil
+	l, err := lit.Select(ps.Param, s[1:])
+	if err != nil {
+		return nil
+	}
+	return NewDef(l)
+}
+
+type ParamReslEnv struct {
+	Par Env
+	Ctx *typ.Ctx
+	Map map[string]typ.Type
+}
+
+func NewParamReslEnv(p Env, c *typ.Ctx) *ParamReslEnv {
+	return &ParamReslEnv{Par: p, Ctx: c, Map: make(map[string]typ.Type)}
+}
+
+func (ps *ParamReslEnv) Parent() Env          { return ps.Par }
+func (ps *ParamReslEnv) Supports(x byte) bool { return x == '$' }
+func (ps *ParamReslEnv) Get(s string) *Def {
+	if s[0] != '$' {
+		return nil
+	}
+	key := s[1:]
+	t, ok := ps.Map[key]
+	if !ok {
+		t := ps.Ctx.New()
+		ps.Map[key] = t
+	}
+	return &Def{Type: t}
 }
 
 // ProgEnv provides global result resolution.

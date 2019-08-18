@@ -51,7 +51,9 @@ func unify(c *Ctx, a, b Type) (Type, Type, error) {
 	}
 	switch x.Kind {
 	case KindAny:
-		return Void, Void, cor.Errorf("cannot unify %s with %s", a, b)
+		if !(isAlt(a) && hasAlt(a, Any)) && !(isAlt(b) && hasAlt(b, Any)) {
+			return Void, Void, cor.Errorf("cannot unify %s with %s", a, b)
+		}
 	case KindList, KindDict:
 		_, err := Unify(c, a.Elem(), b.Elem())
 		if err != nil {

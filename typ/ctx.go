@@ -128,7 +128,6 @@ func (c *Ctx) unvar(t Type) (_ Type, isvar bool) {
 // Inst instantiates type t for this context, replacing all type vars.
 func (c *Ctx) Inst(t Type) Type { r, _ := c.inst(t, nil, nil); return r }
 func (c *Ctx) inst(t Type, m Binds, hist []Type) (Type, Binds) {
-	t, _ = c.apply(t, nil)
 	if isVar(t) {
 		r, ok := m.Get(t.Kind)
 		if t.Kind == KindVar || !ok {

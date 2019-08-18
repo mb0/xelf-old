@@ -2,6 +2,7 @@ package exp
 
 import (
 	"github.com/mb0/xelf/cor"
+	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
 )
@@ -12,19 +13,22 @@ import (
 // it is called for printing the body expressions.
 // Resolution handles reference and delegates expression resolution to the body.
 
-var callSig = MustSig("(form '_' :args? : @)")
+var funcSig = MustSig("(form '_' :args? : @)")
 
-// FuncArgs matches arguments of x to the parameters of f and returns a layout or an error.
-func FuncArgs(x *Call) (*Layout, error) {
-	lo, err := LayoutArgs(callSig, x.Args)
+// FuncLayout matches arguments of x to the parameters of f and returns a layout or an error.
+func FuncLayout(sig typ.Type, els []El) (*Layout, error) {
+	lo, err := FormLayout(funcSig, els)
 	if err != nil {
 		return nil, err
 	}
 	tags := lo.Tags(0)
-	params := x.Spec.Arg()
+	params := sig.Params
+	if len(params) > 0 {
+		params = params[:len(params)-1]
+	}
 	if len(params) == 0 {
 		if len(tags) > 0 {
-			return nil, cor.Errorf("unexpected arguments %s", x)
+			return nil, cor.Errorf("unexpected arguments %s", sig)
 		}
 		return &Layout{}, nil
 	}
@@ -36,7 +40,7 @@ func FuncArgs(x *Call) (*Layout, error) {
 		if tag.Name == "" {
 			if tagged {
 				return nil,
-					cor.Errorf("positional param after tag parameter in %s", x)
+					cor.Errorf("positional param after tag parameter in %s", sig)
 			}
 			if idx >= len(args) {
 				if vari {
@@ -44,7 +48,7 @@ func FuncArgs(x *Call) (*Layout, error) {
 					args[idx] = append(args[idx], tag.El)
 					continue
 				}
-				return nil, cor.Errorf("unexpected arguments %s", x)
+				return nil, cor.Errorf("unexpected arguments %s", sig)
 			}
 		} else if tag.Name == "::" {
 			if vari {
@@ -52,10 +56,10 @@ func FuncArgs(x *Call) (*Layout, error) {
 				args[idx] = append(args[idx], tag.El)
 				continue
 			}
-			return nil, cor.Errorf("unexpected arguments %s", x)
+			return nil, cor.Errorf("unexpected arguments %s", sig)
 		} else {
 			tagged = true
-			_, idx, err = x.Spec.Typ().ParamByKey(tag.Key())
+			_, idx, err = sig.ParamByKey(tag.Key())
 			if err != nil {
 				return nil, err
 			}
@@ -74,11 +78,84 @@ func FuncArgs(x *Call) (*Layout, error) {
 			return nil, cor.Errorf("missing non optional parameter %s", pa.Name)
 		}
 	}
-	return &Layout{x.Type, args}, nil
+	return &Layout{sig, args}, nil
+}
+func ReslFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
+	params := x.Spec.Arg()
+	vari := isVariadic(params)
+	for i, p := range params {
+		a := x.Groups[i]
+		if len(a) == 0 { // skip; nothing to resolve
+			continue
+		}
+		if i == len(params)-1 && vari && len(a) > 1 {
+			ll, err := reslListArr(c, env, a, p.Type)
+			if err != nil {
+				return nil, err
+			}
+			a[0] = ll
+			a = a[:1]
+			break
+		}
+		if len(a) > 1 {
+			return nil, cor.Errorf(
+				"multiple arguments for non variadic parameter %s", p.Name)
+		}
+		el, err := c.Resl(env, a[0], p.Type)
+		if err != nil {
+			return nil, err
+		}
+		a[0] = el
+	}
+	return &x.Layout, nil
 }
 
-func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*Atom, error) {
-	els, err := c.ResolveAll(env, args, et)
+func EvalFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
+	params := x.Spec.Arg()
+	vari := isVariadic(params)
+	for i, p := range params {
+		a := x.Groups[i]
+		if len(a) == 0 { // skip; nothing to resolve
+			continue
+		}
+		if i == len(params)-1 && vari && len(a) > 1 {
+			ll, err := evalListArr(c, env, p.Type.Elem(), a)
+			if err != nil {
+				return nil, err
+			}
+			x.Groups[i] = []El{ll}
+			break
+		}
+		el, err := c.Eval(env, a[0], p.Type)
+		if err != nil {
+			return nil, err
+		}
+		if at, ok := el.(*Atom); ok {
+			if p.Type != typ.Void && p.Type != typ.Any {
+				at.Lit, err = lit.Convert(at.Lit, p.Type, 0)
+				if err != nil {
+					return nil, err
+				}
+			}
+			el = at
+		}
+		a[0] = el
+	}
+	return &x.Layout, nil
+}
+
+func reslListArr(c *Ctx, env Env, args []El, t typ.Type) (El, error) {
+	con := Lookup(env, "con")
+	args = append([]El{&Atom{Lit: t}}, args...)
+	x, err := c.NewCall(con.Lit.(*Spec), args, lex.Src{})
+	if err != nil {
+		return nil, err
+	}
+	return c.Resl(env, x, t)
+}
+
+func evalListArr(c *Ctx, env Env, et typ.Type, args []El) (*Atom, error) {
+	els, err := c.EvalAll(env, args, et)
 	if err != nil {
 		return nil, err
 	}
@@ -94,62 +171,6 @@ func resolveListArr(c *Ctx, env Env, et typ.Type, args []El) (*Atom, error) {
 		res = append(res, l)
 	}
 	return &Atom{Lit: &lit.List{et, res}}, nil
-}
-
-func ResolveFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
-	lo, err := FuncArgs(x)
-	if err != nil {
-		return nil, err
-	}
-	params := x.Spec.Arg()
-	vari := isVariadic(params)
-	for i, p := range params {
-		a := lo.args[i]
-		if len(a) == 0 { // skip; nothing to resolve
-			continue
-		}
-		if i == len(params)-1 && vari {
-			if len(a) > 1 {
-				ll, err := resolveListArr(c, env, p.Type.Elem(), a)
-				if err != nil {
-					return nil, err
-				}
-				lo.args[i] = []El{ll}
-				break
-			}
-			el, err := c.Resolve(env, a[0], typ.Void)
-			if err != nil {
-				return nil, err
-			}
-			a := el.(*Atom)
-			a.Lit, err = lit.Convert(a.Lit, p.Type, 0)
-			if err != nil {
-				a, err = resolveListArr(c, env, p.Type.Elem(), []El{a})
-				if err != nil {
-					return nil, err
-				}
-			}
-			lo.args[i] = []El{a}
-			break // last iteration
-		}
-		if len(a) > 1 {
-			return nil, cor.Errorf(
-				"multiple arguments for non variadic parameter %s", p.Name)
-		}
-		el, err := c.Resolve(env, a[0], p.Type)
-		if err != nil {
-			return nil, err
-		}
-		at := el.(*Atom)
-		if p.Type != typ.Any {
-			at.Lit, err = lit.Convert(at.Lit, p.Type, 0)
-			if err != nil {
-				return nil, err
-			}
-		}
-		a[0] = at
-	}
-	return lo, err
 }
 
 func isVariadic(ps []typ.Param) bool {

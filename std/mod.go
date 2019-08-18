@@ -19,8 +19,8 @@ var (
 // catSpec concatenates one or more arguments to a str, raw or idxer literal.
 var catSpec = core.add(SpecRX("(form 'cat' (@1:alt str raw idxr) :plain list @1)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
-		t := x.Layout.Sig
+		err := x.Layout.Resl(x.Ctx, x.Env, x.Hint)
+		t := x.Sig
 		r := &t.Params[len(t.Params)-1]
 		switch r.Type.Kind & typ.MaskElem {
 		case typ.KindChar:
@@ -30,12 +30,13 @@ var catSpec = core.add(SpecRX("(form 'cat' (@1:alt str raw idxr) :plain list @1)
 				r.Type = typ.Str
 			}
 		}
-		x.Call.Type = t
+		x.Sig = t
 		return x.Call, err
 	},
 	func(x CallCtx) (_ exp.El, err error) {
-		if !x.Exec {
-			return x.Call, exp.ErrUnres
+		err = x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		if err != nil {
+			return x.Call, err
 		}
 		fst := x.Arg(0).(*exp.Atom)
 		t, opt := fst.Typ().Deopt()
@@ -92,20 +93,13 @@ var catSpec = core.add(SpecRX("(form 'cat' (@1:alt str raw idxr) :plain list @1)
 	}))
 
 // apdSpec appends the rest literal arguments to the first literal appender argument.
-var apdSpec = core.add(SpecRX("(form 'apd' @1:list|@2 :plain list|@2 @1)",
+var apdSpec = core.add(SpecDX("(form 'apd' @1:list :plain list @1)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Resolve(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
 		if err != nil {
-			return x.Call, err
+			return nil, err
 		}
-		x.Call.Type = x.Layout.Sig
-		return x.Call, nil
-	},
-	func(x CallCtx) (_ exp.El, err error) {
-		atm, ok := x.Arg(0).(*exp.Atom)
-		if !ok {
-			return nil, exp.ErrUnres
-		}
+		atm := x.Arg(0).(*exp.Atom)
 		apd, ok := atm.Lit.(lit.Appender)
 		if !ok {
 			return nil, cor.Errorf("cannot append to %T", x.Arg(0))
@@ -126,6 +120,10 @@ var apdSpec = core.add(SpecRX("(form 'apd' @1:list|@2 :plain list|@2 @1)",
 // setSpec sets the first keyer literal with the following tag arguments.
 var setSpec = core.add(SpecDX("(form 'set' @1:keyr :plain? list|keyr :tags? dict @1)",
 	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		if err != nil {
+			return nil, err
+		}
 		fst, ok := x.Arg(0).(*exp.Atom)
 		if !ok {
 			return nil, exp.ErrUnres
@@ -135,7 +133,7 @@ var setSpec = core.add(SpecDX("(form 'set' @1:keyr :plain? list|keyr :tags? dict
 			return nil, errSetKeyer
 		}
 		opt := res != fst.Lit
-		if len(x.Call.Args) == 1 {
+		if x.Count() == 1 {
 			return fst, nil
 		}
 		decls, err := x.Unis(2)

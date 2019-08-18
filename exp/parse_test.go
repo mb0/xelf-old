@@ -1,10 +1,11 @@
-package exp
+package exp_test
 
 import (
 	"reflect"
 	"strings"
 	"testing"
 
+	. "github.com/mb0/xelf/exp"
 	"github.com/mb0/xelf/lex"
 	"github.com/mb0/xelf/lit"
 	"github.com/mb0/xelf/typ"
@@ -80,8 +81,8 @@ func TestParse(t *testing.T) {
 		}}},
 	}
 	for _, test := range tests {
-		got, err := Read(Builtin{}, strings.NewReader(test.raw))
-		if err != nil {
+		got, err := Read(strings.NewReader(test.raw))
+		if err != nil && err != ErrVoid {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}

@@ -15,7 +15,7 @@ func ParseTags(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules TagR
 	if err != nil {
 		return err
 	}
-	lo, err := exp.LayoutArgs(layoutSig, args)
+	lo, err := exp.FormLayout(layoutSig, args)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func OffsetKeyer(offset int) IdxKeyer {
 
 // ListPrepper resolves args using c and env and returns a list or an error.
 func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
-	args, err := c.ResolveAll(env, n.Args(), typ.Any)
+	args, err := c.EvalAll(env, n.Args(), typ.Any)
 	if err != nil {
 		return nil, err
 	}
@@ -113,17 +113,18 @@ func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 
 // DynPrepper resolves args using c and env and returns a literal or an error.
 // Empty args return a untyped null literal. Multiple args are resolved as dyn expression.
-func DynPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (_ lit.Lit, err error) {
+func DynPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 	if n.El == nil {
 		return lit.Nil, nil
 	}
 	args := n.Args()
-	var x exp.El
+	var el exp.El
 	if len(args) == 1 {
-		x, err = c.Resolve(env, args[0], typ.Void)
+		el = args[0]
 	} else {
-		x, err = c.Resolve(env, &exp.Dyn{Els: args}, typ.Void)
+		el = &exp.Dyn{Els: args}
 	}
+	x, err := c.Eval(env, el, typ.Void)
 	if err != nil {
 		return nil, err
 	}

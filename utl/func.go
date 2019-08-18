@@ -18,12 +18,13 @@ type ReflectBody struct {
 }
 
 func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
-	lo, err := exp.ResolveFuncArgs(c, env, x)
+	_, err := exp.ReslFuncArgs(c, env, x)
+	return x, err
+}
+func (f *ReflectBody) Execute(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
+	lo, err := exp.EvalFuncArgs(c, env, x)
 	if err != nil {
 		return x, err
-	}
-	if !c.Exec {
-		return x, exp.ErrExec
 	}
 	args := make([]reflect.Value, len(f.ptyps))
 	for i, pt := range f.ptyps {
@@ -62,7 +63,7 @@ func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) 
 	if err != nil {
 		return nil, err
 	}
-	return &exp.Atom{Lit: l}, nil
+	return &exp.Atom{Lit: l, Src: x.Src}, nil
 }
 
 var refErr = reflect.TypeOf((*error)(nil)).Elem()
