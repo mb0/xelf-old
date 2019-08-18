@@ -50,7 +50,7 @@ func TestReflectFunc(t *testing.T) {
 		if !test.typ.Equal(r.Type) {
 			t.Errorf("for %T want param %s got %s", test.fun, test.typ, r.Type)
 		}
-		b := r.Resl.(*ReflectBody)
+		b := r.Impl.(*ReflectBody)
 		if test.err != b.err {
 			t.Errorf("for %T want err %v got %v", test.fun, test.err, b.err)
 		}
@@ -89,7 +89,7 @@ func TestFuncResolver(t *testing.T) {
 			t.Errorf("for %T want err %v", test.fun, err)
 			continue
 		}
-		res, err := r.Execute(p, std.Std, c, typ.Void)
+		res, err := r.Eval(p, std.Std, c, typ.Void)
 		if err != nil {
 			if test.err == nil || test.err.Error() != err.Error() {
 				t.Errorf("for %T want err %v got %v", test.fun, test.err, err)

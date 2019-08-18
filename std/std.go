@@ -66,7 +66,7 @@ type ReslRXP struct {
 	R, X, P Evaler
 }
 
-func (r ReslRXP) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+func (r ReslRXP) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	req := CallCtx{p, env, c, h}
 	if r.R == nil {
 		return r.X(req)
@@ -81,7 +81,7 @@ func (r ReslRXP) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp
 	return res, nil
 }
 
-func (r ReslRXP) Execute(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+func (r ReslRXP) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	req := CallCtx{p, env, c, h}
 	if r.R != nil {
 		v, err := r.R(req)

@@ -6,16 +6,36 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
+func DefaultDyn(t typ.Type) (string, bool) {
+	switch t.Kind & typ.MaskElem {
+	case typ.KindTyp:
+		return "con", false
+	case typ.KindBool:
+		return "and", false
+	case typ.KindNum, typ.KindInt, typ.KindReal, typ.KindSpan:
+		return "add", false
+	case typ.KindChar, typ.KindStr, typ.KindRaw:
+		return "cat", false
+	case typ.KindIdxr, typ.KindList:
+		return "apd", false
+	case typ.KindKeyr, typ.KindDict, typ.KindRec:
+		return "set", false
+	}
+	return "", false
+}
+
 // Prog is the resolution type context and also collects unresolved elements.
 type Prog struct {
 	// Ctx is the type context that stores type variable bindings.
 	*typ.Ctx
 	// Unres is a list of all unresolved expressions and type and symbol references.
 	Unres []El
+
+	Dyn func(fst typ.Type) (sym string, consume bool)
 }
 
 func NewProg() *Prog {
-	return &Prog{Ctx: &typ.Ctx{}}
+	return &Prog{Ctx: &typ.Ctx{}, Dyn: DefaultDyn}
 }
 
 // NewCall returns a new call or an error if arguments do not match the spec signature.
@@ -33,7 +53,7 @@ func (p *Prog) NewCall(s *Spec, args []El, src lex.Src) (*Call, error) {
 func (p *Prog) BuiltinCall(env Env, name string, args []El, src lex.Src) (*Call, error) {
 	def := LookupSupports(env, name, '~')
 	if def == nil {
-		return nil, cor.Errorf("new call name %q not defined", name, def.Lit)
+		return nil, cor.Errorf("new call name %q not defined", name)
 	}
 	s, ok := def.Lit.(*Spec)
 	if !ok {
@@ -86,7 +106,7 @@ func (v *realizer) visit(o typ.Type) typ.Type {
 }
 func (v *realizer) VisitLit(a *Atom) error {
 	if s, ok := a.Lit.(*Spec); ok {
-		if _, ok := s.Resl.(*ExprBody); ok {
+		if _, ok := s.Impl.(*ExprBody); ok {
 			s.Type = v.visit(s.Type)
 		}
 	}

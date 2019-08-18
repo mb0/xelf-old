@@ -36,7 +36,7 @@ func (p *Prog) Resl(env Env, el El, h typ.Type) (_ El, err error) {
 	case *Dyn:
 		return p.ReslDyn(env, v, h)
 	case *Call:
-		return v.Spec.Resolve(p, env, v, h)
+		return v.Spec.Resl(p, env, v, h)
 	}
 	return el, nil
 }
@@ -51,7 +51,7 @@ func (p *Prog) ReslDyn(env Env, d *Dyn, h typ.Type) (El, error) {
 		return d, err
 	}
 	if call, ok := res.(*Call); ok {
-		return call.Spec.Resolve(p, env, call, h)
+		return call.Spec.Resl(p, env, call, h)
 	}
 	return res, nil
 }
@@ -60,14 +60,13 @@ func (p *Prog) dynCall(env Env, d *Dyn) (El, error) {
 	if d == nil || len(d.Els) == 0 {
 		return Ignore(d.Src)
 	}
-	fst := d.Els[0]
-	fst, err := p.Resl(env, fst, typ.Void)
+	fst, err := p.Resl(env, d.Els[0], typ.Void)
 	if err != nil && err != ErrUnres {
 		return d, err
 	}
 	t, l := ResInfo(fst)
 	var sym string
-	args := d.Els
+	var cons bool
 	switch t.Kind & typ.MaskElem {
 	case typ.KindVoid:
 		if fst.Typ() == typ.Typ {
@@ -82,33 +81,23 @@ func (p *Prog) dynCall(env Env, d *Dyn) (El, error) {
 		if lt == typ.Void {
 			return Ignore(d.Src)
 		}
-		sym = "con"
-		if lt.Kind&typ.MaskElem == typ.KindBool {
-			sym = ":bool"
-			args = d.Els[1:]
-		}
 	case typ.KindFunc, typ.KindForm:
 		ls, ok := l.(*Spec)
 		if !ok {
 			return d, ErrUnres
 		}
 		return p.NewCall(ls, d.Els[1:], d.Src)
-	case typ.KindBool:
-		sym = "and"
-	case typ.KindNum, typ.KindInt, typ.KindReal, typ.KindSpan:
-		sym = "add"
-	case typ.KindChar, typ.KindStr, typ.KindRaw:
-		sym = "cat"
-	case typ.KindIdxr, typ.KindList:
-		sym = "apd"
-	case typ.KindKeyr, typ.KindDict, typ.KindRec:
-		sym = "set"
 	}
 	if len(d.Els) == 1 && t.Kind&typ.KindAny != 0 {
 		return fst, nil
 	}
+	sym, cons = p.Dyn(t)
 	if sym == "" {
 		return d, cor.Errorf("dyn unexpected first element %s %s", fst, fst.Typ())
+	}
+	args := d.Els
+	if cons {
+		args = args[1:]
 	}
 	call, err := p.BuiltinCall(env, sym, args, d.Src)
 	if err != nil {

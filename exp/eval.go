@@ -39,7 +39,7 @@ func (p *Prog) Eval(env Env, el El, hint typ.Type) (_ El, err error) {
 	case *Dyn:
 		return p.EvalDyn(env, v, hint)
 	case *Call:
-		return v.Spec.Execute(p, env, v, hint)
+		return v.Spec.Eval(p, env, v, hint)
 	}
 	return el, cor.Errorf("unexpected expression %T %v", el, el)
 }
@@ -50,7 +50,7 @@ func (p *Prog) EvalDyn(env Env, d *Dyn, h typ.Type) (El, error) {
 		return res, err
 	}
 	if c, ok := res.(*Call); ok {
-		return c.Spec.Execute(p, env, c, h)
+		return c.Spec.Eval(p, env, c, h)
 	}
 	return res, nil
 }

@@ -29,22 +29,27 @@ func MustSig(sig string) typ.Type {
 	return s
 }
 
-type Resl interface {
-	// Resolve resolves a call and returns the result or an error.
+type Impl interface {
+
+	// Resl resolves a call and returns the resulting element or an error.
 	//
-	// A successful resolution returns a literal and no error.
+	// A successful resolution returns a call with all related types resolved and no error.
 	// If the type hint is not void, it is used to check or infer the element type.
-	// When parts of the element could not be resolved it returns the special error ErrUnres,
-	// and either the original element or if the context allows it a partially resolved element.
-	// If the resolution cannot proceed with execution it returns the special error ErrExec.
-	// Any other error ends the whole resolution process.
-	Resolve(p *Prog, env Env, c *Call, h typ.Type) (El, error)
-	Execute(p *Prog, env Env, c *Call, h typ.Type) (El, error)
+	// When parts of the element could not be resolved it returns the special error ErrUnres.
+	Resl(p *Prog, env Env, c *Call, h typ.Type) (El, error)
+
+	// Eval evaluates a call and returns the resulting element or an error.
+	//
+	// A successful evaluation returns a literal and no error.
+	// If the type hint is not void, it is used to check or infer the element type.
+	// When parts of the element could not be evaluation it returns the special error ErrUnres,
+	// and - if the context allows it - a partially resolved element.
+	Eval(p *Prog, env Env, c *Call, h typ.Type) (El, error)
 }
 
 type Spec struct {
 	typ.Type
-	Resl
+	Impl
 }
 
 // Arg returns the argument parameters or nil.
@@ -65,13 +70,13 @@ func (sp *Spec) Res() typ.Type {
 
 func (sp *Spec) Typ() typ.Type { return sp.Type }
 func (sp *Spec) IsZero() bool {
-	return sp == nil || sp.Resl == nil || !sp.HasParams()
+	return sp == nil || sp.Impl == nil || !sp.HasParams()
 }
 
 func (sp *Spec) String() string { return bfr.String(sp) }
 func (sp *Spec) WriteBfr(b *bfr.Ctx) error {
 	b.WriteByte('(')
-	switch r := sp.Resl.(type) {
+	switch r := sp.Impl.(type) {
 	case *ExprBody:
 		b.WriteString("fn")
 		if err := r.WriteBfr(b); err != nil {

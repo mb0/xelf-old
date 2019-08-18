@@ -72,7 +72,7 @@ func (r *NodeResolver) getNode() (Node, error) {
 	return p.(Node), nil
 }
 
-func (r *NodeResolver) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	node, err := r.getNode()
 	if err != nil {
 		return nil, err
@@ -136,8 +136,8 @@ func (r *NodeResolver) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type
 	return &exp.Atom{Lit: node}, nil
 }
 
-func (r *NodeResolver) Execute(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
-	return r.Resolve(p, env, c, h)
+func (r *NodeResolver) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+	return r.Resl(p, env, c, h)
 }
 
 var refNode = reflect.TypeOf((*Node)(nil)).Elem()

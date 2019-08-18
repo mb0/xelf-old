@@ -26,7 +26,7 @@ func (f *ExprBody) WriteBfr(b *bfr.Ctx) error {
 	return nil
 }
 
-func (f *ExprBody) Resolve(p *Prog, env Env, c *Call, h typ.Type) (El, error) {
+func (f *ExprBody) Resl(p *Prog, env Env, c *Call, h typ.Type) (El, error) {
 	// build a parameter record from all arguments
 	_, err := ReslFuncArgs(p, env, c)
 	if err != nil {
@@ -43,7 +43,7 @@ func (f *ExprBody) Resolve(p *Prog, env Env, c *Call, h typ.Type) (El, error) {
 	return c, nil
 }
 
-func (f *ExprBody) Execute(p *Prog, env Env, c *Call, h typ.Type) (El, error) {
+func (f *ExprBody) Eval(p *Prog, env Env, c *Call, h typ.Type) (El, error) {
 	_, err := EvalFuncArgs(p, env, c)
 	if err != nil {
 		return c, err

@@ -19,6 +19,12 @@ var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
 		err := x.Layout.Resl(x.Prog, x.Env, x.Hint)
 		if a, ok := x.Arg(0).(*exp.Atom); ok {
 			if t, ok := a.Lit.(typ.Type); ok {
+				switch t.Kind & typ.MaskElem {
+				case typ.KindVoid:
+					return exp.Ignore(x.Call.Src)
+				case typ.KindBool:
+					return x.BuiltinCall(x.Env, ":bool", x.Args(1), x.Call.Src)
+				}
 				ct := x.Sig
 				r := &ct.Params[len(ct.Params)-1]
 				r.Type = t
@@ -42,8 +48,15 @@ var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
 		if !ok {
 			return nil, errConType
 		}
-		if t == typ.Void { // just in case we have a dynamic comment
-			return &exp.Atom{Lit: typ.Void}, nil
+		switch t.Kind & typ.MaskElem {
+		case typ.KindVoid:
+			return exp.Ignore(x.Call.Src)
+		case typ.KindBool:
+			c, err := x.BuiltinCall(x.Env, ":bool", x.Args(1), x.Call.Src)
+			if err != nil {
+				return c, err
+			}
+			return c.Spec.Eval(x.Prog, x.Env, c, x.Hint)
 		}
 		args := x.Args(1)
 		decls, err := x.Unis(2)

@@ -17,11 +17,11 @@ type ReflectBody struct {
 	err   bool
 }
 
-func (f *ReflectBody) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+func (f *ReflectBody) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	_, err := exp.ReslFuncArgs(p, env, c)
 	return c, err
 }
-func (f *ReflectBody) Execute(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+func (f *ReflectBody) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	lo, err := exp.EvalFuncArgs(p, env, c)
 	if err != nil {
 		return c, err
