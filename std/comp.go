@@ -42,7 +42,7 @@ var niSpec = core.add(SpecDXX("(form 'ni' @1 list|@1 bool)",
 	}))
 
 func inOrNi(x CallCtx, neg bool) (exp.El, error) {
-	err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+	err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +106,8 @@ var leSpec = core.add(SpecDXX("(form 'le' @ :plain list bool)",
 type cmpf = func(a, b lit.Lit) bool
 
 func evalBinaryComp(x CallCtx, sym bool, cmp cmpf) (exp.El, error) {
-	err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
-	if x.Part && err == exp.ErrUnres {
+	err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
+	if err == exp.ErrUnres {
 		err = nil
 	}
 	if err != nil {

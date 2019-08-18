@@ -16,14 +16,14 @@ var errConType = cor.StrError("the 'con' expression must start with a type")
 //    For idxer types one ore more literals are appended.
 var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Resl(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Resl(x.Prog, x.Env, x.Hint)
 		if a, ok := x.Arg(0).(*exp.Atom); ok {
 			if t, ok := a.Lit.(typ.Type); ok {
 				ct := x.Sig
 				r := &ct.Params[len(ct.Params)-1]
 				r.Type = t
 				if x.Hint != typ.Void {
-					_, err := typ.Unify(x.Ctx.Ctx, x.Hint, t)
+					_, err := typ.Unify(x.Prog.Ctx, x.Hint, t)
 					if err != nil {
 						return nil, err
 					}
@@ -34,7 +34,7 @@ var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
 	},
 	func(x CallCtx) (exp.El, error) {
 		// resolve all arguments
-		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
 			return x.Call, err
 		}

@@ -25,7 +25,7 @@ func TestInferFn(t *testing.T) {
 			t.Errorf("parse %s error: %v", test.raw, err)
 			continue
 		}
-		ctx := exp.NewCtx()
+		ctx := exp.NewProg()
 		l, err := ctx.Eval(Std, x, typ.Void)
 		if err != nil {
 			t.Errorf("exec %s error: %v", x, err)

@@ -7,13 +7,7 @@ import (
 )
 
 // ErrUnres is returned by a resolver if the result is unresolved, but otherwise valid.
-var ErrUntyp = cor.StrError("untyped")
-
-// ErrUnres is returned by a resolver if the result is unresolved, but otherwise valid.
 var ErrUnres = cor.StrError("unresolved")
-
-// ErrExec is returned by a resolver if it cannot proceed because context exec is false.
-var ErrExec = cor.StrError("not executed")
 
 // Def represents a definition in an environment.
 type Def struct {

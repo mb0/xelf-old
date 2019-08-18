@@ -11,7 +11,7 @@ import (
 var withSpec = core.add(SpecRX("(form 'with' any :act expr @)",
 	func(x CallCtx) (exp.El, error) {
 		dot := x.Arg(0)
-		el, err := x.Ctx.Resl(x.Env, dot, typ.Void)
+		el, err := x.Prog.Resl(x.Env, dot, typ.Void)
 		if err != nil {
 			return x.Call, err
 		}
@@ -24,7 +24,7 @@ var withSpec = core.add(SpecRX("(form 'with' any :act expr @)",
 		if act == nil {
 			return nil, cor.Errorf("with must have an action")
 		}
-		act, err = x.Ctx.Resl(env, act, x.Hint)
+		act, err = x.Prog.Resl(env, act, x.Hint)
 		if err != nil {
 			return x.Call, cor.Errorf("resl with act: %s", err)
 			return x.Call, err
@@ -36,7 +36,7 @@ var withSpec = core.add(SpecRX("(form 'with' any :act expr @)",
 	},
 	func(x CallCtx) (exp.El, error) {
 		dot := x.Arg(0)
-		el, err := x.Ctx.Eval(x.Env, dot, typ.Void)
+		el, err := x.Prog.Eval(x.Env, dot, typ.Void)
 		if err != nil {
 			return x.Call, err
 		}
@@ -46,7 +46,7 @@ var withSpec = core.add(SpecRX("(form 'with' any :act expr @)",
 		if act == nil {
 			return nil, cor.Errorf("with must have an action")
 		}
-		act, err = x.Ctx.Eval(env, act, x.Hint)
+		act, err = x.Prog.Eval(env, act, x.Hint)
 		if err != nil {
 			return x.Call, err
 		}
@@ -66,11 +66,11 @@ var letSpec = decl.add(SpecRX("(form 'let' :tags dict|any :action expr @)",
 			return nil, cor.Errorf("let must have tags and an action")
 		}
 		s := exp.NewScope(x.Env)
-		_, err = reslLetDecls(x.Ctx, s, decls)
+		_, err = reslLetDecls(x.Prog, s, decls)
 		if err != nil {
 			return x.Call, err
 		}
-		act, err = x.Ctx.Resl(s, act, typ.Void)
+		act, err = x.Prog.Resl(s, act, typ.Void)
 		if err != nil {
 			return x.Call, err
 		}
@@ -83,11 +83,11 @@ var letSpec = decl.add(SpecRX("(form 'let' :tags dict|any :action expr @)",
 		act := x.Arg(1)
 		decls, _ := x.Unis(0)
 		s := exp.NewScope(x.Env)
-		_, err := evalLetDecls(x.Ctx, s, decls)
+		_, err := evalLetDecls(x.Prog, s, decls)
 		if err != nil {
 			return x.Call, err
 		}
-		res, err := x.Ctx.Eval(s, act, typ.Void)
+		res, err := x.Prog.Eval(s, act, typ.Void)
 		if err != nil {
 			return x.Call, err
 		}
@@ -118,7 +118,7 @@ var fnSpec = decl.add(SpecXX("(form 'fn' :tags? dict|typ :plain list|expr @)",
 			// construct sig from decls
 			fs := make([]typ.Param, 0, len(tags))
 			for _, d := range tags {
-				l, err := x.Ctx.Resl(x.Env, d.El, typ.Typ)
+				l, err := x.Prog.Resl(x.Env, d.El, typ.Typ)
 				if err != nil {
 					return x.Call, err
 				}
@@ -136,7 +136,7 @@ var fnSpec = decl.add(SpecXX("(form 'fn' :tags? dict|typ :plain list|expr @)",
 		// are then unified using the usual resolution process and can be collect for the
 		// signature afterwards.
 		res := x.New()
-		mock := &mockScope{par: x.Env, ctx: x.Ctx.Ctx}
+		mock := &mockScope{par: x.Env, ctx: x.Prog.Ctx}
 		x.Resl(mock, last, res)
 		ps, err := mock.params()
 		if err != nil {
@@ -204,7 +204,7 @@ func (ms *mockScope) params() ([]typ.Param, error) {
 	return ps, nil
 }
 
-func reslLetDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
+func reslLetDecls(p *exp.Prog, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
 	for _, d := range decls {
 		if len(d.Name) < 2 {
 			return nil, cor.Error("unnamed declaration")
@@ -212,7 +212,7 @@ func reslLetDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, e
 		if d.El == nil {
 			return nil, cor.Error("naked declaration")
 		}
-		res, err = c.Resl(env, d.El, typ.Void)
+		res, err = p.Resl(env, d.El, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -230,9 +230,9 @@ func reslLetDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, e
 	}
 	return res, nil
 }
-func evalLetDecls(c *exp.Ctx, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
+func evalLetDecls(p *exp.Prog, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
 	for _, d := range decls {
-		res, err = c.Eval(env, d.El, typ.Void)
+		res, err = p.Eval(env, d.El, typ.Void)
 		if err != nil {
 			return nil, err
 		}

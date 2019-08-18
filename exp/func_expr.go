@@ -26,38 +26,38 @@ func (f *ExprBody) WriteBfr(b *bfr.Ctx) error {
 	return nil
 }
 
-func (f *ExprBody) Resolve(c *Ctx, env Env, x *Call, hint typ.Type) (El, error) {
+func (f *ExprBody) Resolve(p *Prog, env Env, c *Call, h typ.Type) (El, error) {
 	// build a parameter record from all arguments
-	_, err := ReslFuncArgs(c, env, x)
+	_, err := ReslFuncArgs(p, env, c)
 	if err != nil {
-		return x, err
+		return c, err
 	}
-	env = NewFuncScope(env, x)
+	env = NewFuncScope(env, c)
 	// and execute all body elements using the new scope
-	for _, e := range f.Els {
-		_, err = c.WithPart(false).Resl(env, e, typ.Void)
+	for _, el := range f.Els {
+		_, err = p.Resl(env, el, typ.Void)
 		if err != nil {
-			return x, err
+			return c, err
 		}
 	}
-	return x, nil
+	return c, nil
 }
 
-func (f *ExprBody) Execute(c *Ctx, env Env, x *Call, hint typ.Type) (El, error) {
-	_, err := EvalFuncArgs(c, env, x)
+func (f *ExprBody) Execute(p *Prog, env Env, c *Call, h typ.Type) (El, error) {
+	_, err := EvalFuncArgs(p, env, c)
 	if err != nil {
-		return x, err
+		return c, err
 	}
-	env = NewFuncScope(env, x)
+	env = NewFuncScope(env, c)
 	// and execute all body elements using the new scope
 	var res El
-	for _, e := range f.Els {
-		res, err = c.WithPart(false).Eval(env, e, typ.Void)
+	for _, el := range f.Els {
+		res, err = p.Eval(env, el, typ.Void)
 		if err != nil {
-			return x, err
+			return c, err
 		}
 	}
-	rt := x.Spec.Res()
+	rt := c.Spec.Res()
 	if rt == typ.Void {
 		return &Atom{Lit: rt}, nil
 	}
@@ -80,11 +80,11 @@ func (f *FuncScope) Get(s string) *Def {
 	return f.DataScope.Get(s)
 }
 
-func NewFuncScope(par Env, x *Call) *FuncScope {
-	ps := x.Spec.Arg()
+func NewFuncScope(par Env, c *Call) *FuncScope {
+	ps := c.Spec.Arg()
 	keyed := make([]lit.Keyed, 0, len(ps))
 	for i, p := range ps {
-		a := x.Groups[i]
+		a := c.Groups[i]
 		kl := lit.Keyed{p.Key(), lit.Zero(p.Type)}
 		if len(a) > 0 {
 			if at, ok := a[0].(*Atom); ok {

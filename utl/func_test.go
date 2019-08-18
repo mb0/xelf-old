@@ -83,13 +83,13 @@ func TestFuncResolver(t *testing.T) {
 			t.Errorf("reflect for %+v err: %v", test.fun, err)
 			continue
 		}
-		ctx := exp.NewCtx()
-		call, err := ctx.NewCall(r, test.args, lex.Src{})
+		p := exp.NewProg()
+		c, err := p.NewCall(r, test.args, lex.Src{})
 		if err != nil {
 			t.Errorf("for %T want err %v", test.fun, err)
 			continue
 		}
-		res, err := r.Execute(ctx, std.Std, call, typ.Void)
+		res, err := r.Execute(p, std.Std, c, typ.Void)
 		if err != nil {
 			if test.err == nil || test.err.Error() != err.Error() {
 				t.Errorf("for %T want err %v got %v", test.fun, test.err, err)

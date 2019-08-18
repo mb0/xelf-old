@@ -72,26 +72,26 @@ func (r *NodeResolver) getNode() (Node, error) {
 	return p.(Node), nil
 }
 
-func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
+func (r *NodeResolver) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	node, err := r.getNode()
 	if err != nil {
 		return nil, err
 	}
 	var decls []*exp.Named
 	// associate to arguments using using rules
-	fps := x.Spec.Arg()
+	fps := c.Spec.Arg()
 	for i, fp := range fps {
 		switch fp.Key() {
 		case "plain", "tags", "args":
-			err = r.Tags.Resolve(c, env, x.Tags(i), node)
+			err = r.Tags.Resolve(p, env, c.Tags(i), node)
 			if err != nil {
 				return nil, err
 			}
 		case "rest", "tail":
 			if r.Tail.KeySetter != nil {
-				tail := x.Args(i)
+				tail := c.Args(i)
 				named := &exp.Named{Name: "::", El: &exp.Dyn{Els: tail}}
-				l, err := r.Tail.prepper(KeyRule{})(c, env, named)
+				l, err := r.Tail.prepper(KeyRule{})(p, env, named)
 				if err != nil {
 					return nil, err
 				}
@@ -100,28 +100,28 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type)
 					return nil, err
 				}
 			} else {
-				err = r.Tags.Resolve(c, env, x.Tags(i), node)
+				err = r.Tags.Resolve(p, env, c.Tags(i), node)
 				if err != nil {
 					return nil, err
 				}
 			}
 		case "unis":
-			decls, err = x.Unis(i)
+			decls, err = c.Unis(i)
 			if err != nil {
 				return nil, err
 			}
 		case "decls":
-			decls, err = x.Decls(i)
+			decls, err = c.Decls(i)
 			if err != nil {
 				return nil, err
 			}
 		default:
-			t := &exp.Named{Name: fp.Name, El: &exp.Dyn{Els: x.Args(i)}}
-			r.Tags.ResolveTag(c, env, t, i, node)
+			t := &exp.Named{Name: fp.Name, El: &exp.Dyn{Els: c.Args(i)}}
+			r.Tags.ResolveTag(p, env, t, i, node)
 		}
 	}
 	for _, d := range decls {
-		l, err := r.Decl.prepper(KeyRule{})(c, env, d)
+		l, err := r.Decl.prepper(KeyRule{})(p, env, d)
 		if err != nil {
 			return nil, err
 		}
@@ -136,8 +136,8 @@ func (r *NodeResolver) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type)
 	return &exp.Atom{Lit: node}, nil
 }
 
-func (r *NodeResolver) Execute(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
-	return r.Resolve(c, env, x, h)
+func (r *NodeResolver) Execute(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+	return r.Resolve(p, env, c, h)
 }
 
 var refNode = reflect.TypeOf((*Node)(nil)).Elem()

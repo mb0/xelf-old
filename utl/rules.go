@@ -10,25 +10,25 @@ import (
 var layoutSig = exp.MustSig("(form '_' :args : void)")
 
 // ParseTags parses args as tags and sets them to v using rules or returns an error.
-func ParseTags(c *exp.Ctx, env exp.Env, args []exp.El, v interface{}, rules TagRules) error {
+func ParseTags(p *exp.Prog, env exp.Env, els []exp.El, v interface{}, rules TagRules) error {
 	n, err := GetNode(v)
 	if err != nil {
 		return err
 	}
-	lo, err := exp.FormLayout(layoutSig, args)
+	lo, err := exp.FormLayout(layoutSig, els)
 	if err != nil {
 		return err
 	}
-	return rules.Resolve(c, env, lo.Tags(0), n)
+	return rules.Resolve(p, env, lo.Tags(0), n)
 }
 
 type (
 	// IdxKeyer returns a key for an unnamed tag at idx.
 	IdxKeyer = func(n Node, idx int) string
 	// KeyPrepper resolves els and returns a literal for key or an error.
-	KeyPrepper = func(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error)
+	KeyPrepper = func(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error)
 	// KeySetter sets l to node with key or returns an error.
-	KeySetter = func(node Node, key string, l lit.Lit) error
+	KeySetter = func(n Node, key string, l lit.Lit) error
 )
 
 // KeyRule is a configurable helper for assigning tags or decls to nodes.
@@ -55,9 +55,9 @@ func (tr TagRules) WithOffset(off int) *TagRules {
 }
 
 // Resolve resolves tags using c and env and assigns them to node or returns an error
-func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []*exp.Named, node Node) (err error) {
+func (tr *TagRules) Resolve(p *exp.Prog, env exp.Env, tags []*exp.Named, node Node) (err error) {
 	for i, t := range tags {
-		err = tr.ResolveTag(c, env, t, i, node)
+		err = tr.ResolveTag(p, env, t, i, node)
 		if err != nil {
 			return cor.Errorf("resolve tag %s for %T: %w", t.Name, node.Typ(), err)
 		}
@@ -66,7 +66,7 @@ func (tr *TagRules) Resolve(c *exp.Ctx, env exp.Env, tags []*exp.Named, node Nod
 }
 
 // ResolveTag resolves tag using c and env and assigns them to node or returns an error
-func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag *exp.Named, idx int, node Node) (err error) {
+func (tr *TagRules) ResolveTag(p *exp.Prog, env exp.Env, tag *exp.Named, idx int, node Node) (err error) {
 	var key string
 	if tag.Name != "" {
 		key = tag.Key()
@@ -77,7 +77,7 @@ func (tr *TagRules) ResolveTag(c *exp.Ctx, env exp.Env, tag *exp.Named, idx int,
 		return cor.Errorf("unrecognized tag %s", tag)
 	}
 	r := tr.Rules[key]
-	l, err := tr.prepper(r)(c, env, tag)
+	l, err := tr.prepper(r)(p, env, tag)
 	if err != nil {
 		return err
 	}
@@ -99,8 +99,8 @@ func OffsetKeyer(offset int) IdxKeyer {
 }
 
 // ListPrepper resolves args using c and env and returns a list or an error.
-func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
-	args, err := c.EvalAll(env, n.Args(), typ.Any)
+func ListPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
+	args, err := p.EvalAll(env, n.Args(), typ.Any)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func ListPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 
 // DynPrepper resolves args using c and env and returns a literal or an error.
 // Empty args return a untyped null literal. Multiple args are resolved as dyn expression.
-func DynPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
+func DynPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
 	if n.El == nil {
 		return lit.Nil, nil
 	}
@@ -124,7 +124,7 @@ func DynPrepper(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
 	} else {
 		el = &exp.Dyn{Els: args}
 	}
-	x, err := c.Eval(env, el, typ.Void)
+	x, err := p.Eval(env, el, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -160,8 +160,8 @@ func ExtraMapSetter(mapkey string) KeySetter {
 
 // BitsPrepper returns a key prepper that tries to resolve a bits constant.
 func BitsPrepper(consts []typ.Const) KeyPrepper {
-	return func(c *exp.Ctx, env exp.Env, n *exp.Named) (lit.Lit, error) {
-		l, err := DynPrepper(c, env, n)
+	return func(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
+		l, err := DynPrepper(p, env, n)
 		if err != nil {
 			return l, err
 		}

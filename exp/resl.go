@@ -10,8 +10,8 @@ import (
 )
 
 // ReslAll resolves all element or returns the first error.
-func (c *Ctx) ReslAll(env Env, els []El, hint typ.Type) (res []El, err error) {
-	return doAll(c, env, els, hint, (*Ctx).Resl)
+func (p *Prog) ReslAll(env Env, els []El, h typ.Type) (res []El, err error) {
+	return doAll(p, env, els, h, (*Prog).Resl)
 }
 
 // Resolve resolves x within env and returns the result or an error.
@@ -21,22 +21,22 @@ func (c *Ctx) ReslAll(env Env, els []El, hint typ.Type) (res []El, err error) {
 // context's unresolved slice.
 // The resolver implementations usually use this method either directly or indirectly to resolve
 // arguments, which are then again added to the unresolved elements when appropriate.
-func (c *Ctx) Resl(env Env, el El, hint typ.Type) (_ El, err error) {
+func (p *Prog) Resl(env Env, el El, h typ.Type) (_ El, err error) {
 	switch v := el.(type) {
 	case *Atom:
-		return c.reslAtom(env, v, hint)
+		return p.reslAtom(env, v, h)
 	case *Sym:
-		return c.reslSym(env, v, hint)
+		return p.reslSym(env, v, h)
 	case *Named:
-		x, err := c.Resl(env, v.El, hint)
+		x, err := p.Resl(env, v.El, h)
 		if err != nil {
 			return el, err
 		}
 		v.El = x
 	case *Dyn:
-		return c.ReslDyn(env, v, hint)
+		return p.ReslDyn(env, v, h)
 	case *Call:
-		return v.Spec.Resolve(c, env, v, hint)
+		return v.Spec.Resolve(p, env, v, h)
 	}
 	return el, nil
 }
@@ -45,23 +45,23 @@ func Ignore(src lex.Src) (El, error) {
 	return &Atom{Lit: typ.Void, Src: src}, ErrVoid
 }
 
-func (c *Ctx) ReslDyn(env Env, d *Dyn, h typ.Type) (El, error) {
-	res, err := c.dynCall(env, d)
+func (p *Prog) ReslDyn(env Env, d *Dyn, h typ.Type) (El, error) {
+	res, err := p.dynCall(env, d)
 	if err != nil {
 		return d, err
 	}
 	if call, ok := res.(*Call); ok {
-		return call.Spec.Resolve(c, env, call, h)
+		return call.Spec.Resolve(p, env, call, h)
 	}
 	return res, nil
 }
 
-func (c *Ctx) dynCall(env Env, d *Dyn) (El, error) {
+func (p *Prog) dynCall(env Env, d *Dyn) (El, error) {
 	if d == nil || len(d.Els) == 0 {
 		return Ignore(d.Src)
 	}
 	fst := d.Els[0]
-	fst, err := c.Resl(env, fst, typ.Void)
+	fst, err := p.Resl(env, fst, typ.Void)
 	if err != nil && err != ErrUnres {
 		return d, err
 	}
@@ -92,7 +92,7 @@ func (c *Ctx) dynCall(env Env, d *Dyn) (El, error) {
 		if !ok {
 			return d, ErrUnres
 		}
-		return c.NewCall(ls, d.Els[1:], d.Src)
+		return p.NewCall(ls, d.Els[1:], d.Src)
 	case typ.KindBool:
 		sym = "and"
 	case typ.KindNum, typ.KindInt, typ.KindReal, typ.KindSpan:
@@ -110,17 +110,17 @@ func (c *Ctx) dynCall(env Env, d *Dyn) (El, error) {
 	if sym == "" {
 		return d, cor.Errorf("dyn unexpected first element %s %s", fst, fst.Typ())
 	}
-	call, err := c.BuiltinCall(env, sym, args, d.Src)
+	call, err := p.BuiltinCall(env, sym, args, d.Src)
 	if err != nil {
 		return d, err
 	}
 	return call, nil
 }
 
-func (c *Ctx) reslAtom(env Env, a *Atom, hint typ.Type) (El, error) {
+func (p *Prog) reslAtom(env Env, a *Atom, hint typ.Type) (El, error) {
 	switch a.Typ().Kind & typ.MaskRef {
 	case typ.KindTyp: // resolve type references
-		err := c.reslType(env, a)
+		err := p.reslType(env, a)
 		if err != nil {
 			return a, err
 		}
@@ -130,18 +130,18 @@ func (c *Ctx) reslAtom(env Env, a *Atom, hint typ.Type) (El, error) {
 		//		return v, err
 		//	}
 	}
-	return c.checkHint(hint, a)
+	return p.checkHint(hint, a)
 }
 
-func (c *Ctx) reslSym(env Env, s *Sym, hint typ.Type) (El, error) {
+func (p *Prog) reslSym(env Env, s *Sym, hint typ.Type) (El, error) {
 	switch s.Name[0] {
 	case '.':
-		err := c.reslDot(env, s)
+		err := p.reslDot(env, s)
 		if err != nil {
 			return s, err
 		}
 	case '$', '/':
-		err := c.reslAbs(env, s)
+		err := p.reslAbs(env, s)
 		if err != nil {
 			return s, err
 		}
@@ -153,14 +153,14 @@ func (c *Ctx) reslSym(env Env, s *Sym, hint typ.Type) (El, error) {
 		}
 		def := Lookup(env, sym)
 		if def == nil {
-			c.Unres = append(c.Unres, s)
+			p.Unres = append(p.Unres, s)
 			return s, ErrUnres
 		}
 		if path != "" {
 			if def.Lit != nil {
 				l, err := lit.Select(def.Lit, path)
 				if err != nil {
-					c.Unres = append(c.Unres, s)
+					p.Unres = append(p.Unres, s)
 					return nil, err
 				}
 				def.Type = l.Typ()
@@ -168,7 +168,7 @@ func (c *Ctx) reslSym(env Env, s *Sym, hint typ.Type) (El, error) {
 			} else {
 				l, err := lit.Select(def.Type, path)
 				if err != nil {
-					c.Unres = append(c.Unres, s)
+					p.Unres = append(p.Unres, s)
 					return nil, err
 				}
 				def.Type = l.(typ.Type)
@@ -177,10 +177,10 @@ func (c *Ctx) reslSym(env Env, s *Sym, hint typ.Type) (El, error) {
 		s.Type = def.Type
 		s.Lit = def.Lit
 	}
-	return c.checkHint(hint, s)
+	return p.checkHint(hint, s)
 }
 
-func (c *Ctx) reslType(env Env, a *Atom) error {
+func (p *Prog) reslType(env Env, a *Atom) error {
 	// last type is t or the element type for container types
 	at := a.Lit.(typ.Type)
 	t := at.Last()
@@ -195,15 +195,15 @@ func (c *Ctx) reslType(env Env, a *Atom) error {
 		d = LookupSupports(env, key, '~')
 	case typ.KindRef:
 		sym := &Sym{Name: key}
-		_, err := c.reslSym(env, sym, typ.Void)
+		_, err := p.reslSym(env, sym, typ.Void)
 		if err != nil {
-			c.Unres = append(c.Unres, a)
+			p.Unres = append(p.Unres, a)
 			return ErrUnres
 		}
 		d = &Def{Type: sym.Type, Lit: sym.Lit}
 	}
 	if d == nil {
-		c.Unres = append(c.Unres, a)
+		p.Unres = append(p.Unres, a)
 		return ErrUnres
 	}
 	s := d.Type
@@ -217,7 +217,7 @@ func (c *Ctx) reslType(env Env, a *Atom) error {
 	return nil
 }
 
-func (c *Ctx) reslDot(env Env, a *Sym) error {
+func (p *Prog) reslDot(env Env, a *Sym) error {
 	n := a.Name
 	var d *Def
 	if len(n) > 1 && n[1] == '?' {
@@ -241,7 +241,7 @@ func (c *Ctx) reslDot(env Env, a *Sym) error {
 	return nil
 }
 
-func (c *Ctx) reslAbs(env Env, a *Sym) error {
+func (p *Prog) reslAbs(env Env, a *Sym) error {
 	x, n := a.Name[0], a.Name
 	env = Supports(env, x)
 	if env == nil {
@@ -273,11 +273,11 @@ func replaceRef(t, el typ.Type) (typ.Type, bool) {
 	return t, false
 }
 
-type rfunc = func(*Ctx, Env, El, typ.Type) (El, error)
+type rfunc = func(*Prog, Env, El, typ.Type) (El, error)
 
-func doAll(c *Ctx, env Env, els []El, h typ.Type, f rfunc) (res []El, err error) {
+func doAll(p *Prog, env Env, els []El, h typ.Type, f rfunc) (res []El, err error) {
 	for i, el := range els {
-		el, er := f(c, env, el, h)
+		el, er := f(p, env, el, h)
 		if er != nil {
 			if err == nil || err == ErrUnres {
 				err = er

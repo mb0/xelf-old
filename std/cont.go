@@ -61,7 +61,7 @@ type litLener interface {
 
 var lenSpec = core.add(SpecDX("(form 'len' (@:alt cont str raw) int)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ var lenSpec = core.add(SpecDX("(form 'len' (@:alt cont str raw) int)",
 
 var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @ bool) @2)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +83,7 @@ var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @ bool) @2)",
 
 var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -92,7 +92,7 @@ var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
 
 var nthSpec = decl.add(SpecDX("(form 'nth' cont|@1 int :pred? (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +153,7 @@ type fIter struct {
 }
 
 func getIter(x CallCtx, e exp.El, ct typ.Type, ator bool) (r *fIter, _ error) {
-	e, err := x.Ctx.Resl(x.Env, e, typ.Void)
+	e, err := x.Prog.Resl(x.Env, e, typ.Void)
 	if err != nil && err != exp.ErrUnres {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (r *fIter) eval(x CallCtx, el lit.Lit, idx int, key string) (lit.Lit, error
 	if err != nil {
 		return nil, err
 	}
-	res, err := x.Ctx.Eval(x.Env, call, typ.Void)
+	res, err := x.Prog.Eval(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (r *fIter) accumulate(x CallCtx, acc *exp.Atom, el lit.Lit, idx int, key st
 	if err != nil {
 		return nil, err
 	}
-	res, err := x.WithPart(false).Eval(x.Env, call, typ.Void)
+	res, err := x.Eval(x.Env, call, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (r *fIter) filter(x CallCtx, cont *exp.Atom) (lit.Lit, error) {
 
 var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -319,7 +319,7 @@ var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
 
 var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
 			return nil, err
 		}
@@ -399,7 +399,7 @@ var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
 
 var foldSpec = decl.add(SpecDX("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
 			return nil, err
 		}
@@ -445,7 +445,7 @@ var foldSpec = decl.add(SpecDX("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 
 var foldrSpec = decl.add(SpecDX("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
 			return nil, err
 		}

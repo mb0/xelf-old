@@ -15,7 +15,7 @@ func TestStdFail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse err: %v", err)
 	}
-	c := exp.NewCtx().WithPart(true)
+	c := exp.NewProg()
 	_, err = c.Eval(Std, x, typ.Void)
 	if err == nil {
 		t.Fatalf("want err got nothing")
@@ -237,20 +237,20 @@ func TestStdResolveExec(t *testing.T) {
 		)))`, lit.True},
 	}
 	for _, test := range tests {
-		x, err := exp.Read(strings.NewReader(test.raw))
+		el, err := exp.Read(strings.NewReader(test.raw))
 		if err != nil && err != exp.ErrVoid {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
-		c := exp.NewCtx()
-		r, err := c.Resl(Std, x, typ.Void)
+		p := exp.NewProg()
+		r, err := p.Resl(Std, el, typ.Void)
 		if err != nil && err != exp.ErrUnres {
-			t.Errorf("%s resl err expect ErrUnres, got: %+v\n%v", test.raw, err, c.Unres)
+			t.Errorf("%s resl err expect ErrUnres, got: %+v\n%v", test.raw, err, p.Unres)
 			continue
 		}
-		r, err = c.Eval(Std, r, typ.Void)
+		r, err = p.Eval(Std, r, typ.Void)
 		if err != nil {
-			t.Errorf("eval err: %+v\nfor %s\n%v\n", err, test.raw, c.Unres)
+			t.Errorf("eval err: %+v\nfor %s\n%v\n", err, test.raw, p.Unres)
 			continue
 		}
 		a, ok := r.(*exp.Atom)
@@ -319,29 +319,28 @@ func TestStdResolvePart(t *testing.T) {
 	env.Def("y", &exp.Def{Type: typ.Num})
 	env.Def("v", &exp.Def{Type: typ.Str})
 	for _, test := range tests {
-		x, err := exp.Read(strings.NewReader(test.raw))
+		el, err := exp.Read(strings.NewReader(test.raw))
 		if err != nil {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
-		c := exp.NewCtx()
-		hint := c.New()
-		r, err := c.Resl(env, x, hint)
+		p := exp.NewProg()
+		h := p.New()
+		r, err := p.Resl(env, el, h)
 		if err != nil && err != exp.ErrUnres {
-			t.Errorf("%s resl err expect ErrUnres, got: %+v\n%v", test.raw, err, c.Unres)
+			t.Errorf("%s resl err expect ErrUnres, got: %+v\n%v", test.raw, err, p.Unres)
 			continue
 		}
-		c = c.WithPart(true)
-		r, err = c.Eval(env, r, hint)
+		r, err = p.Eval(env, r, h)
 		if err != nil && err != exp.ErrUnres {
-			t.Errorf("%s eval err expect ErrUnres, got: %+v\n%v", test.raw, err, c.Unres)
+			t.Errorf("%s eval err expect ErrUnres, got: %+v\n%v", test.raw, err, p.Unres)
 			continue
 		}
 		if got := r.String(); got != test.want {
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)
 		}
 		if got := exp.ResType(r); got.String() != test.typ {
-			t.Errorf("%s want %s got %s\n%v", test.raw, test.typ, got, c.Ctx)
+			t.Errorf("%s want %s got %s\n%v", test.raw, test.typ, got, p.Ctx)
 		}
 	}
 }
@@ -391,13 +390,13 @@ func TestStdResolve(t *testing.T) {
 			t.Errorf("%s parse err: %v", test.raw, err)
 			continue
 		}
-		c := exp.NewCtx()
-		r, err := c.Resl(env, x, c.New())
+		p := exp.NewProg()
+		r, err := p.Resl(env, x, p.New())
 		if err != nil && err != exp.ErrUnres {
-			t.Errorf("%s resolve err: %v\n%v", test.raw, err, c.Unres)
+			t.Errorf("%s resolve err: %v\n%v", test.raw, err, p.Unres)
 			continue
 		}
-		err = exp.Realize(c, r)
+		err = p.Realize(r)
 		if err != nil {
 			t.Errorf("realize err for %s %s: %v", r, callType(r), err)
 		}
@@ -405,7 +404,7 @@ func TestStdResolve(t *testing.T) {
 			t.Errorf("%s want %s got %s", test.raw, test.want, got)
 		}
 		if got := exp.ResType(r); got.String() != test.typ {
-			t.Errorf("%s want %s got %s\n%v", test.raw, test.typ, got, c.Ctx)
+			t.Errorf("%s want %s got %s\n%v", test.raw, test.typ, got, p.Ctx)
 		}
 	}
 }

@@ -50,7 +50,7 @@ func (m formMap) add(s *exp.Spec) *exp.Spec {
 }
 
 type CallCtx struct {
-	*exp.Ctx
+	*exp.Prog
 	Env exp.Env
 	*exp.Call
 	Hint typ.Type
@@ -58,7 +58,7 @@ type CallCtx struct {
 type Evaler func(CallCtx) (exp.El, error)
 
 func DefaultResl(x CallCtx) (exp.El, error) {
-	err := x.Layout.Resl(x.Ctx, x.Env, x.Hint)
+	err := x.Layout.Resl(x.Prog, x.Env, x.Hint)
 	return x.Call, err
 }
 
@@ -66,14 +66,14 @@ type ReslRXP struct {
 	R, X, P Evaler
 }
 
-func (r ReslRXP) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, hint typ.Type) (exp.El, error) {
-	req := CallCtx{c, env, x, hint}
+func (r ReslRXP) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+	req := CallCtx{p, env, c, h}
 	if r.R == nil {
 		return r.X(req)
 	}
 	res, err := r.R(req)
 	if err != nil {
-		if r.P != nil && c.Part && err == exp.ErrUnres {
+		if r.P != nil && err == exp.ErrUnres {
 			return r.P(req)
 		}
 		return res, err
@@ -81,12 +81,12 @@ func (r ReslRXP) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, hint typ.Type) (e
 	return res, nil
 }
 
-func (r ReslRXP) Execute(c *exp.Ctx, env exp.Env, x *exp.Call, hint typ.Type) (exp.El, error) {
-	req := CallCtx{c, env, x, hint}
+func (r ReslRXP) Execute(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+	req := CallCtx{p, env, c, h}
 	if r.R != nil {
 		v, err := r.R(req)
 		if err != nil {
-			if r.P != nil && c.Part && err == exp.ErrUnres {
+			if r.P != nil && err == exp.ErrUnres {
 				return r.P(req)
 			}
 			return v, err

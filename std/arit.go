@@ -29,9 +29,9 @@ var mulSpec = core.add(SpecDXX("(form 'mul' @1:num :plain list|num : @1)",
 // converts to the first argument's type.
 var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
-			if err != exp.ErrUnres || !x.Part {
+			if err != exp.ErrUnres {
 				return x.Call, err
 			}
 		}
@@ -73,9 +73,9 @@ var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 // The result is converted to the first argument's type.
 var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 	func(x CallCtx) (exp.El, error) {
-		err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
-			if err != exp.ErrUnres || !x.Part {
+			if err != exp.ErrUnres {
 				return x.Call, err
 			}
 		}
@@ -123,7 +123,7 @@ var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
 var remSpec = core.add(SpecDX("(form 'rem' @1:int @:int int)", func(x CallCtx) (exp.El, error) {
-	err := x.Layout.Eval(x.Ctx, x.Env, typ.Void)
+	err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ var negSpec = core.add(SpecDX("(form 'neg' @1:num @1)", func(x CallCtx) (fst exp
 }))
 
 func sign(x CallCtx, neg bool) (_ exp.El, err error) {
-	err = x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+	err = x.Layout.Eval(x.Prog, x.Env, x.Hint)
 	if err != nil {
 		return x.Call, err
 	}
@@ -243,9 +243,9 @@ func deopt(l lit.Lit) lit.Lit {
 }
 
 func execNums(x CallCtx, res float64, f numOp) (exp.El, error) {
-	err := x.Layout.Eval(x.Ctx, x.Env, x.Hint)
+	err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 	if err != nil {
-		if err != exp.ErrUnres || !x.Part {
+		if err != exp.ErrUnres {
 			return x.Call, err
 		}
 	}
@@ -274,13 +274,11 @@ func execNums(x CallCtx, res float64, f numOp) (exp.El, error) {
 		}
 		return &exp.Atom{Lit: l}, nil
 	}
-	if x.Part {
-		if ctx.idx >= 0 && ctx.idx < len(ctx.unres) {
-			ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
-		}
-		x.Groups[0] = ctx.unres[:1]
-		x.Groups[1] = ctx.unres[1:]
+	if ctx.idx >= 0 && ctx.idx < len(ctx.unres) {
+		ctx.unres[ctx.idx] = &exp.Atom{Lit: lit.Num(ctx.res)}
 	}
+	x.Groups[0] = ctx.unres[:1]
+	x.Groups[1] = ctx.unres[1:]
 	return x.Call, exp.ErrUnres
 }
 

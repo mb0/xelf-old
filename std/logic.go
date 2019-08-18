@@ -20,15 +20,13 @@ var orSpec = core.add(SpecDXX("(form 'or' :plain? list bool)",
 	func(x CallCtx) (exp.El, error) {
 		args := x.Args(0)
 		for i, arg := range args {
-			el, err := x.Ctx.Eval(x.Env, arg, typ.Void)
+			el, err := x.Prog.Eval(x.Env, arg, typ.Void)
 			if err == exp.ErrUnres {
-				if x.Part {
-					args = args[i:]
-					x.Groups[0] = args
-					if len(args) == 1 {
-						x.Spec = boolSpec
-						simplifyBool(x.Call)
-					}
+				args = args[i:]
+				x.Groups[0] = args
+				if len(args) == 1 {
+					x.Spec = boolSpec
+					simplifyBool(x.Call)
 				}
 				return x.Call, err
 			}
@@ -51,17 +49,15 @@ var andSpec = core.add(SpecDXX("(form 'and' :plain? list bool)", resolveAnd))
 func resolveAnd(x CallCtx) (exp.El, error) {
 	args := x.Args(0)
 	for i, arg := range args {
-		el, err := x.Ctx.Eval(x.Env, arg, typ.Void)
+		el, err := x.Prog.Eval(x.Env, arg, typ.Void)
 		if err == exp.ErrUnres {
-			if x.Part {
-				args = args[i:]
-				x.Groups[0] = args
-				if len(args) == 1 {
-					if x.Spec.Ref == "and" {
-						x.Spec = boolSpec
-					}
-					simplifyBool(x.Call)
+			args = args[i:]
+			x.Groups[0] = args
+			if len(args) == 1 {
+				if x.Spec.Ref == "and" {
+					x.Spec = boolSpec
 				}
+				simplifyBool(x.Call)
 			}
 			return x.Call, err
 		}
@@ -150,40 +146,40 @@ var ifSpec = core.add(SpecRX("(form 'if' ~any ~any :plain? list @)",
 		var unres bool
 		all := x.All()
 		for i = 0; i+1 < len(all); i += 2 {
-			_, err := x.Ctx.Resl(x.Env, all[i], typ.Any)
+			_, err := x.Prog.Resl(x.Env, all[i], typ.Any)
 			if err != nil && err != exp.ErrUnres {
 				return nil, err
 			}
 			hint := x.New()
-			_, err = x.Ctx.Resl(x.Env, all[i+1], hint)
+			_, err = x.Prog.Resl(x.Env, all[i+1], hint)
 			if err != nil && err != exp.ErrUnres {
 				return nil, err
 			}
 			unres = unres || err == exp.ErrUnres
-			alt = typ.Alt(alt, x.Ctx.Apply(hint))
+			alt = typ.Alt(alt, x.Prog.Apply(hint))
 		}
 		if i < len(all) {
 			hint := x.New()
-			_, err := x.Ctx.Resl(x.Env, all[i], hint)
+			_, err := x.Prog.Resl(x.Env, all[i], hint)
 			if err != nil && err != exp.ErrUnres {
 				return nil, err
 			}
 			unres = unres || err == exp.ErrUnres
-			alt = typ.Alt(alt, x.Ctx.Apply(hint))
+			alt = typ.Alt(alt, x.Prog.Apply(hint))
 		}
 		alt, err := typ.Choose(alt)
 		if err != nil {
 			return nil, err
 		}
 		if x.Hint != typ.Void {
-			alt, err = typ.Unify(x.Ctx.Ctx, alt, x.Hint)
+			alt, err = typ.Unify(x.Prog.Ctx, alt, x.Hint)
 			if err != nil {
 				return nil, err
 			}
 		}
 		if alt != typ.Void {
 			ps := x.Sig.Params
-			ps[len(ps)-1].Type = x.Ctx.Inst(alt)
+			ps[len(ps)-1].Type = x.Prog.Inst(alt)
 		}
 		return x.Call, nil
 	},
@@ -194,9 +190,9 @@ var ifSpec = core.add(SpecRX("(form 'if' ~any ~any :plain? list @)",
 		all := x.All()
 		res := x.Call.Res()
 		for i = 0; i+1 < len(all); i += 2 {
-			cond, err := x.Ctx.Eval(x.Env, all[i], typ.Any)
+			cond, err := x.Prog.Eval(x.Env, all[i], typ.Any)
 			if err != nil {
-				if !x.Part || err != exp.ErrUnres {
+				if err != exp.ErrUnres {
 					return x.Call, err
 				}
 				// previous conditions did not match
@@ -207,11 +203,11 @@ var ifSpec = core.add(SpecRX("(form 'if' ~any ~any :plain? list @)",
 			}
 			a, ok := cond.(*exp.Atom)
 			if ok && !a.Lit.IsZero() {
-				return x.Ctx.Eval(x.Env, all[i+1], res)
+				return x.Prog.Eval(x.Env, all[i+1], res)
 			}
 		}
 		if i < len(all) { // we have an else expression
-			return x.Ctx.Eval(x.Env, all[i], res)
+			return x.Prog.Eval(x.Env, all[i], res)
 		}
 		return &exp.Atom{Lit: lit.Zero(res), Src: x.Src}, nil
 	},

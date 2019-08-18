@@ -17,14 +17,14 @@ type ReflectBody struct {
 	err   bool
 }
 
-func (f *ReflectBody) Resolve(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
-	_, err := exp.ReslFuncArgs(c, env, x)
-	return x, err
+func (f *ReflectBody) Resolve(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+	_, err := exp.ReslFuncArgs(p, env, c)
+	return c, err
 }
-func (f *ReflectBody) Execute(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) (exp.El, error) {
-	lo, err := exp.EvalFuncArgs(c, env, x)
+func (f *ReflectBody) Execute(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
+	lo, err := exp.EvalFuncArgs(p, env, c)
 	if err != nil {
-		return x, err
+		return c, err
 	}
 	args := make([]reflect.Value, len(f.ptyps))
 	for i, pt := range f.ptyps {
@@ -63,7 +63,7 @@ func (f *ReflectBody) Execute(c *exp.Ctx, env exp.Env, x *exp.Call, h typ.Type) 
 	if err != nil {
 		return nil, err
 	}
-	return &exp.Atom{Lit: l, Src: x.Src}, nil
+	return &exp.Atom{Lit: l, Src: c.Src}, nil
 }
 
 var refErr = reflect.TypeOf((*error)(nil)).Elem()

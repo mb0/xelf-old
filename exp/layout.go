@@ -127,7 +127,7 @@ func (l *Layout) Unis(idx int) ([]*Named, error) {
 	return res, nil
 }
 
-func (l *Layout) Resl(c *Ctx, env Env, hint typ.Type) error {
+func (l *Layout) Resl(p *Prog, env Env, h typ.Type) error {
 	if l == nil {
 		return nil
 	}
@@ -136,68 +136,68 @@ func (l *Layout) Resl(c *Ctx, env Env, hint typ.Type) error {
 	if l.Sig.HasRef() {
 		inst.Ref = l.Sig.Ref
 	}
-	for i, p := range l.Sig.Params[:len(l.Sig.Params)-1] {
+	for i, param := range l.Sig.Params[:len(l.Sig.Params)-1] {
 		if i >= len(l.Groups) {
 			break
 		}
 		args := l.Groups[i]
 		if len(args) == 0 {
-			inst.Params = append(inst.Params, p)
+			inst.Params = append(inst.Params, param)
 			continue
 		}
-		switch key := p.Key(); key {
+		switch key := param.Key(); key {
 		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
-			v := c.New()
-			c.Bind(v.Kind, typ.NewAlt(p.Type.Elem()))
+			v := p.New()
+			p.Bind(v.Kind, typ.NewAlt(param.Type.Elem()))
 			var err error
-			args, err = c.ReslAll(env, args, v)
+			args, err = p.ReslAll(env, args, v)
 			if err != nil {
 				if err != ErrUnres {
 					return err
 				}
 				res = err
 			}
-			v = c.Apply(v)
+			v = p.Apply(v)
 			switch key {
 			case "tags", "decls", "unis":
-				p.Type = typ.Dict(v)
+				param.Type = typ.Dict(v)
 			default:
-				p.Type = typ.List(v)
+				param.Type = typ.List(v)
 			}
-			inst.Params = append(inst.Params, p)
+			inst.Params = append(inst.Params, param)
 			l.Groups[i] = args
 		default: // explicit param
-			v := c.New()
-			el, err := c.Resl(env, args[0], v)
+			v := p.New()
+			el, err := p.Resl(env, args[0], v)
 			if err != nil {
 				if err != ErrUnres {
 					return err
 				}
 				res = err
 			}
-			p.Type = v
-			inst.Params = append(inst.Params, p)
+			param.Type = v
+			inst.Params = append(inst.Params, param)
 			l.Groups[i] = []El{el}
 		}
 	}
-	if hint == typ.Void {
-		hint = c.New()
+	if h == typ.Void {
+		h = p.New()
 	}
-	inst.Params = append(inst.Params, typ.Param{Type: hint})
-	r, err := typ.Unify(c.Ctx, l.Sig, inst)
+	inst.Params = append(inst.Params, typ.Param{Type: h})
+	r, err := typ.Unify(p.Ctx, l.Sig, inst)
 	if err != nil {
 		return cor.Errorf("unify sig %s with %s: %v",
-			c.Apply(l.Sig), c.Apply(inst), err)
+			p.Apply(l.Sig), p.Apply(inst), err)
 	}
 	l.Sig = r
 	return res
 }
 
-func (l *Layout) Eval(c *Ctx, env Env, hint typ.Type) error {
+func (l *Layout) Eval(p *Prog, env Env, h typ.Type) error {
 	if l == nil {
 		return nil
 	}
-	for i, p := range l.Sig.Params[:len(l.Sig.Params)-1] {
+	for i, param := range l.Sig.Params[:len(l.Sig.Params)-1] {
 		if i >= len(l.Groups) {
 			break
 		}
@@ -205,15 +205,15 @@ func (l *Layout) Eval(c *Ctx, env Env, hint typ.Type) error {
 		if len(args) == 0 {
 			continue
 		}
-		switch key := p.Key(); key {
+		switch key := param.Key(); key {
 		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
-			args, err := c.EvalAll(env, args, typ.Void)
+			args, err := p.EvalAll(env, args, typ.Void)
 			if err != nil {
 				return err
 			}
 			l.Groups[i] = args
 		default: // explicit param
-			el, err := c.Eval(env, args[0], typ.Void)
+			el, err := p.Eval(env, args[0], typ.Void)
 			if err != nil {
 				return err
 			}

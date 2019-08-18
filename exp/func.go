@@ -80,16 +80,16 @@ func FuncLayout(sig typ.Type, els []El) (*Layout, error) {
 	}
 	return &Layout{sig, args}, nil
 }
-func ReslFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
-	params := x.Spec.Arg()
+func ReslFuncArgs(p *Prog, env Env, c *Call) (*Layout, error) {
+	params := c.Spec.Arg()
 	vari := isVariadic(params)
-	for i, p := range params {
-		a := x.Groups[i]
+	for i, param := range params {
+		a := c.Groups[i]
 		if len(a) == 0 { // skip; nothing to resolve
 			continue
 		}
 		if i == len(params)-1 && vari && len(a) > 1 {
-			ll, err := reslListArr(c, env, a, p.Type)
+			ll, err := reslListArr(p, env, a, param.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -99,40 +99,40 @@ func ReslFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
 		}
 		if len(a) > 1 {
 			return nil, cor.Errorf(
-				"multiple arguments for non variadic parameter %s", p.Name)
+				"multiple arguments for non variadic parameter %s", param.Name)
 		}
-		el, err := c.Resl(env, a[0], p.Type)
+		el, err := p.Resl(env, a[0], param.Type)
 		if err != nil {
 			return nil, err
 		}
 		a[0] = el
 	}
-	return &x.Layout, nil
+	return &c.Layout, nil
 }
 
-func EvalFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
-	params := x.Spec.Arg()
+func EvalFuncArgs(p *Prog, env Env, c *Call) (*Layout, error) {
+	params := c.Spec.Arg()
 	vari := isVariadic(params)
-	for i, p := range params {
-		a := x.Groups[i]
+	for i, param := range params {
+		a := c.Groups[i]
 		if len(a) == 0 { // skip; nothing to resolve
 			continue
 		}
 		if i == len(params)-1 && vari && len(a) > 1 {
-			ll, err := evalListArr(c, env, p.Type.Elem(), a)
+			ll, err := evalListArr(p, env, param.Type.Elem(), a)
 			if err != nil {
 				return nil, err
 			}
-			x.Groups[i] = []El{ll}
+			c.Groups[i] = []El{ll}
 			break
 		}
-		el, err := c.Eval(env, a[0], p.Type)
+		el, err := p.Eval(env, a[0], param.Type)
 		if err != nil {
 			return nil, err
 		}
 		if at, ok := el.(*Atom); ok {
-			if p.Type != typ.Void && p.Type != typ.Any {
-				at.Lit, err = lit.Convert(at.Lit, p.Type, 0)
+			if param.Type != typ.Void && param.Type != typ.Any {
+				at.Lit, err = lit.Convert(at.Lit, param.Type, 0)
 				if err != nil {
 					return nil, err
 				}
@@ -141,21 +141,21 @@ func EvalFuncArgs(c *Ctx, env Env, x *Call) (*Layout, error) {
 		}
 		a[0] = el
 	}
-	return &x.Layout, nil
+	return &c.Layout, nil
 }
 
-func reslListArr(c *Ctx, env Env, args []El, t typ.Type) (El, error) {
+func reslListArr(p *Prog, env Env, args []El, t typ.Type) (El, error) {
 	con := Lookup(env, "con")
 	args = append([]El{&Atom{Lit: t}}, args...)
-	x, err := c.NewCall(con.Lit.(*Spec), args, lex.Src{})
+	c, err := p.NewCall(con.Lit.(*Spec), args, lex.Src{})
 	if err != nil {
 		return nil, err
 	}
-	return c.Resl(env, x, t)
+	return p.Resl(env, c, t)
 }
 
-func evalListArr(c *Ctx, env Env, et typ.Type, args []El) (*Atom, error) {
-	els, err := c.EvalAll(env, args, et)
+func evalListArr(p *Prog, env Env, et typ.Type, args []El) (*Atom, error) {
+	els, err := p.EvalAll(env, args, et)
 	if err != nil {
 		return nil, err
 	}

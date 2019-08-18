@@ -6,29 +6,22 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-// Ctx is the resolution context that defines the resolution level and collects information.
-type Ctx struct {
-	// Part indicates that the resolution should replace partially resolved results.
-	Part bool
-
+// Prog is the resolution type context and also collects unresolved elements.
+type Prog struct {
+	// Ctx is the type context that stores type variable bindings.
+	*typ.Ctx
 	// Unres is a list of all unresolved expressions and type and symbol references.
 	Unres []El
-
-	*typ.Ctx
 }
 
-func NewCtx() *Ctx {
-	return &Ctx{Ctx: &typ.Ctx{}}
+func NewProg() *Prog {
+	return &Prog{Ctx: &typ.Ctx{}}
 }
 
-// WithPart returns a copy of c with part set to val.
-func (c Ctx) WithPart(val bool) *Ctx {
-	c.Part = val
-	return &c
-}
-
-func (c *Ctx) NewCall(s *Spec, args []El, src lex.Src) (*Call, error) {
-	inst := c.Inst(s.Type)
+// NewCall returns a new call or an error if arguments do not match the spec signature.
+// The call signature is instantiated in the programs type context.
+func (p *Prog) NewCall(s *Spec, args []El, src lex.Src) (*Call, error) {
+	inst := p.Inst(s.Type)
 	lo, err := SigLayout(inst, args)
 	if err != nil {
 		return nil, err
@@ -36,7 +29,8 @@ func (c *Ctx) NewCall(s *Spec, args []El, src lex.Src) (*Call, error) {
 	return &Call{Layout: *lo, Spec: s, Src: src}, nil
 }
 
-func (c *Ctx) BuiltinCall(env Env, name string, args []El, src lex.Src) (*Call, error) {
+// BuiltinCall looks up the builtin spec by name and returns a new call or returns an error.
+func (p *Prog) BuiltinCall(env Env, name string, args []El, src lex.Src) (*Call, error) {
 	def := LookupSupports(env, name, '~')
 	if def == nil {
 		return nil, cor.Errorf("new call name %q not defined", name, def.Lit)
@@ -45,10 +39,10 @@ func (c *Ctx) BuiltinCall(env Env, name string, args []El, src lex.Src) (*Call, 
 	if !ok {
 		return nil, cor.Errorf("new call name %q is a %T", name, def.Lit)
 	}
-	return c.NewCall(s, args, src)
+	return p.NewCall(s, args, src)
 }
 
-func (c *Ctx) checkHint(hint typ.Type, el El) (El, error) {
+func (p *Prog) checkHint(hint typ.Type, el El) (El, error) {
 	if hint == typ.Void {
 		return el, nil
 	}
@@ -56,9 +50,57 @@ func (c *Ctx) checkHint(hint typ.Type, el El) (El, error) {
 	if r == typ.Void {
 		return nil, cor.Errorf("check hint: unexpected element %s", el)
 	}
-	_, err := typ.Unify(c.Ctx, r, hint)
+	_, err := typ.Unify(p.Ctx, r, hint)
 	if err != nil {
 		return nil, cor.Errorf("check hint: %v", err)
 	}
 	return el, nil
+}
+
+// Realize finalizes all types in el or returns an error.
+// If successful, el is independent of its type context.
+func (p *Prog) Realize(el El) error {
+	v := &realizer{Prog: p}
+	err := el.Traverse(v)
+	if err != nil {
+		return cor.Errorf("traversal of %s: %v", el, err)
+	}
+	if len(v.free) > 0 {
+		return cor.Errorf("free variables: %s", v.free)
+	}
+	return nil
+}
+
+type realizer struct {
+	Ghost
+	*Prog
+	free typ.Vars
+}
+
+func (v *realizer) visit(o typ.Type) typ.Type {
+	t, err := v.Ctx.Realize(o)
+	if err != nil {
+		v.free = v.Free(t, v.free)
+	}
+	return t
+}
+func (v *realizer) VisitLit(a *Atom) error {
+	if s, ok := a.Lit.(*Spec); ok {
+		if _, ok := s.Resl.(*ExprBody); ok {
+			s.Type = v.visit(s.Type)
+		}
+	}
+	return nil
+}
+func (v *realizer) VisitType(a *Atom) error {
+	a.Lit = v.visit(a.Lit.(typ.Type))
+	return nil
+}
+func (v *realizer) VisitSym(a *Sym) error {
+	a.Type = v.visit(a.Type)
+	return nil
+}
+func (v *realizer) EnterCall(a *Call) error {
+	a.Sig = v.visit(a.Sig)
+	return nil
 }
