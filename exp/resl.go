@@ -82,33 +82,10 @@ func (p *Prog) reslSym(env Env, s *Sym, hint typ.Type) (El, error) {
 			return s, err
 		}
 	default:
-		sym, path := s.Name, ""
-		idx := strings.IndexByte(sym, '.')
-		if idx > 0 {
-			sym, path = sym[:idx], sym[idx+1:]
-		}
-		def := Lookup(env, sym)
+		def := Lookup(env, s.Name)
 		if def == nil {
 			p.Unres = append(p.Unres, s)
 			return s, ErrUnres
-		}
-		if path != "" {
-			if def.Lit != nil {
-				l, err := lit.Select(def.Lit, path)
-				if err != nil {
-					p.Unres = append(p.Unres, s)
-					return nil, err
-				}
-				def.Type = l.Typ()
-				def.Lit = l
-			} else {
-				l, err := lit.Select(def.Type, path)
-				if err != nil {
-					p.Unres = append(p.Unres, s)
-					return nil, err
-				}
-				def.Type = l.(typ.Type)
-			}
 		}
 		s.Type = def.Type
 		s.Lit = def.Lit
@@ -130,6 +107,10 @@ func (p *Prog) reslType(env Env, a *Atom) error {
 		key = "~" + key
 		d = LookupSupports(env, key, '~')
 	case typ.KindRef:
+		idx, path := strings.IndexByte(key, '.'), ""
+		if idx > 0 {
+			key, path = key[:idx], key[idx+1:]
+		}
 		sym := &Sym{Name: key}
 		_, err := p.reslSym(env, sym, typ.Void)
 		if err != nil {
@@ -137,6 +118,24 @@ func (p *Prog) reslType(env Env, a *Atom) error {
 			return ErrUnres
 		}
 		d = &Def{Type: sym.Type, Lit: sym.Lit}
+		if path != "" {
+			if d.Lit != nil {
+				l, err := lit.Select(d.Lit, path)
+				if err != nil {
+					p.Unres = append(p.Unres, a)
+					return err
+				}
+				d.Type = l.Typ()
+				d.Lit = l
+			} else {
+				l, err := lit.Select(d.Type, path)
+				if err != nil {
+					p.Unres = append(p.Unres, a)
+					return err
+				}
+				d.Type = l.(typ.Type)
+			}
+		}
 	}
 	if d == nil {
 		p.Unres = append(p.Unres, a)
