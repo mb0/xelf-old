@@ -112,9 +112,11 @@ func (x *Named) WriteBfr(b *bfr.Ctx) error {
 	return x.El.WriteBfr(b)
 }
 func (x *Call) WriteBfr(b *bfr.Ctx) error {
-	name := x.Spec.Key()
+	name := x.Spec.Ref
 	if name == "" {
 		name = x.Spec.String()
+	} else if name[0] == ':' {
+		name = name[1:]
 	}
 	return writeExpr(b, name, x.All())
 }
@@ -123,7 +125,9 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 	b.WriteByte('(')
 	if name != "" {
 		b.WriteString(name)
-		b.WriteByte(' ')
+		if len(args) != 0 {
+			b.WriteByte(' ')
+		}
 	}
 	for i, x := range args {
 		if i > 0 {
