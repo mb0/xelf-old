@@ -316,9 +316,6 @@ func consumeDecl(es []El, uni bool) (El, []El) {
 	}
 	e := es[0]
 	if t, s, a, ok := isSpecial(e, "+-"); ok {
-		if s == "-" {
-			return nil, es[1:]
-		}
 		d := &Named{Name: s}
 		es = es[1:]
 		var els []El
