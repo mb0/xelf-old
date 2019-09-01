@@ -110,11 +110,11 @@ func (ds *DataScope) Get(s string) *Def {
 			return NewDef(l)
 		}
 		if ds.Type != typ.Void {
-			t, err := lit.Select(ds.Type, s[1:])
+			t, err := typ.Select(ds.Type, s[1:])
 			if err != nil {
 				return nil
 			}
-			return &Def{Type: t.(typ.Type)}
+			return &Def{Type: t}
 		}
 	}
 	return nil

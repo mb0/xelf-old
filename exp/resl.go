@@ -128,12 +128,12 @@ func (p *Prog) reslType(env Env, a *Atom) error {
 				d.Type = l.Typ()
 				d.Lit = l
 			} else {
-				l, err := lit.Select(d.Type, path)
+				l, err := typ.Select(d.Type, path)
 				if err != nil {
 					p.Unres = append(p.Unres, a)
 					return err
 				}
-				d.Type = l.(typ.Type)
+				d.Type = l
 			}
 		}
 	}
