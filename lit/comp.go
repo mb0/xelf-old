@@ -45,8 +45,14 @@ func Equiv(a, b Lit) bool {
 	return ok && Equal(a, b)
 }
 
-// Less returns whether a is less than b and whether both types are comparable and ordered.
+// Less returns whether a is less than b and whether both types are marked as ordered.
 func Less(a, b Lit) (res, ok bool) {
+	less, _, ok := Comp(a, b)
+	return less, ok
+}
+
+// Comp returns whether a is less or the same as b and  whether both types marked as ordered.
+func Comp(a, b Lit) (less, same, ok bool) {
 	if a == nil {
 		a = Nil
 	}
@@ -55,34 +61,46 @@ func Less(a, b Lit) (res, ok bool) {
 	}
 	a, b, ok = comparable(a, b)
 	if !ok || !a.Typ().Ordered() || !b.Typ().Ordered() {
-		return false, false
+		return false, false, false
 	}
 	av, vok := a.(valer)
 	bv, wok := b.(valer)
 	if !vok || !wok {
-		return false, false
+		return false, false, false
 	}
 	switch v := av.Val().(type) {
 	case bool:
 		w, ok := bv.Val().(bool)
-		return ok && !v && w, true
+		if ok {
+			return !v && w, v == w, true
+		}
 	case int64:
 		w, ok := bv.Val().(int64)
-		return ok && v < w, true
+		if ok {
+			return v < w, v == w, true
+		}
 	case float64:
 		w, ok := bv.Val().(float64)
-		return ok && v < w, true
+		if ok {
+			return v < w, v == w, true
+		}
 	case string:
 		w, ok := bv.Val().(string)
-		return ok && v < w, true
+		if ok {
+			return v < w, v == w, true
+		}
 	case time.Time:
 		w, ok := bv.Val().(time.Time)
-		return ok && w.After(v), true
+		if ok {
+			return w.After(v), w.Equal(v), true
+		}
 	case time.Duration:
 		w, ok := bv.Val().(time.Duration)
-		return ok && v < w, true
+		if ok {
+			return v < w, v == w, true
+		}
 	}
-	return false, false
+	return false, false, false
 }
 
 type valer interface {
