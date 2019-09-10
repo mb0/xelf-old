@@ -33,21 +33,9 @@ func (p *Prog) Eval(env Env, el El, h typ.Type) (_ El, err error) {
 		return &Atom{Lit: v.Lit, Src: v.Src}, nil
 	case *Named:
 		if v.El != nil {
-			if d, ok := v.El.(*Dyn); ok {
-				els, err := p.EvalAll(env, d.Els, typ.Void)
-				if err != nil {
-					return nil, err
-				}
-				d.Els = els
-			} else {
-				el, err := p.Eval(env, v.El, typ.Void)
-				if err != nil {
-					return nil, err
-				}
-				v.El = el
-			}
+			v.El, err = p.Eval(env, v.El, typ.Void)
 		}
-		return v, nil
+		return v, err
 	case *Dyn:
 		res, err := p.dynCall(env, v)
 		if err != nil {
