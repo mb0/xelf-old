@@ -97,7 +97,7 @@ var apdSpec = core.add(SpecDX("(form 'apd' @1:list :plain list @1)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
-			return nil, err
+			return x.Call, err
 		}
 		atm := x.Arg(0).(*exp.Atom)
 		apd, ok := atm.Lit.(lit.Appender)
@@ -122,11 +122,11 @@ var setSpec = core.add(SpecDX("(form 'set' @1:keyr :plain? list|keyr :tags? dict
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
-			return nil, err
+			return x.Call, err
 		}
 		fst, ok := x.Arg(0).(*exp.Atom)
 		if !ok {
-			return nil, exp.ErrUnres
+			return x.Call, exp.ErrUnres
 		}
 		res, ok := deopt(fst.Lit).(lit.Keyer)
 		if !ok {

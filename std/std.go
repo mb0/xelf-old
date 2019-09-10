@@ -73,14 +73,7 @@ func (r *SpecImpl) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.
 	if r.resl == nil {
 		return r.eval(req)
 	}
-	res, err := r.resl(req)
-	if err != nil {
-		if r.part && err == exp.ErrUnres {
-			return r.eval(req)
-		}
-		return res, err
-	}
-	return res, nil
+	return r.resl(req)
 }
 
 func (r *SpecImpl) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
@@ -89,6 +82,7 @@ func (r *SpecImpl) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.
 		v, err := r.resl(req)
 		if err != nil {
 			if r.part && err == exp.ErrUnres {
+				req.Call = v.(*exp.Call)
 				return r.eval(req)
 			}
 			return v, err

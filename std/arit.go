@@ -44,7 +44,7 @@ var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 		}
 		err = redNums(rest, &ctx, opAdd)
 		if err != nil {
-			return nil, err
+			return x.Call, err
 		}
 		if n == nil {
 			if ctx.idx >= 0 {
@@ -87,7 +87,7 @@ var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 		}
 		err = redNums(x.Args(1), &ctx, opMul)
 		if err != nil {
-			return nil, err
+			return x.Call, err
 		}
 		if n == nil {
 			if ctx.idx >= 0 {
@@ -125,7 +125,7 @@ var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 var remSpec = core.add(SpecDX("(form 'rem' @1:int @:int int)", func(x CallCtx) (exp.El, error) {
 	err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 	if err != nil {
-		return nil, err
+		return x.Call, err
 	}
 
 	res, aok := getNum(x.Arg(0))
@@ -262,7 +262,7 @@ func execNums(x CallCtx, res float64, f numOp) (exp.El, error) {
 	}
 	err = redNums(x.Args(1), &ctx, f)
 	if err != nil {
-		return nil, err
+		return x.Call, err
 	}
 	if len(ctx.unres) == 0 {
 		var l lit.Lit = lit.Num(ctx.res)
