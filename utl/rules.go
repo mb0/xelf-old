@@ -100,7 +100,7 @@ func OffsetKeyer(offset int) IdxKeyer {
 
 // ListPrepper resolves args using c and env and returns a list or an error.
 func ListPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
-	args, err := p.EvalAll(env, n.Args(), typ.Any)
+	args, err := p.EvalAll(env, n.Args(), typ.Void)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,12 @@ func DynPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
 	if err != nil {
 		return nil, err
 	}
-	return x.(*exp.Atom).Lit, nil
+	l := x.(*exp.Atom).Lit
+	// XXX down cast to generic list, cleanup if container conversion works better
+	if ll, ok := l.(*lit.List); ok {
+		ll.Elem = typ.Void
+	}
+	return l, nil
 }
 
 // PathSetter sets el to n using key as path or returns an error.
