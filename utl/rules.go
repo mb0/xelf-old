@@ -114,10 +114,10 @@ func ListPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
 // DynPrepper resolves args using c and env and returns a literal or an error.
 // Empty args return a untyped null literal. Multiple args are resolved as dyn expression.
 func DynPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
-	if n.El == nil {
+	args := n.Args()
+	if len(args) == 0 {
 		return lit.Nil, nil
 	}
-	args := n.Args()
 	var el exp.El
 	if len(args) == 1 {
 		el = args[0]

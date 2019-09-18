@@ -78,7 +78,7 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 		return nil, err
 	}
 	var decls []*exp.Named
-	// associate to arguments using using rules
+	// associate to arguments using rules
 	fps := c.Spec.Arg()
 	for i, fp := range fps {
 		switch fp.Key() {
