@@ -299,6 +299,28 @@ func (r *fIter) filter(x CallCtx, cont *exp.Atom) (lit.Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
+var repeatSpec = decl.add(SpecDX("(form 'repeat' :count int :elem @1 list|@1)",
+	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
+		n, ok := x.Arg(0).(*exp.Atom).Lit.(lit.Numeric)
+		if !ok {
+			return nil, cor.Errorf("want number got %s", x.Arg(0))
+		}
+		res := lit.List{Data: make([]lit.Lit, int(n.Num()))}
+		var el lit.Lit = lit.Nil
+		if a, ok := x.Arg(1).(*exp.Atom); ok {
+			el = a.Lit
+			res.Elem = el.Typ()
+		}
+		for i := range res.Data {
+			res.Data[i] = el
+		}
+		return &exp.Atom{&res, x.Src}, nil
+	}))
+
 var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)

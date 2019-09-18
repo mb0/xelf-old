@@ -160,6 +160,9 @@ func TestStdResolveExec(t *testing.T) {
 		{`(nth [1 2 3 4 5] -3)`, lit.Num(3)},
 		{`(fst [1 2 3 4 5] (fn (eq (rem _ 2) 0)))`, lit.Num(2)},
 		{`(lst [1 2 3 4 5] (fn (eq (rem _ 2) 0)))`, lit.Num(4)},
+		{`(repeat 2 'cool')`, &lit.List{typ.Char, []lit.Lit{
+			lit.Char("cool"), lit.Char("cool"),
+		}}},
 		{`(filter [1 2 3 4 5] (fn (eq (rem _ 2) 0)))`, &lit.List{typ.Any, []lit.Lit{
 			lit.Num(2), lit.Num(4),
 		}}},
@@ -258,8 +261,11 @@ func TestStdResolveExec(t *testing.T) {
 			t.Errorf("expect atom result got %s", r)
 			continue
 		}
+		if !a.Lit.Typ().Equal(test.want.Typ()) {
+			t.Errorf("%s want %s got %s", test.raw, test.want.Typ(), a.Lit.Typ())
+		}
 		if !reflect.DeepEqual(a.Lit, test.want) {
-			t.Errorf("%s want %s got %#v %s", test.raw, test.want, a.Lit, a.Lit.Typ())
+			t.Errorf("%s want %s got %s", test.raw, test.want, a.Lit)
 		}
 	}
 }
