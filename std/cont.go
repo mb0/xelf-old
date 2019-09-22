@@ -321,6 +321,24 @@ var repeatSpec = decl.add(SpecDX("(form 'repeat' :count int :elem @1 list|@1)",
 		return &exp.Atom{&res, x.Src}, nil
 	}))
 
+var eachSpec = decl.add(SpecDX("(form 'range' :n int list|int)",
+	func(x CallCtx) (exp.El, error) {
+		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
+		if err != nil {
+			return nil, err
+		}
+		n, ok := x.Arg(0).(*exp.Atom).Lit.(lit.Numeric)
+		if !ok {
+			return nil, cor.Errorf("want number got %s", x.Arg(0))
+		}
+		nn := int(n.Num())
+		list := &lit.List{Elem: typ.Int, Data: make([]lit.Lit, 0, nn)}
+		for i := 0; i < nn; i++ {
+			list.Data = append(list.Data, lit.Int(i))
+		}
+		return &exp.Atom{Lit: list, Src: x.Src}, nil
+	}))
+
 var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)

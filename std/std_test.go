@@ -163,6 +163,12 @@ func TestStdResolveExec(t *testing.T) {
 		{`(repeat 2 'cool')`, &lit.List{typ.Char, []lit.Lit{
 			lit.Char("cool"), lit.Char("cool"),
 		}}},
+		{`(range 3)`, &lit.List{typ.Int, []lit.Lit{
+			lit.Int(0), lit.Int(1), lit.Int(2),
+		}}},
+		{`(map (range 2) (fn ('row ' (1 _))))`, &lit.List{typ.Char, []lit.Lit{
+			lit.Char("row 1"), lit.Char("row 2"),
+		}}},
 		{`(filter [1 2 3 4 5] (fn (eq (rem _ 2) 0)))`, &lit.List{typ.Any, []lit.Lit{
 			lit.Num(2), lit.Num(4),
 		}}},
@@ -233,10 +239,8 @@ func TestStdResolveExec(t *testing.T) {
 			(eq (filter . even) [2 4])
 			(eq (map . even) [false true false true false])
 			(eq (fold . 0 (fn (add _ .1))) 15)
-			(() TODO
 			(eq (foldr . [0] (fn (apd _ .1))) [0 5 4 3 2 1])
 			(eq (fold  . [0] (fn (apd _ .1))) [0 1 2 3 4 5])
-			)
 		)))`, lit.True},
 	}
 	for _, test := range tests {
