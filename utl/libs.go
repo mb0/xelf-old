@@ -26,7 +26,15 @@ var TimeLib = Lazy(Fmap{
 	"time:yearday":   time.Time.YearDay,
 	"time:format":    time.Time.Format,
 	"time:date_long": timeDateLong,
+	"time:day_start": DayStart,
+	"time:day_end":   DayEnd,
 })
 
 func timeAddDays(t time.Time, days int) time.Time { return t.AddDate(0, 0, days) }
 func timeDateLong(t time.Time) string             { return t.Format("2006-01-02") }
+func DayStart(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+func DayEnd(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day()+1, 0, 0, -1, 0, t.Location())
+}

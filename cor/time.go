@@ -47,6 +47,10 @@ func ParseTime(s string) (time.Time, error) {
 	if len(tz) != 0 {
 		return time.Parse(fmt+tz, s)
 	}
+	return ParseTimeFormat(s, fmt)
+}
+
+func ParseTimeFormat(s, fmt string) (time.Time, error) {
 	return time.ParseInLocation(fmt, s, time.Local)
 }
 
