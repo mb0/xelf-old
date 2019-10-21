@@ -136,10 +136,7 @@ var setSpec = core.add(SpecDX("(form 'set' @1:keyr :plain? list|keyr :tags? dict
 		if x.Count() == 1 {
 			return fst, nil
 		}
-		decls, err := x.Unis(2)
-		if err != nil {
-			return nil, err
-		}
+		decls := x.Tags(2)
 		for _, d := range decls {
 			el, ok := d.Arg().(*exp.Atom)
 			if !ok {

@@ -124,16 +124,16 @@ func TestStdResolveExec(t *testing.T) {
 		{`(apd [] 1 2 3)`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
 		{`([] 1 2 3)`, &lit.List{Data: []lit.Lit{lit.Num(1), lit.Num(2), lit.Num(3)}}},
 		{`(list (list|int 1 2 3))`, &lit.List{Data: []lit.Lit{lit.Int(1), lit.Int(2), lit.Int(3)}}},
-		{`(set {} :x :y 3)`, &lit.Dict{List: []lit.Keyed{
-			{"x", lit.Num(3)},
+		{`(set {} :x 2 :y 3)`, &lit.Dict{List: []lit.Keyed{
+			{"x", lit.Num(2)},
 			{"y", lit.Num(3)},
 		}}},
-		{`({} :x :y 3)`, &lit.Dict{List: []lit.Keyed{
-			{"x", lit.Num(3)},
+		{`({} :x 2 :y 3)`, &lit.Dict{List: []lit.Keyed{
+			{"x", lit.Num(2)},
 			{"y", lit.Num(3)},
 		}}},
-		{`(dict (dict|int :x :y 3))`, &lit.Dict{List: []lit.Keyed{
-			{"x", lit.Int(3)},
+		{`(dict (dict|int :x 2 :y 3))`, &lit.Dict{List: []lit.Keyed{
+			{"x", lit.Int(2)},
 			{"y", lit.Int(3)},
 		}}},
 		{`((real 1) 2 3)`, lit.Real(6)},

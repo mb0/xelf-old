@@ -59,10 +59,7 @@ var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
 			return c.Spec.Eval(x.Prog, x.Env, c, x.Hint)
 		}
 		args := x.Args(1)
-		decls, err := x.Unis(2)
-		if err != nil {
-			return nil, err
-		}
+		decls := x.Tags(2)
 		// first rule: return zero literal
 		if len(args) == 0 && len(decls) == 0 {
 			return &exp.Atom{Lit: lit.Zero(t)}, nil

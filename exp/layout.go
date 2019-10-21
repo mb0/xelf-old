@@ -91,36 +91,6 @@ func (l *Layout) Decls(idx int) ([]*Named, error) {
 	return res, nil
 }
 
-func (l *Layout) Unis(idx int) ([]*Named, error) {
-	args := l.Args(idx)
-	res := make([]*Named, 0, len(args))
-	var naked int
-	for _, arg := range args {
-		switch arg.Typ() {
-		case typ.Named:
-			n := arg.(*Named)
-			res = append(res, n)
-			if n.El == nil {
-				naked++
-				continue
-			}
-			for naked > 0 {
-				res[len(res)-naked-1].El = n.El
-				naked--
-			}
-		default:
-			if naked == 0 {
-				return nil, cor.Errorf("unexpected uni element %T %s", arg, arg)
-			}
-			for naked > 0 {
-				res[len(res)-naked].El = arg
-				naked--
-			}
-		}
-	}
-	return res, nil
-}
-
 func (l *Layout) Resl(p *Prog, env Env, h typ.Type) error {
 	if l == nil {
 		return nil
