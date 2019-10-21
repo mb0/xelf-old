@@ -9,12 +9,12 @@ import (
 
 // eqSpec returns a bool whether the arguments are equivalent literals.
 // The result is negated, if the expression symbol is 'ne'.
-var eqSpec = core.add(SpecDXX("(form 'eq' @ :plain list bool)",
+var eqSpec = core.add(SpecDXX("(form 'eq' any :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
 		return evalBinaryComp(x, true, lit.Equiv)
 	}))
 
-var neSpec = core.add(SpecDXX("(form 'ne' @ :plain list bool)",
+var neSpec = core.add(SpecDXX("(form 'ne' any :plain list bool)",
 	func(x CallCtx) (exp.El, error) {
 		res, err := evalBinaryComp(x, true, lit.Equiv)
 		if err != nil {
@@ -26,7 +26,7 @@ var neSpec = core.add(SpecDXX("(form 'ne' @ :plain list bool)",
 	}))
 
 // equalSpec returns a bool whether the arguments are same types or same literals.
-var equalSpec = core.add(SpecDXX("(form 'equal' @ :plain list bool)",
+var equalSpec = core.add(SpecDXX("(form 'equal' @1 :plain list|@1 bool)",
 	func(x CallCtx) (exp.El, error) {
 		return evalBinaryComp(x, true, lit.Equal)
 	}))
@@ -70,7 +70,7 @@ func inOrNi(x CallCtx, neg bool) (exp.El, error) {
 
 // ltSpec returns a bool whether the arguments are monotonic increasing literals.
 // Or the inverse, if the expression symbol is 'ge'.
-var ltSpec = core.add(SpecDXX("(form 'lt' @ :plain list bool)",
+var ltSpec = core.add(SpecDXX("(form 'lt' @1 :plain list|@1 bool)",
 	func(x CallCtx) (exp.El, error) {
 		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(a, b)
@@ -78,7 +78,7 @@ var ltSpec = core.add(SpecDXX("(form 'lt' @ :plain list bool)",
 		})
 	}))
 
-var geSpec = core.add(SpecDXX("(form 'ge' @ :plain list bool)",
+var geSpec = core.add(SpecDXX("(form 'ge' @1 :plain list|@1 bool)",
 	func(x CallCtx) (exp.El, error) {
 		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(a, b)
@@ -88,14 +88,14 @@ var geSpec = core.add(SpecDXX("(form 'ge' @ :plain list bool)",
 
 // gtSpec returns a bool whether the arguments are monotonic decreasing literals.
 // Or the inverse, if the expression symbol is 'le'.
-var gtSpec = core.add(SpecDXX("(form 'gt' @ :plain list bool)",
+var gtSpec = core.add(SpecDXX("(form 'gt' @1 :plain list|@1 bool)",
 	func(x CallCtx) (exp.El, error) {
 		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(b, a)
 			return ok && res
 		})
 	}))
-var leSpec = core.add(SpecDXX("(form 'le' @ :plain list bool)",
+var leSpec = core.add(SpecDXX("(form 'le' @1 :plain list|@1 bool)",
 	func(x CallCtx) (exp.El, error) {
 		return evalBinaryComp(x, false, func(a, b lit.Lit) bool {
 			res, ok := lit.Less(b, a)

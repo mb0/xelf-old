@@ -72,7 +72,7 @@ var lenSpec = core.add(SpecDX("(form 'len' (@:alt cont str raw) int)",
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 	}))
 
-var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @ bool) @2)",
+var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @1 bool) @1)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -81,7 +81,7 @@ var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @ bool) @2)",
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), 0)
 	}))
 
-var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
+var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @1)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -90,7 +90,7 @@ var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @2)",
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), -1)
 	}))
 
-var nthSpec = decl.add(SpecDX("(form 'nth' cont|@1 int :pred? (func @1 bool) @2)",
+var nthSpec = decl.add(SpecDX("(form 'nth' cont|@1 int :pred? (func @1 bool) @1)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {

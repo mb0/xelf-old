@@ -27,7 +27,7 @@ var mulSpec = core.add(SpecDXX("(form 'mul' @1:num :plain list|num : @1)",
 
 // subSpec subtracts the sum of the rest from the first argument and
 // converts to the first argument's type.
-var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
+var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|num : @1)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
@@ -71,7 +71,7 @@ var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|@:num : @1)",
 // divSpec divides the product of the rest from the first argument.
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
-var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
+var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|num : @1)",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
@@ -122,7 +122,7 @@ var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|@:num : @1)",
 	}))
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
-var remSpec = core.add(SpecDX("(form 'rem' @1:int @:int int)", func(x CallCtx) (exp.El, error) {
+var remSpec = core.add(SpecDX("(form 'rem' int int int)", func(x CallCtx) (exp.El, error) {
 	err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 	if err != nil {
 		return x.Call, err
