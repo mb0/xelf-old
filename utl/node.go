@@ -87,7 +87,7 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 			if err != nil {
 				return nil, err
 			}
-		case "rest", "tail":
+		case "tail":
 			if r.Tail.KeySetter != nil {
 				tail := c.Args(i)
 				named := &exp.Named{Name: "::", El: &exp.Dyn{Els: tail}}
@@ -104,11 +104,6 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 				if err != nil {
 					return nil, err
 				}
-			}
-		case "unis":
-			decls, err = c.Unis(i)
-			if err != nil {
-				return nil, err
 			}
 		case "decls":
 			decls, err = c.Decls(i)

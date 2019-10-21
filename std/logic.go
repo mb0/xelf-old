@@ -9,7 +9,7 @@ import (
 
 // failSpec returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
-var failSpec = core.add(SpecDX("(form 'fail' :rest? list any)", func(x CallCtx) (exp.El, error) {
+var failSpec = core.add(SpecDX("(form 'fail' :plain? list any)", func(x CallCtx) (exp.El, error) {
 	return nil, cor.Errorf("%s", x.Call)
 }))
 

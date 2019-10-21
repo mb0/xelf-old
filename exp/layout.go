@@ -17,22 +17,16 @@ import (
 // kinds of accepted elements, is: (form 'full' :args :decls :tail)
 //
 // These are the recognised parameter names:
-//    plain or rest accepts any number of plain elements.
-//    tags accepts any number of tag expressions.
-//    args or tail  accepts any number of leading plain elements and then tag expression.
-//    unis accepts declarations with at most one argument.
-//    decls accepts declarations with multiple arguments.
+//    plain accepts any number of plain elements and can be followed by tags or decls
+//    tags accepts any number of tag expressions and can be followed by decls or tail
+//    decls accepts declarations with multiple arguments and can only be followed by tail.
+//    args or tail  accepts any number of leading plain elements and then tag expression
+//    args is equavilent to plain follows by tags, tail must be the last element
 //
-// With some caveats:
-//    Each special parameter name can occur only once.
-//    Plain and rest or args and tail cannot follow each other.
-//    Plain or rest can not follow args or tail.
-//    Only one of either unis or decls can occur.
-//
-// Explicit parameters are plain elements and can only occur in front or instead plain arguments.
+// Explicit parameter arguments must be at the start befor any special parameter.
 //
 // The parameter types give hints at what types are accepted. The special parameters can only use
-// container types. The unis and decls parameters expect a keyer type, while all others accept an
+// container types. The decls parameters expect a keyer type, while all others accept an
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
 type Layout struct {
@@ -146,7 +140,7 @@ func (l *Layout) Resl(p *Prog, env Env, h typ.Type) error {
 			continue
 		}
 		switch key := param.Key(); key {
-		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
+		case "plain", "tags", "tail", "args", "decls":
 			v := p.New()
 			p.Bind(v.Kind, typ.NewAlt(param.Type.Elem()))
 			var err error
@@ -159,7 +153,7 @@ func (l *Layout) Resl(p *Prog, env Env, h typ.Type) error {
 			}
 			v = p.Apply(v)
 			switch key {
-			case "tags", "decls", "unis":
+			case "tags", "decls":
 				param.Type = typ.Dict(v)
 			default:
 				param.Type = typ.List(v)
@@ -206,7 +200,7 @@ func (l *Layout) Eval(p *Prog, env Env, h typ.Type) error {
 			continue
 		}
 		switch key := param.Key(); key {
-		case "plain", "rest", "tags", "tail", "args", "decls", "unis":
+		case "plain", "tags", "tail", "args", "decls":
 			args, err := p.EvalAll(env, args, typ.Void)
 			if err != nil {
 				return err
@@ -247,21 +241,13 @@ Loop:
 		switch p.Key() {
 		case "plain":
 			tmp, args = consumePlain(args, tmp)
-		case "rest":
-			for len(args) > 0 {
-				tmp, args = consumePlain(args, tmp)
-				tmp, args = consumeTags(args, tmp)
-				tmp, args = consumeDecls(args, tmp)
-			}
-		case "tail", "args":
-			tmp, args = consumePlain(args, tmp)
-			tmp, args = consumeTags(args, tmp)
 		case "tags":
+			tmp, args = consumeTags(args, tmp)
+		case "args", "tail":
+			tmp, args = consumePlain(args, tmp)
 			tmp, args = consumeTags(args, tmp)
 		case "decls":
 			tmp, args = consumeDecls(args, tmp)
-		case "unis":
-			tmp, args = consumeUnis(args)
 		default: // explicit param
 			if len(args) > 0 {
 				if args[0] == nil {
@@ -310,7 +296,7 @@ func consumeTag(es []El) (El, []El) {
 	return nil, es
 }
 
-func consumeDecl(es []El, uni bool) (El, []El) {
+func consumeDecl(es []El) (El, []El) {
 	if len(es) == 0 {
 		return nil, nil
 	}
@@ -327,8 +313,6 @@ func consumeDecl(es []El, uni bool) (El, []El) {
 				d.El = &Dyn{Els: els}
 				return d, es
 			}
-		} else if uni {
-			d.El, es = consumeArg(es)
 		} else {
 			els, es = consumePlain(es, els)
 			els, es = consumeTags(es, els)
@@ -372,19 +356,7 @@ func consumeTags(es []El, res []El) ([]El, []El) {
 func consumeDecls(es []El, res []El) ([]El, []El) {
 	var e El
 	for len(es) > 0 {
-		e, es = consumeDecl(es, false)
-		if e != nil {
-			res = append(res, e)
-			continue
-		}
-		break
-	}
-	return res, es
-}
-func consumeUnis(es []El) (res, _ []El) {
-	var e El
-	for len(es) > 0 {
-		e, es = consumeDecl(es, true)
+		e, es = consumeDecl(es)
 		if e != nil {
 			res = append(res, e)
 			continue
