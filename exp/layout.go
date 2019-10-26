@@ -266,7 +266,7 @@ func consumeTag(es []El) (El, []El) {
 	return nil, es
 }
 
-func consumeDecl(es []El) (El, []El) {
+func consumeDecl(es []El) (*Named, []El) {
 	if len(es) == 0 {
 		return nil, nil
 	}
@@ -324,10 +324,13 @@ func consumeTags(es []El, res []El) ([]El, []El) {
 	return res, es
 }
 func consumeDecls(es []El, res []El) ([]El, []El) {
-	var e El
+	var e *Named
 	for len(es) > 0 {
 		e, es = consumeDecl(es)
 		if e != nil {
+			if e.Name == "--" {
+				break
+			}
 			res = append(res, e)
 			continue
 		}
