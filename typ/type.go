@@ -153,8 +153,7 @@ func (t Type) WriteBfr(b *bfr.Ctx) error {
 		b.WriteString(`"}`)
 		return err
 	}
-	fst := !t.Kind.Prom() && (t.Kind&KindMeta == 0 || t.Kind == KindAlt)
-	return t.writeBfr(b, nil, nil, fst)
+	return t.writeBfr(b, nil, nil, false)
 }
 
 func (t Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool) error {

@@ -220,9 +220,6 @@ global type schema and uses the schema prefix '~schema.model' for lookups from t
 Self and ancestor references point to the current or ancestor record type and are used for recursive
 type definitions. They use the schema prefix followed by a number '~1'.
 
-The schema prefix also qualifies all named types in an expression context, it can generally omitted
-for prominent types or in a type context.
-
 Symbol Resolution
 -----------------
 

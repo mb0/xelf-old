@@ -84,11 +84,6 @@ const (
 	KindAlt = KindMeta | KindBit4 // 0x820
 )
 
-// Prom returns whether types of this kind are considered prominent.
-func (k Kind) Prom() bool {
-	return k == 0 || k&KindAny != 0 && k&MaskBits != 0 || k&KindFunc != 0
-}
-
 func ParseKind(str string) (Kind, error) {
 	if len(str) == 0 {
 		return KindVoid, ErrInvalid

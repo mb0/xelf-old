@@ -48,7 +48,7 @@ func Parse(a *lex.Tree) (El, error) {
 			return &Atom{Lit: t, Src: a.Src}, nil
 		}
 		t, err := typ.Parse(a)
-		if err == nil && t.Kind.Prom() {
+		if err == nil {
 			return &Atom{Lit: t, Src: a.Src}, nil
 		}
 		return &Sym{Name: a.Raw, Src: a.Src}, nil

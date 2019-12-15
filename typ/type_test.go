@@ -14,7 +14,7 @@ func TestString(t *testing.T) {
 		raw string
 		res string
 	}{
-		{Num, `num`, `~num`},
+		{Num, `num`, `num`},
 		{Int, `int`, ``},
 		{Opt(Str), `str?`, ``},
 		{Ref("a"), `@a`, ``},
@@ -23,7 +23,7 @@ func TestString(t *testing.T) {
 		{Var(1, Num), `@1|num`, ``},
 		{Var(0, Num, Str), `<@|alt num str>`, ``},
 		{List(Var(1, Num, Str)), `<list|@1|alt num str>`, ``},
-		{Alt(Num, Str), `<alt num str>`, `<~alt num str>`},
+		{Alt(Num, Str), `<alt num str>`, `<alt num str>`},
 		{Opt(Ref("b")), `@b?`, ``},
 		{Opt(Sch("a.b")), `~a.b?`, ``},
 		{Opt(Enum("kind")), `<enum? kind>`, ``},
