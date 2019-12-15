@@ -59,16 +59,16 @@ func (l *Layout) Arg(idx int) El {
 	return args[0]
 }
 
-func (l *Layout) Tags(idx int) []*Named {
+func (l *Layout) Tags(idx int) []*Tag {
 	args := l.Args(idx)
-	res := make([]*Named, 0, len(args))
+	res := make([]*Tag, 0, len(args))
 	for _, arg := range args {
 		switch arg.Typ() {
-		case typ.Named:
-			res = append(res, arg.(*Named))
+		case typ.Tag:
+			res = append(res, arg.(*Tag))
 		default:
 			// TODO error and use args instead
-			res = append(res, &Named{El: arg})
+			res = append(res, &Tag{El: arg})
 		}
 	}
 	return res
@@ -205,7 +205,7 @@ func FormLayout(sig typ.Type, args []El) (*Layout, error) {
 				if args[0] == nil {
 					return nil, cor.Errorf("arg is null for %s", sig)
 				}
-				if v, ok := args[0].(*Named); !ok || v.Key() == pkey {
+				if v, ok := args[0].(*Tag); !ok || v.Key() == pkey {
 					tmp, args = args[:1], args[1:]
 				}
 			}
@@ -229,7 +229,7 @@ func isSig(t typ.Type) bool {
 func consumeArg(es []El) (El, []El) {
 	if len(es) != 0 {
 		e := es[0]
-		if _, ok := e.(*Named); !ok {
+		if _, ok := e.(*Tag); !ok {
 			return e, es[1:]
 		}
 	}
@@ -237,7 +237,7 @@ func consumeArg(es []El) (El, []El) {
 }
 func consumeTag(es []El) (El, []El) {
 	if len(es) != 0 {
-		if v, ok := es[0].(*Named); ok {
+		if v, ok := es[0].(*Tag); ok {
 			return v, es[1:]
 		}
 	}

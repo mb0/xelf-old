@@ -88,7 +88,7 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 		case "tail":
 			if r.Tail.KeySetter != nil {
 				tail := c.Args(i)
-				named := &exp.Named{Name: "::", El: &exp.Dyn{Els: tail}}
+				named := &exp.Tag{Name: "::", El: &exp.Dyn{Els: tail}}
 				l, err := r.Tail.prepper(KeyRule{})(p, env, named)
 				if err != nil {
 					return nil, err
@@ -104,7 +104,7 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 				}
 			}
 		default:
-			t := &exp.Named{Name: fp.Name, El: &exp.Dyn{Els: c.Args(i)}}
+			t := &exp.Tag{Name: fp.Name, El: &exp.Dyn{Els: c.Args(i)}}
 			r.Tags.ResolveTag(p, env, t, i, node)
 		}
 	}

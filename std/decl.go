@@ -213,7 +213,7 @@ func (ms *mockScope) params() ([]typ.Param, error) {
 	return ps, nil
 }
 
-func reslLetTags(p *exp.Prog, env *exp.Scope, tags []*exp.Named) (res exp.El, err error) {
+func reslLetTags(p *exp.Prog, env *exp.Scope, tags []*exp.Tag) (res exp.El, err error) {
 	for _, d := range tags {
 		if len(d.Name) == 0 {
 			return nil, cor.Error("unnamed tag")
@@ -239,7 +239,7 @@ func reslLetTags(p *exp.Prog, env *exp.Scope, tags []*exp.Named) (res exp.El, er
 	}
 	return res, nil
 }
-func evalLetTags(p *exp.Prog, env *exp.Scope, tags []*exp.Named) (res exp.El, err error) {
+func evalLetTags(p *exp.Prog, env *exp.Scope, tags []*exp.Tag) (res exp.El, err error) {
 	for _, d := range tags {
 		res, err = p.Eval(env, d.El, typ.Void)
 		if err != nil {

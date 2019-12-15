@@ -18,11 +18,11 @@ var (
 	Time = Type{Kind: KindTime}
 	Span = Type{Kind: KindSpan}
 
-	Expr  = Type{Kind: KindExpr}
-	Sym   = Type{Kind: KindSym}
-	Dyn   = Type{Kind: KindDyn}
-	Call  = Type{Kind: KindCall}
-	Named = Type{Kind: KindNamed}
+	Expr = Type{Kind: KindExpr}
+	Sym  = Type{Kind: KindSym}
+	Dyn  = Type{Kind: KindDyn}
+	Call = Type{Kind: KindCall}
+	Tag  = Type{Kind: KindTag}
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | KindOpt, t.Info} }

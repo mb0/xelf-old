@@ -31,7 +31,7 @@ func (p *Prog) Eval(env Env, el El, h typ.Type) (_ El, err error) {
 			return v, ErrUnres
 		}
 		return &Atom{Lit: v.Lit, Src: v.Src}, nil
-	case *Named:
+	case *Tag:
 		if v.El != nil {
 			v.El, err = p.Eval(env, v.El, typ.Void)
 		}

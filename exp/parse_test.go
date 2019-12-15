@@ -52,7 +52,7 @@ func TestParse(t *testing.T) {
 		}}},
 		{`(a b; d)`, &Dyn{Src: src(0, 8), Els: []El{
 			&Sym{Name: "a", Src: src(1, 2)},
-			&Named{Name: "b", Src: src(3, 5)},
+			&Tag{Name: "b", Src: src(3, 5)},
 			&Sym{Name: "d", Src: src(6, 7)},
 		}}},
 		{`((1 2) 1 2)`, &Dyn{Src: src(0, 11), Els: []El{
@@ -65,17 +65,17 @@ func TestParse(t *testing.T) {
 		}}},
 		{`(1 z:(3 4))`, &Dyn{Src: src(0, 11), Els: []El{
 			&Atom{lit.Num(1), src(1, 2)},
-			&Named{Name: "z", Src: src(3, 10), El: &Dyn{Src: src(5, 10), Els: []El{
+			&Tag{Name: "z", Src: src(3, 10), El: &Dyn{Src: src(5, 10), Els: []El{
 				&Atom{lit.Num(3), src(6, 7)},
 				&Atom{lit.Num(4), src(8, 9)},
 			}}},
 		}}},
 		{`(s m:(a:(u t;)))`, &Dyn{Src: src(0, 16), Els: []El{
 			&Sym{Name: "s", Src: src(1, 2)},
-			&Named{Name: "m", Src: src(3, 15), El: &Dyn{Src: src(5, 15), Els: []El{
-				&Named{Name: "a", Src: src(6, 14), El: &Dyn{Src: src(8, 14), Els: []El{
+			&Tag{Name: "m", Src: src(3, 15), El: &Dyn{Src: src(5, 15), Els: []El{
+				&Tag{Name: "a", Src: src(6, 14), El: &Dyn{Src: src(8, 14), Els: []El{
 					&Sym{Name: "u", Src: src(9, 10)},
-					&Named{Name: "t", Src: src(11, 13)},
+					&Tag{Name: "t", Src: src(11, 13)},
 				}}},
 			}}},
 		}}},

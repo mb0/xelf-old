@@ -59,7 +59,7 @@ func Parse(a *lex.Tree) (El, error) {
 			return nil, cor.Errorf("invalid tag %q", a.String())
 		}
 		fst := a.Seq[0]
-		res := &Named{Src: a.Src}
+		res := &Tag{Src: a.Src}
 		switch a.Raw {
 		case ":":
 			if len(a.Seq) > 2 {
