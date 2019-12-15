@@ -52,50 +52,66 @@ func Parse(a *lex.Tree) (El, error) {
 			return &Atom{Lit: t, Src: a.Src}, nil
 		}
 		return &Sym{Name: a.Raw, Src: a.Src}, nil
-	case lex.Tag, lex.Decl:
-		return &Named{Name: a.Raw, Src: a.Src}, nil
+	case ':', ';':
+		return &Sym{Name: string(a.Tok), Src: a.Src}, nil
+	case lex.Tag:
+		if len(a.Seq) == 0 {
+			return nil, cor.Errorf("invalid tag %q", a.String())
+		}
+		fst := a.Seq[0]
+		res := &Named{Src: a.Src}
+		switch a.Raw {
+		case ":":
+			if len(a.Seq) > 2 {
+				break
+			}
+			switch fst.Tok {
+			case lex.Symbol:
+				res.Name = fst.Raw
+			case lex.String:
+				name, err := cor.Unquote(fst.Raw)
+				if err != nil {
+					return nil, err
+				}
+				res.Name = name
+			}
+			if len(a.Seq) > 1 {
+				snd, err := Parse(a.Seq[1])
+				if err != nil {
+					return nil, err
+				}
+				res.El = snd
+			}
+			return res, nil
+		case ";":
+			if len(a.Seq) > 1 || fst.Tok != lex.Symbol {
+				break
+			}
+			res.Name = cor.LastName(fst.Raw)
+			return res, nil
+		}
+		return nil, cor.Errorf("invalid tag %q", a.String())
+	case '<':
+		t, err := typ.Parse(a)
+		if err != nil {
+			return nil, err
+		}
+		return &Atom{Lit: t, Src: a.Src}, nil
 	case '(':
 		// TODO move comment and named handling to resl
 		if len(a.Seq) == 0 { // empty expression is void
 			return nil, ErrVoid
 		}
-		fst, err := Parse(a.Seq[0])
-		if err != nil || fst == nil {
-			return nil, err
-		}
-		switch t := fst.(type) {
-		case *Atom:
-			if t.Typ() != typ.Typ {
-				break
-			}
-			tt := t.Lit.(typ.Type)
-			if tt == typ.Void {
+		ftok := a.Seq[0]
+		switch ftok.Tok {
+		case lex.Symbol:
+			if ftok.Raw == "void" {
 				return nil, ErrVoid
 			}
-			r, p := typ.NeedsInfo(tt)
-			if r || p {
-				tt, err = typ.ParseInfo(a.Seq[1:], tt, nil)
-				if err != nil {
-					return nil, err
-				}
-				return &Atom{tt, a.Src}, nil
-			}
-		case *Named:
-			fst = nil
-			if t.Name[0] == ':' {
-				fst = &Sym{Name: t.Name, Src: t.Src}
-			}
-			d, err := parseDyn(a.Seq[1:], fst)
-			if err != nil {
-				return nil, err
-			}
-			if fst != nil {
-				d.Src = a.Src
-				return d, nil
-			}
-			t.El = d
-			t.Src = a.Src
-			return t, nil
+		}
+		fst, err := Parse(ftok)
+		if err != nil || fst == nil {
+			return nil, err
 		}
 		d, err := parseDyn(a.Seq[1:], fst)
 		if err != nil {
@@ -105,11 +121,6 @@ func Parse(a *lex.Tree) (El, error) {
 		return d, nil
 	}
 	return nil, a.Err(lex.ErrUnexpected)
-}
-
-func errStartingTag(name string) error {
-	return cor.Errorf("expressions starting with a tag must resolve to a built-in type "+
-		"conversion spec, got %v", name)
 }
 
 func parseDyn(seq []*lex.Tree, el El) (_ *Dyn, err error) {
@@ -126,7 +137,6 @@ func parseArgs(seq []*lex.Tree, el El) (args []El, src lex.Src, err error) {
 		args = append(args, el)
 		src.Pos = el.Source().Pos
 	}
-	var tag *Named
 	for i, t := range seq {
 		if i == 0 && el == nil {
 			src.Pos = t.Pos
@@ -139,25 +149,7 @@ func parseArgs(seq []*lex.Tree, el El) (args []El, src lex.Src, err error) {
 		if err != nil {
 			return nil, src, err
 		}
-		switch v := el.(type) {
-		case *Named:
-			if tag != nil {
-				args = append(args, tag)
-				tag = nil
-			}
-			if v.IsTag() && v.El == nil {
-				tag = v
-				continue
-			}
-		}
-		if tag != nil {
-			tag.El = el
-			el, tag = tag, nil
-		}
 		args = append(args, el)
-	}
-	if tag != nil {
-		args = append(args, tag)
 	}
 	return args, src, nil
 }

@@ -20,8 +20,8 @@ func NamePart(r rune) bool { return NameStart(r) || Digit(r) }
 // Punct tests whether r is one of the ascii punctuations allowed in symbols.
 func Punct(r rune) bool {
 	switch r {
-	case '!', '#', '$', '%', '&', '*', '+', '-', '.', '/', ':',
-		'<', '=', '>', '?', '@', '^', '|', '~':
+	case '!', '#', '$', '%', '&', '*', '+', '-', '.', '/',
+		'=', '?', '@', '^', '|', '~':
 		return true
 	}
 	return false

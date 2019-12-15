@@ -58,14 +58,8 @@ func Parse(a *lex.Tree) (Lit, error) {
 }
 
 func parseList(tree *lex.Tree, v *List) (*List, error) {
-	var last bool
 	v.Data = make([]Lit, 0, len(tree.Seq))
 	for _, t := range tree.Seq {
-		if last && t.Tok == ',' {
-			last = false
-			continue
-		}
-		last = true
 		el, err := Parse(t)
 		if err != nil {
 			return nil, err
@@ -77,13 +71,14 @@ func parseList(tree *lex.Tree, v *List) (*List, error) {
 
 func parseDict(tree *lex.Tree, v *Dict) (*Dict, error) {
 	v.List = make([]Keyed, 0, len(tree.Seq))
-	for i := 0; i < len(tree.Seq); i++ {
+	for _, t := range tree.Seq {
+		if t.Tok != lex.Tag || len(t.Seq) < 2 {
+			return nil, lex.ErrorAtPos(t.Pos, ErrKeySep)
+		}
+		a, b := t.Seq[0], t.Seq[1]
 		var key string
-		switch a := tree.Seq[i]; a.Tok {
+		switch a.Tok {
 		case lex.Symbol:
-			if len(a.Raw) == 0 || !cor.IsName(a.Raw) {
-				return nil, a.Err(ErrKey)
-			}
 			key = a.Raw
 		case lex.String:
 			var err error
@@ -94,25 +89,11 @@ func parseDict(tree *lex.Tree, v *Dict) (*Dict, error) {
 		default:
 			return nil, a.Err(ErrKey)
 		}
-		if i+1 >= len(tree.Seq) {
-			return nil, lex.ErrorAtPos(tree.End, ErrKeySep)
-		}
-		i++
-		if b := tree.Seq[i]; b.Tok != ':' {
-			return nil, b.Err(ErrKeySep)
-		}
-		if i+1 >= len(tree.Seq) {
-			return nil, lex.ErrorAtPos(tree.End, ErrKeySep)
-		}
-		i++
-		el, err := Parse(tree.Seq[i])
+		el, err := Parse(b)
 		if err != nil {
 			return nil, err
 		}
 		v.List = append(v.List, Keyed{key, el})
-		if i+1 < len(tree.Seq) && tree.Seq[i+1].Tok == ',' {
-			i++
-		}
 	}
 	return v, nil
 }

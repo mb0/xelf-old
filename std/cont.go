@@ -24,8 +24,8 @@ A predicate or mapper function's first parameter must accept the element type an
 be followed by a int and str parameter for idx or key parameters. The key parameter can only be used
 for keyer literals. The filter predicate must return bool and mapper a literal of any type.
 
-	(form 'pred' :val @1 :idx? int :key? str bool)
-	(form 'mapr' :val @1 :idx? int :key? str @2)
+	(form pred val:@1 idx?:int key?:str bool)
+	(form mapr val:@1 idx?:int key?:str @2)
 
 The fold and foldr forms accumulate a container into a given literal. They accept any container and
 a reducer function with a compatible accumulator parameter followed by iterator parameters. Fold
@@ -33,7 +33,7 @@ accumulates from first to last and foldr in reverse. Fold is technically a left 
 right fold, but as the difference of cons lists and mostly linear xelf containers might lead to
 confusion foldr should be thought of as reverse.
 
-	(form 'accu' :a @1 :val @2 :idx? int :key? str @1)
+	(form accu a:@1 val:@2 idx?:int key?:str @1)
 
 The list, dict constructor forms accept any container with an appropriate iterator
 to construct a new container literal by effectively using each or foldr.
@@ -59,7 +59,7 @@ type litLener interface {
 	Len() int
 }
 
-var lenSpec = core.add(SpecDX("(form 'len' (@:alt cont str raw) int)",
+var lenSpec = core.add(SpecDX("<form len <@|alt cont str raw> int>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -72,7 +72,7 @@ var lenSpec = core.add(SpecDX("(form 'len' (@:alt cont str raw) int)",
 		return nil, cor.Errorf("cannot call len on %s", fst.Typ())
 	}))
 
-var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @1 bool) @1)",
+var fstSpec = decl.add(SpecDX("<form fst list|@1 pred?:<func @1 bool> @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -81,7 +81,7 @@ var fstSpec = decl.add(SpecDX("(form 'fst' list|@1 :pred? (func @1 bool) @1)",
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), 0)
 	}))
 
-var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @1)",
+var lstSpec = decl.add(SpecDX("<form lst list|@1 pred?:<func @1 bool> @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -90,7 +90,7 @@ var lstSpec = decl.add(SpecDX("(form 'lst' list|@1 :pred? (func @1 bool) @1)",
 		return nth(x, x.Arg(0).(*exp.Atom), x.Arg(1), -1)
 	}))
 
-var nthSpec = decl.add(SpecDX("(form 'nth' cont|@1 int :pred? (func @1 bool) @1)",
+var nthSpec = decl.add(SpecDX("<form nth cont|@1 int pred?:<func @1 bool> @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -299,7 +299,7 @@ func (r *fIter) filter(x CallCtx, cont *exp.Atom) (lit.Lit, error) {
 	return nil, cor.Errorf("filter requires idxer or keyer got %s", cont.Typ())
 }
 
-var repeatSpec = decl.add(SpecDX("(form 'repeat' :count int :elem @1 list|@1)",
+var repeatSpec = decl.add(SpecDX("<form repeat count:int elem:@1 list|@1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -321,7 +321,7 @@ var repeatSpec = decl.add(SpecDX("(form 'repeat' :count int :elem @1 list|@1)",
 		return &exp.Atom{&res, x.Src}, nil
 	}))
 
-var eachSpec = decl.add(SpecDX("(form 'range' :n int list|int)",
+var eachSpec = decl.add(SpecDX("<form range n:int list|int>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -339,7 +339,7 @@ var eachSpec = decl.add(SpecDX("(form 'range' :n int list|int)",
 		return &exp.Atom{Lit: list, Src: x.Src}, nil
 	}))
 
-var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
+var filterSpec = decl.add(SpecDX("<form filter cont|@1 <func @1 bool> @2>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -357,7 +357,7 @@ var filterSpec = decl.add(SpecDX("(form 'filter' cont|@1 (func @1 bool) @2)",
 		return &exp.Atom{res, x.Src}, nil
 	}))
 
-var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
+var mapSpec = decl.add(SpecDX("<form map cont|@1 <func @1 @2> @3>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 		if err != nil {
@@ -437,7 +437,7 @@ var mapSpec = decl.add(SpecDX("(form 'map' cont|@1 (func @1 @2) @3)",
 		return nil, cor.Errorf("map requires idxer or keyer got %s", cont.Typ())
 	}))
 
-var foldSpec = decl.add(SpecDX("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
+var foldSpec = decl.add(SpecDX("<form fold cont|@1 @2 <func @2 @1 @2> @2>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
@@ -483,7 +483,7 @@ var foldSpec = decl.add(SpecDX("(form 'fold' cont|@1 @2 (func @2 @1 @2) @2)",
 		return nil, cor.Errorf("fold requires idxer or keyer got %s", cont.Typ())
 	}))
 
-var foldrSpec = decl.add(SpecDX("(form 'foldr' cont|@1 @2 (func @2 @1 @2) @2)",
+var foldrSpec = decl.add(SpecDX("<form foldr cont|@1 @2 <func @2 @1 @2> @2>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {

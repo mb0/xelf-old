@@ -8,7 +8,7 @@ func NewAlt(alts ...Type) (res Type) {
 }
 
 // Alt returns a new type alternative for a list of types. Other alternatives are flattened.
-// If the first type is already an alterantive, the following types are added.
+// If the first type is already an alternative, the following types are added.
 func Alt(alts ...Type) (res Type) {
 	if len(alts) == 0 {
 		return Void

@@ -14,20 +14,20 @@ func opAdd(r, n float64) (float64, error) { return r + n, nil }
 func opMul(r, n float64) (float64, error) { return r * n, nil }
 
 // addSpec adds up all arguments and converts the sum to the first argument's type.
-var addSpec = core.add(SpecDXX("(form 'add' @1:num :plain list|num : @1)",
+var addSpec = core.add(SpecDXX("<form add @1|num plain:list|num @1>",
 	func(x CallCtx) (exp.El, error) {
 		return execNums(x, 0, opAdd)
 	}))
 
 // mulSpec multiplies all arguments and converts the product to the first argument's type.
-var mulSpec = core.add(SpecDXX("(form 'mul' @1:num :plain list|num : @1)",
+var mulSpec = core.add(SpecDXX("<form mul @1|num plain:list|num @1>",
 	func(x CallCtx) (exp.El, error) {
 		return execNums(x, 1, opMul)
 	}))
 
 // subSpec subtracts the sum of the rest from the first argument and
 // converts to the first argument's type.
-var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|num : @1)",
+var subSpec = core.add(SpecDXX("<form sub @1|num plain:list|num @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
@@ -71,7 +71,7 @@ var subSpec = core.add(SpecDXX("(form 'sub' @1:num :plain list|num : @1)",
 // divSpec divides the product of the rest from the first argument.
 // If the first argument is an int div, integer division is used, otherwise it uses float division.
 // The result is converted to the first argument's type.
-var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|num : @1)",
+var divSpec = core.add(SpecDXX("<form div @1|num plain:list|num @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
@@ -122,7 +122,7 @@ var divSpec = core.add(SpecDXX("(form 'div' @1:num :plain list|num : @1)",
 	}))
 
 // remSpec calculates the remainder of the first two arguments and always returns an int.
-var remSpec = core.add(SpecDX("(form 'rem' int int int)", func(x CallCtx) (exp.El, error) {
+var remSpec = core.add(SpecDX("<form rem int int int>", func(x CallCtx) (exp.El, error) {
 	err := x.Layout.Eval(x.Prog, x.Env, typ.Void)
 	if err != nil {
 		return x.Call, err
@@ -146,12 +146,12 @@ func getNum(el exp.El) (lit.Numeric, bool) {
 }
 
 // absSpec returns the argument with the absolute numeric value.
-var absSpec = core.add(SpecDX("(form 'abs' @1:num @1)", func(x CallCtx) (fst exp.El, err error) {
+var absSpec = core.add(SpecDX("<form abs @1|num @1>", func(x CallCtx) (fst exp.El, err error) {
 	return sign(x, false)
 }))
 
 // negSpec returns the argument with the negated numeric value.
-var negSpec = core.add(SpecDX("(form 'neg' @1:num @1)", func(x CallCtx) (fst exp.El, err error) {
+var negSpec = core.add(SpecDX("<form neg @1|num @1>", func(x CallCtx) (fst exp.El, err error) {
 	return sign(x, true)
 }))
 
@@ -199,7 +199,7 @@ func sign(x CallCtx, neg bool) (_ exp.El, err error) {
 }
 
 // minSpec returns the argument with the smallest numeric value or an error.
-var minSpec = core.add(SpecDX("(form 'min' @1:num :plain? list|@1 @1)",
+var minSpec = core.add(SpecDX("<form min @1|num plain?:list|@1 @1>",
 	func(x CallCtx) (exp.El, error) {
 		var i int
 		return execNums(x, 0, func(r, n float64) (float64, error) {
@@ -211,7 +211,7 @@ var minSpec = core.add(SpecDX("(form 'min' @1:num :plain? list|@1 @1)",
 	}))
 
 // maxSpec returns the argument with the greatest numeric value or an error.
-var maxSpec = core.add(SpecDX("(form 'max' @1:num :plain? list|@1 @1)",
+var maxSpec = core.add(SpecDX("<form max @1|num plain?:list|@1 @1>",
 	func(x CallCtx) (exp.El, error) {
 		var i int
 		return execNums(x, 0, func(r, n float64) (float64, error) {

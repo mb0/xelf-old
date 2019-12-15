@@ -7,7 +7,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var layoutSig = exp.MustSig("(form '_' :args : void)")
+var layoutSig = exp.MustSig("<form _ args; any>")
 
 // ParseTags parses args as tags and sets them to v using rules or returns an error.
 func ParseTags(p *exp.Prog, env exp.Env, els []exp.El, v interface{}, rules TagRules) error {
@@ -31,7 +31,7 @@ type (
 	KeySetter = func(n Node, key string, l lit.Lit) error
 )
 
-// KeyRule is a configurable helper for assigning tags or decls to nodes.
+// KeyRule is a configurable helper for assigning tags to nodes.
 type KeyRule struct {
 	KeyPrepper
 	KeySetter
@@ -59,7 +59,7 @@ func (tr *TagRules) Resolve(p *exp.Prog, env exp.Env, tags []*exp.Named, node No
 	for i, t := range tags {
 		err = tr.ResolveTag(p, env, t, i, node)
 		if err != nil {
-			return cor.Errorf("resolve tag %s for %T: %w", t.Name, node.Typ(), err)
+			return cor.Errorf("resolve tag %q %v for %T: %w", t.Name, t.El, node.Typ(), err)
 		}
 	}
 	return nil
@@ -79,7 +79,7 @@ func (tr *TagRules) ResolveTag(p *exp.Prog, env exp.Env, tag *exp.Named, idx int
 	r := tr.Rules[key]
 	l, err := tr.prepper(r)(p, env, tag)
 	if err != nil {
-		return err
+		return cor.Errorf("prepper %q err: %w", key, err)
 	}
 	return tr.setter(r)(node, key, l)
 }
@@ -170,15 +170,13 @@ func BitsPrepper(consts []typ.Const) KeyPrepper {
 		if err != nil {
 			return l, err
 		}
-		if l == lit.Nil {
-			k := n.Key()
-			for _, b := range consts {
-				if k == b.Key() {
-					return lit.Int(b.Val), nil
-				}
+		k := n.Key()
+		for _, b := range consts {
+			if k == b.Key() {
+				return lit.Int(b.Val), nil
 			}
-			return nil, cor.Errorf("no constant named %q", k)
 		}
+		return nil, cor.Errorf("no constant named %q", k)
 		num, ok := l.(lit.Numeric)
 		if !ok {
 			return nil, cor.Errorf("expect numer for %q got %T", n.Key(), l)

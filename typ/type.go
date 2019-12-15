@@ -184,20 +184,20 @@ func (t Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool
 			break
 		}
 		if n > 1 {
-			b.WriteByte('(')
+			b.WriteByte('<')
 		}
 		err := writePre(b, pre, t, qual)
 		if err != nil {
 			return err
 		}
 		if n == 1 {
-			b.WriteByte(':')
+			b.WriteByte('|')
 			c := t.Params[0].Type
 			return c.writeBfr(b, nil, nil, false)
 		}
-		b.WriteString(":alt")
+		b.WriteString("|alt")
 		err = t.Info.writeXelf(b, true, hist)
-		b.WriteByte(')')
+		b.WriteByte('>')
 		return err
 	case KindRef, KindSch:
 		ref := ""
@@ -214,13 +214,13 @@ func (t Type) writeBfr(b *bfr.Ctx, pre *strings.Builder, hist []*Info, qual bool
 		detail = true
 		fallthrough
 	case KindBits, KindEnum, KindObj:
-		b.WriteByte('(')
+		b.WriteByte('<')
 		err := writePre(b, pre, t, qual)
 		if err != nil {
 			return err
 		}
 		err = t.Info.writeXelf(b, detail, append(hist, t.Info))
-		b.WriteByte(')')
+		b.WriteByte('>')
 		return err
 	}
 	return writePre(b, pre, t, qual)
@@ -258,27 +258,23 @@ func (a *Info) writeXelf(b *bfr.Ctx, detail bool, hist []*Info) error {
 	}
 	if a.Ref != "" {
 		b.WriteByte(' ')
-		b.Quote(a.Ref)
+		b.WriteString(a.Ref)
 	}
 	if !detail {
 		return nil
 	}
 	var i int
 	for ; i < len(a.Params); i++ {
+		b.WriteByte(' ')
 		f := a.Params[i]
 		if f.Name != "" {
-			b.WriteString(" :")
 			b.WriteString(f.Name)
-			for _, o := range a.Params[i+1:] {
-				if !f.Type.Equal(o.Type) {
-					break
-				}
-				b.WriteString(" :")
-				b.WriteString(o.Name)
-				i++
+			if f.Type == Void {
+				b.WriteByte(';')
+				continue
 			}
+			b.WriteByte(':')
 		}
-		b.WriteByte(' ')
 		err := f.Type.writeBfr(b, nil, hist, false)
 		if err != nil {
 			return err

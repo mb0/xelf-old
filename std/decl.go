@@ -8,7 +8,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var withSpec = core.add(SpecRX("(form 'with' any :act expr @)",
+var withSpec = core.add(SpecRX("<form with any act:expr @>",
 	func(x CallCtx) (exp.El, error) {
 		dot := x.Arg(0)
 		el, err := x.Prog.Resl(x.Env, dot, typ.Void)
@@ -55,15 +55,15 @@ var withSpec = core.add(SpecRX("(form 'with' any :act expr @)",
 
 // letSpec declares one or more resolvers in a new scope and resolves the tailing actions.
 // It returns the last actions result.
-var letSpec = decl.add(SpecRX("(form 'let' :tags dict|any :action expr @)",
+var letSpec = decl.add(SpecRX("<form let tags; act:expr @>",
 	func(x CallCtx) (exp.El, error) {
 		act := x.Arg(1)
-		decls := x.Tags(0)
-		if act == nil || len(decls) == 0 {
+		tags := x.Tags(0)
+		if act == nil || len(tags) == 0 {
 			return nil, cor.Errorf("let must have tags and an action")
 		}
 		s := exp.NewScope(x.Env)
-		_, err := reslLetDecls(x.Prog, s, decls)
+		_, err := reslLetTags(x.Prog, s, tags)
 		if err != nil {
 			return x.Call, err
 		}
@@ -78,9 +78,9 @@ var letSpec = decl.add(SpecRX("(form 'let' :tags dict|any :action expr @)",
 	},
 	func(x CallCtx) (exp.El, error) {
 		act := x.Arg(1)
-		decls := x.Tags(0)
+		tags := x.Tags(0)
 		s := exp.NewScope(x.Env)
-		_, err := evalLetDecls(x.Prog, s, decls)
+		_, err := evalLetTags(x.Prog, s, tags)
 		if err != nil {
 			return x.Call, err
 		}
@@ -104,12 +104,12 @@ func elResType(el exp.El) typ.Type {
 }
 
 // fnSpec declares a function literal from its arguments.
-var fnSpec = decl.add(SpecXX("(form 'fn' :tags? dict|typ :plain list|expr @)",
+var fnSpec = decl.add(SpecXX("<form fn tags?:dict|typ act:expr @>",
 	func(x CallCtx) (exp.El, error) {
 		tags := x.Tags(0)
 		rest := x.Args(1)
 		if len(tags) > 0 {
-			// construct sig from decls
+			// construct sig from tags
 			fs := make([]typ.Param, 0, len(tags))
 			var naked int
 			for _, d := range tags {
@@ -213,13 +213,13 @@ func (ms *mockScope) params() ([]typ.Param, error) {
 	return ps, nil
 }
 
-func reslLetDecls(p *exp.Prog, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
-	for _, d := range decls {
-		if len(d.Name) < 2 {
-			return nil, cor.Error("unnamed declaration")
+func reslLetTags(p *exp.Prog, env *exp.Scope, tags []*exp.Named) (res exp.El, err error) {
+	for _, d := range tags {
+		if len(d.Name) == 0 {
+			return nil, cor.Error("unnamed tag")
 		}
 		if d.El == nil {
-			return nil, cor.Error("naked declaration")
+			return nil, cor.Error("naked tag")
 		}
 		res, err = p.Resl(env, d.El, typ.Void)
 		if err != nil {
@@ -239,8 +239,8 @@ func reslLetDecls(p *exp.Prog, env *exp.Scope, decls []*exp.Named) (res exp.El, 
 	}
 	return res, nil
 }
-func evalLetDecls(p *exp.Prog, env *exp.Scope, decls []*exp.Named) (res exp.El, err error) {
-	for _, d := range decls {
+func evalLetTags(p *exp.Prog, env *exp.Scope, tags []*exp.Named) (res exp.El, err error) {
+	for _, d := range tags {
 		res, err = p.Eval(env, d.El, typ.Void)
 		if err != nil {
 			return nil, err

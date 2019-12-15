@@ -46,7 +46,7 @@ type (
 		lex.Src
 	}
 
-	// Named is a tag or declaration; its meaning is determined by the parent's specification.
+	// Named is a named elements. Its meaning is determined by the parent's specification.
 	Named struct {
 		Name string
 		El   El
@@ -97,26 +97,43 @@ func (x *Atom) WriteBfr(b *bfr.Ctx) error { return x.Lit.WriteBfr(b) }
 func (x *Sym) WriteBfr(b *bfr.Ctx) error  { return b.Fmt(x.Name) }
 func (x *Dyn) WriteBfr(b *bfr.Ctx) error  { return writeExpr(b, "", x.Els) }
 func (x *Named) WriteBfr(b *bfr.Ctx) error {
-	if x.El == nil {
-		return b.Fmt(x.Name)
-	}
-	if x.Name == "" || x.Name[0] != ':' {
-		if d := x.Dyn(); d != nil {
-			return writeExpr(b, x.Name, d.Els)
+	switch x.Name {
+	case ":", ";":
+		b.WriteByte('(')
+		b.WriteString(x.Name)
+		d, ok := x.El.(*Dyn)
+		if ok {
+			for i, el := range d.Els {
+				if i > 0 {
+					b.WriteByte(' ')
+				}
+				el.WriteBfr(b)
+			}
+		} else if x.El != nil {
+			x.El.WriteBfr(b)
+		}
+		b.WriteByte(')')
+	case "":
+		if x.El != nil {
+			x.El.WriteBfr(b)
+		} else {
+			b.WriteString("'';")
+		}
+	default:
+		b.WriteString(x.Name)
+		if x.El != nil {
+			b.WriteByte(':')
+			x.El.WriteBfr(b)
+		} else {
+			b.WriteByte(';')
 		}
 	}
-	if x.Name != "" {
-		b.WriteString(x.Name)
-		b.WriteByte(' ')
-	}
-	return x.El.WriteBfr(b)
+	return nil
 }
 func (x *Call) WriteBfr(b *bfr.Ctx) error {
 	name := x.Spec.Ref
 	if name == "" {
 		name = x.Spec.String()
-	} else if name[0] == ':' {
-		name = name[1:]
 	}
 	return writeExpr(b, name, x.All())
 }
@@ -125,7 +142,7 @@ func writeExpr(b *bfr.Ctx, name string, args []El) error {
 	b.WriteByte('(')
 	if name != "" {
 		b.WriteString(name)
-		if len(args) != 0 {
+		if len(args) != 0 && name != ":" && name != ";" {
 			b.WriteByte(' ')
 		}
 	}
@@ -160,7 +177,6 @@ func NewNamed(name string, els ...El) *Named {
 }
 
 func (x *Named) Key() string { return cor.Keyed(x.Name) }
-func (x *Named) IsTag() bool { return x.Name != "" && x.Name[0] == ':' }
 
 func (x *Named) Args() []El {
 	if x.El == nil {

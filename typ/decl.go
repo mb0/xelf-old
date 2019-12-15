@@ -79,7 +79,7 @@ func (t Type) Deopt() (_ Type, ok bool) {
 // Elem returns a generalized element type for container types and void otherwise.
 func (t Type) Elem() Type {
 	switch t.Kind & MaskElem {
-	case KindCont, KindIdxr, KindKeyr, KindList, KindDict:
+	case KindCont, KindIdxr, KindKeyr, KindList, KindDict, KindExpr:
 		if !t.HasParams() {
 			return Any
 		}

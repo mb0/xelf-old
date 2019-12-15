@@ -1,32 +1,28 @@
 package exp
 
 import (
-	"strings"
-
 	"github.com/mb0/xelf/cor"
 	"github.com/mb0/xelf/typ"
 )
 
 // Layout is a helper to validate form expression arguments.
 //
-// We distinguish between tag and declaration expressions, and all other elements, that we call the
-// plain elements in the context of layouts.
+// We distinguish between tag and plain elements in the context of layouts.
 //
 // The layout is formalizes by the parameter signature. It uses a number of special parameter names,
 // that indicate to the layout how arguments must be parsed. A full form consisting of all possible
-// kinds of accepted elements, is: (form 'full' :args :decls :tail)
+// kinds of accepted elements, is: <form full plain; tags; tail;>
 //
 // These are the recognised parameter names:
-//    plain accepts any number of plain elements and can be followed by tags or decls
-//    tags accepts any number of tag expressions and can be followed by decls or tail
-//    decls accepts declarations with multiple arguments and can only be followed by tail.
-//    args or tail  accepts any number of leading plain elements and then tag expression
-//    args is equavilent to plain follows by tags, tail must be the last element
+//    plain accepts any number of plain elements and can be followed by tags
+//    tags accepts any number of tag expressions and can be followed by tail
+//    args accepts any number of leading plain elements and then tag expression
+//    tail accepts any element and must be the last element
 //
-// Explicit parameter arguments must be at the start befor any special parameter.
+// Explicit parameter arguments must be at the start before any special parameter.
 //
 // The parameter types give hints at what types are accepted. The special parameters can only use
-// container types. The decls parameters expect a keyer type, while all others accept an
+// container types. The tags parameters expect a keyer type, while all others accept an
 // idxer type. If the type is omitted, the layout will not resolve or check that parameter.
 //
 type Layout struct {
@@ -71,24 +67,11 @@ func (l *Layout) Tags(idx int) []*Named {
 		case typ.Named:
 			res = append(res, arg.(*Named))
 		default:
+			// TODO error and use args instead
 			res = append(res, &Named{El: arg})
 		}
 	}
 	return res
-}
-
-func (l *Layout) Decls(idx int) ([]*Named, error) {
-	args := l.Args(idx)
-	res := make([]*Named, 0, len(args))
-	for _, arg := range args {
-		switch arg.Typ() {
-		case typ.Named:
-			res = append(res, arg.(*Named))
-		default:
-			return nil, cor.Errorf("unexpected decl element %s", arg)
-		}
-	}
-	return res, nil
 }
 
 func (l *Layout) Resl(p *Prog, env Env, h typ.Type) error {
@@ -110,7 +93,7 @@ func (l *Layout) Resl(p *Prog, env Env, h typ.Type) error {
 			continue
 		}
 		switch key := param.Key(); key {
-		case "plain", "tags", "tail", "args", "decls":
+		case "plain", "tags", "tail", "args":
 			v := p.New()
 			p.Bind(v.Kind, typ.NewAlt(param.Type.Elem()))
 			var err error
@@ -123,7 +106,7 @@ func (l *Layout) Resl(p *Prog, env Env, h typ.Type) error {
 			}
 			v = p.Apply(v)
 			switch key {
-			case "tags", "decls":
+			case "tags":
 				param.Type = typ.Dict(v)
 			default:
 				param.Type = typ.List(v)
@@ -170,7 +153,7 @@ func (l *Layout) Eval(p *Prog, env Env, h typ.Type) error {
 			continue
 		}
 		switch key := param.Key(); key {
-		case "plain", "tags", "tail", "args", "decls":
+		case "plain", "tags", "tail", "args":
 			args, err := p.EvalAll(env, args, typ.Void)
 			if err != nil {
 				return err
@@ -204,30 +187,25 @@ func FormLayout(sig typ.Type, args []El) (*Layout, error) {
 	params := sig.Params[:len(sig.Params)-1]
 	res := make([][]El, 0, len(params))
 	var tmp []El
-Loop:
 	for _, p := range params {
 		// check kind of parameter and consume matching args
 		tmp = nil
-		switch p.Key() {
+		switch pkey := p.Key(); pkey {
 		case "plain":
 			tmp, args = consumePlain(args, tmp)
 		case "tags":
 			tmp, args = consumeTags(args, tmp)
-		case "args", "tail":
+		case "args":
 			tmp, args = consumePlain(args, tmp)
 			tmp, args = consumeTags(args, tmp)
-		case "decls":
-			tmp, args = consumeDecls(args, tmp)
+		case "tail":
+			tmp, args = args, nil
 		default: // explicit param
 			if len(args) > 0 {
 				if args[0] == nil {
 					return nil, cor.Errorf("arg is null for %s", sig)
 				}
-				if _, _, _, ok := isSpecial(args[0], ":+-"); ok {
-					if !p.Opt() {
-						break Loop
-					}
-				} else {
+				if v, ok := args[0].(*Named); !ok || v.Key() == pkey {
 					tmp, args = args[:1], args[1:]
 				}
 			}
@@ -239,7 +217,7 @@ Loop:
 	}
 	// at this point all arguments should have been consumed
 	if len(args) > 0 {
-		return nil, cor.Errorf("unexpected tail element %s", args[0])
+		return nil, cor.Errorf("unexpected tail element %s - %s", args[0], res)
 	}
 	return &Layout{Sig: sig, Groups: res}, nil
 }
@@ -251,7 +229,7 @@ func isSig(t typ.Type) bool {
 func consumeArg(es []El) (El, []El) {
 	if len(es) != 0 {
 		e := es[0]
-		if _, _, _, ok := isSpecial(e, ":+-"); !ok {
+		if _, ok := e.(*Named); !ok {
 			return e, es[1:]
 		}
 	}
@@ -259,42 +237,9 @@ func consumeArg(es []El) (El, []El) {
 }
 func consumeTag(es []El) (El, []El) {
 	if len(es) != 0 {
-		if v, ok := es[0].(*Named); ok && v.IsTag() {
+		if v, ok := es[0].(*Named); ok {
 			return v, es[1:]
 		}
-	}
-	return nil, es
-}
-
-func consumeDecl(es []El) (*Named, []El) {
-	if len(es) == 0 {
-		return nil, nil
-	}
-	e := es[0]
-	if t, s, a, ok := isSpecial(e, "+-"); ok {
-		d := &Named{Name: s}
-		es = es[1:]
-		var els []El
-		if t == typ.Dyn || len(a) > 0 {
-			els, a = consumePlain(a, els)
-			els, a = consumeTags(a, els)
-			els, _ = consumeDecls(a, els)
-			if t == typ.Dyn {
-				d.El = &Dyn{Els: els}
-				return d, es
-			}
-		} else {
-			els, es = consumePlain(es, els)
-			els, es = consumeTags(es, els)
-		}
-		switch len(els) {
-		case 0:
-		case 1:
-			d.El = els[0]
-		default:
-			d.El = &Dyn{Els: els}
-		}
-		return d, es
 	}
 	return nil, es
 }
@@ -322,52 +267,4 @@ func consumeTags(es []El, res []El) ([]El, []El) {
 		break
 	}
 	return res, es
-}
-func consumeDecls(es []El, res []El) ([]El, []El) {
-	var e *Named
-	for len(es) > 0 {
-		e, es = consumeDecl(es)
-		if e != nil {
-			if e.Name == "--" {
-				break
-			}
-			res = append(res, e)
-			continue
-		}
-		break
-	}
-	return res, es
-}
-
-func isSpecial(e El, pre string) (t typ.Type, s string, a []El, ok bool) {
-	switch t = e.Typ(); t {
-	case typ.Dyn:
-		switch d := e.(type) {
-		case *Dyn:
-			if len(d.Els) != 0 {
-				s, ok = isSpecialSym(d.Els[0], pre)
-				a = d.Els[1:]
-			}
-		}
-	case typ.Named:
-		v := e.(*Named)
-		d := v.Dyn()
-		s, ok = v.Name, true
-		if d != nil {
-			t, a = typ.Dyn, d.Els
-		} else {
-			a = v.Args()
-		}
-	}
-	return
-}
-func isSpecialSym(e El, pre string) (string, bool) {
-	switch v := e.(type) {
-	case *Sym:
-		return isSpecialName(v.Name, pre)
-	}
-	return "", false
-}
-func isSpecialName(name string, pre string) (string, bool) {
-	return name, name != "" && strings.IndexByte(pre, name[0]) != -1
 }

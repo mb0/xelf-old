@@ -18,6 +18,23 @@ func TestLexer(t *testing.T) {
 			{Token{Tok: Number, Src: src(3, 1), Raw: "0"}, nil},
 		}}, ""},
 		{"[00]", nil, "number zero must be separated by whitespace"},
+		{":", &Tree{Token{Tok: ':', Src: src(0, 1)}, nil}, ""},
+		{";", &Tree{Token{Tok: ';', Src: src(0, 1)}, nil}, ""},
+		{"{:0}", nil, "1:1: unexpected got ':'"},
+		{"{::0}", nil, "1:1: unexpected got ':'"},
+		{"{a;}", &Tree{Token{Tok: '{', Src: src(0, 4)}, []*Tree{
+			{Token{Tok: Tag, Src: src(1, 2), Raw: ";"}, []*Tree{
+				{Token{Tok: Symbol, Src: src(1, 1), Raw: "a"}, nil},
+			}},
+		}}, ""},
+		{"{a::}", nil, "1:3: unexpected got ':'"},
+		{"{a:0}", &Tree{Token{Tok: '{', Src: src(0, 5)}, []*Tree{
+			{Token{Tok: Tag, Src: src(1, 3), Raw: ":"}, []*Tree{
+				{Token{Tok: Symbol, Src: src(1, 1), Raw: "a"}, nil},
+				{Token{Tok: Number, Src: src(3, 1), Raw: "0"}, nil},
+			}},
+		}}, ""},
+		{"{a:0:}", nil, "1:4: unexpected got ':'"},
 	}
 	for _, test := range tests {
 		got, err := Read(strings.NewReader(test.raw))
@@ -35,7 +52,7 @@ func TestLexer(t *testing.T) {
 				continue
 			}
 			if !reflect.DeepEqual(test.want, got) {
-				t.Errorf("want tree %s got %s\n\t%#[1]v\n\t%#[2]v", test.want, got)
+				t.Errorf("want tree %s got %s\n\t%[1]s\n\t%[2]s", test.want, got)
 			}
 		}
 	}

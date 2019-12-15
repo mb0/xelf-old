@@ -1,6 +1,7 @@
 package typ
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -19,42 +20,42 @@ func TestString(t *testing.T) {
 		{Ref("a"), `@a`, ``},
 		{Ref("a.b"), `@a.b`, ``},
 		{Var(1), `@1`, ``},
-		{Var(1, Num), `@1:num`, ``},
-		{Var(0, Num, Str), `(@:alt num str)`, ``},
-		{List(Var(1, Num, Str)), `(list|@1:alt num str)`, ``},
-		{Alt(Num, Str), `(alt num str)`, `(~alt num str)`},
+		{Var(1, Num), `@1|num`, ``},
+		{Var(0, Num, Str), `<@|alt num str>`, ``},
+		{List(Var(1, Num, Str)), `<list|@1|alt num str>`, ``},
+		{Alt(Num, Str), `<alt num str>`, `<~alt num str>`},
 		{Opt(Ref("b")), `@b?`, ``},
 		{Opt(Sch("a.b")), `~a.b?`, ``},
-		{Opt(Enum("kind")), `(enum? 'kind')`, ``},
+		{Opt(Enum("kind")), `<enum? kind>`, ``},
 		{List(Any), `list`, ``},
 		{List(Int), `list|int`, ``},
 		{Keyr(Num), `keyr|num`, ``},
 		{Cont(Num), `cont|num`, ``},
 		{Opt(Rec([]Param{
 			{Name: "Name", Type: Str},
-		})), `(rec? :Name str)`, ``},
+		})), `<rec? Name:str>`, ``},
 		{List(Rec([]Param{
 			{Name: "Name", Type: Str},
-		})), `(list|rec :Name str)`, ``},
+		})), `<list|rec Name:str>`, ``},
 		{Rec([]Param{
 			{Name: "x", Type: Int},
 			{Name: "y", Type: Int},
-		}), `(rec :x :y int)`, ``},
+		}), `<rec x:int y:int>`, ``},
 		{Rec([]Param{
 			{Type: Ref("Other")},
 			{Name: "Name", Type: Str},
-		}), `(rec @Other :Name str)`, ``},
-		{Obj("Foo"), `(obj 'Foo')`, ``},
+		}), `<rec @Other Name:str>`, ``},
+		{Obj("Foo"), `<obj Foo>`, ``},
 		{Type{Kind: KindFunc, Info: &Info{Params: []Param{
 			{Name: "text", Type: Str},
 			{Name: "sub", Type: Str},
 			{Type: Int},
-		}}}, `(func :text :sub str int)`, ``},
+		}}}, `<func text:str sub:str int>`, ``},
 		{Type{Kind: KindForm, Info: &Info{Ref: "_", Params: []Param{
 			{Name: "a"},
 			{Name: "b"},
 			{Type: Void},
-		}}}, `(form '_' :a :b : void)`, ``},
+		}}}, `<form _ a; b; void>`, ``},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()
@@ -78,7 +79,9 @@ func TestString(t *testing.T) {
 			t.Errorf("%s marshal error: %v", test.raw, err)
 			continue
 		}
-		want = fmt.Sprintf(`{"typ":"%s"}`, test.raw)
+		var b bytes.Buffer
+		json.HTMLEscape(&b, []byte(test.raw))
+		want = fmt.Sprintf(`{"typ":"%s"}`, b.String())
 		if got := string(rawb); got != want {
 			t.Errorf("%s marshal got %v", want, got)
 		}
@@ -104,10 +107,10 @@ func TestTypeSelfRef(t *testing.T) {
 		typ Type
 		raw string
 	}{
-		{a, "(rec :Ref ~0?)"},
-		{Opt(a), "(rec? :Ref ~0?)"},
-		{b, "(rec :C (rec :Ref list|~1))"},
-		{Opt(b), "(rec? :C (rec :Ref list|~1))"},
+		{a, "<rec Ref:~0?>"},
+		{Opt(a), "<rec? Ref:~0?>"},
+		{b, "<rec C:<rec Ref:list|~1>>"},
+		{Opt(b), "<rec? C:<rec Ref:list|~1>>"},
 	}
 	for _, test := range tests {
 		raw := test.typ.String()
