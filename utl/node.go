@@ -36,7 +36,6 @@ func GetNode(val interface{}) (Node, error) {
 // NodeRules is a configurable helper for assigning tags and tail elements to nodes.
 type NodeRules struct {
 	Tags TagRules
-	Decl KeyRule
 	Tail KeyRule
 }
 
@@ -77,7 +76,6 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 	if err != nil {
 		return nil, err
 	}
-	var decls []*exp.Named
 	// associate to arguments using rules
 	fps := c.Spec.Arg()
 	for i, fp := range fps {
@@ -90,7 +88,7 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 		case "tail":
 			if r.Tail.KeySetter != nil {
 				tail := c.Args(i)
-				named := &exp.Named{Name: "::", El: &exp.Dyn{Els: tail}}
+				named := &exp.Tag{Name: "::", El: &exp.Dyn{Els: tail}}
 				l, err := r.Tail.prepper(KeyRule{})(p, env, named)
 				if err != nil {
 					return nil, err
@@ -105,27 +103,9 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 					return nil, err
 				}
 			}
-		case "decls":
-			decls, err = c.Decls(i)
-			if err != nil {
-				return nil, err
-			}
 		default:
-			t := &exp.Named{Name: fp.Name, El: &exp.Dyn{Els: c.Args(i)}}
+			t := &exp.Tag{Name: fp.Name, El: &exp.Dyn{Els: c.Args(i)}}
 			r.Tags.ResolveTag(p, env, t, i, node)
-		}
-	}
-	for _, d := range decls {
-		l, err := r.Decl.prepper(KeyRule{})(p, env, d)
-		if err != nil {
-			return nil, err
-		}
-		if r.Decl.KeySetter == nil {
-			return nil, cor.Errorf("unexpected decl %s", d)
-		}
-		err = r.Decl.KeySetter(node, d.Key(), l)
-		if err != nil {
-			return nil, err
 		}
 	}
 	return &exp.Atom{Lit: node}, nil
@@ -134,5 +114,3 @@ func (r *NodeResolver) Resl(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (
 func (r *NodeResolver) Eval(p *exp.Prog, env exp.Env, c *exp.Call, h typ.Type) (exp.El, error) {
 	return r.Resl(p, env, c, h)
 }
-
-var refNode = reflect.TypeOf((*Node)(nil)).Elem()

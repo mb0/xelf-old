@@ -69,7 +69,7 @@ func TestFuncResolver(t *testing.T) {
 			&exp.Atom{Lit: lit.Str("HELLO")},
 		}, `'hello'`, nil},
 		{time.Time.Format, []string{"t?", "format"}, []exp.El{
-			&exp.Named{Name: ":format", El: &exp.Atom{Lit: lit.Char(`2006-02-01`)}},
+			&exp.Tag{Name: ":format", El: &exp.Atom{Lit: lit.Char(`2006-02-01`)}},
 		}, `'0001-01-01'`, nil},
 		{fmt.Sprintf, nil, []exp.El{
 			&exp.Atom{Lit: lit.Str("Hi %s no. %d.")},

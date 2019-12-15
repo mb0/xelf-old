@@ -11,8 +11,8 @@ type Visitor interface {
 	VisitLit(*Atom) error
 	VisitType(*Atom) error
 	VisitSym(*Sym) error
-	EnterNamed(*Named) error
-	LeaveNamed(*Named) error
+	EnterNamed(*Tag) error
+	LeaveNamed(*Tag) error
 	EnterDyn(*Dyn) error
 	LeaveDyn(*Dyn) error
 	EnterCall(*Call) error
@@ -22,15 +22,15 @@ type Visitor interface {
 // Ghost is a no-op visitor, that visits each element, but does not act on any.
 type Ghost struct{}
 
-func (Ghost) VisitLit(*Atom) error    { return nil }
-func (Ghost) VisitType(*Atom) error   { return nil }
-func (Ghost) VisitSym(*Sym) error     { return nil }
-func (Ghost) EnterNamed(*Named) error { return nil }
-func (Ghost) LeaveNamed(*Named) error { return nil }
-func (Ghost) EnterDyn(*Dyn) error     { return nil }
-func (Ghost) LeaveDyn(*Dyn) error     { return nil }
-func (Ghost) EnterCall(*Call) error   { return nil }
-func (Ghost) LeaveCall(*Call) error   { return nil }
+func (Ghost) VisitLit(*Atom) error  { return nil }
+func (Ghost) VisitType(*Atom) error { return nil }
+func (Ghost) VisitSym(*Sym) error   { return nil }
+func (Ghost) EnterNamed(*Tag) error { return nil }
+func (Ghost) LeaveNamed(*Tag) error { return nil }
+func (Ghost) EnterDyn(*Dyn) error   { return nil }
+func (Ghost) LeaveDyn(*Dyn) error   { return nil }
+func (Ghost) EnterCall(*Call) error { return nil }
+func (Ghost) LeaveCall(*Call) error { return nil }
 
 func Traverse(v Visitor, els ...El) error {
 	for _, el := range els {
@@ -53,7 +53,7 @@ func (x *Sym) Traverse(v Visitor) error {
 	return v.VisitSym(x)
 }
 
-func (x *Named) Traverse(v Visitor) error {
+func (x *Tag) Traverse(v Visitor) error {
 	err := v.EnterNamed(x)
 	if err != nil {
 		return muteSkip(err)

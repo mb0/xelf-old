@@ -9,14 +9,14 @@ import (
 
 // failSpec returns an error, if c is an execution context it fails expression string as error,
 // otherwise it uses ErrUnres. This is primarily useful for testing.
-var failSpec = core.add(SpecDX("(form 'fail' :plain? list any)", func(x CallCtx) (exp.El, error) {
+var failSpec = core.add(SpecDX("<form fail plain?; any>", func(x CallCtx) (exp.El, error) {
 	return nil, cor.Errorf("%s", x.Call)
 }))
 
 // orSpec resolves the arguments as short-circuiting logical or to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'or' expression resolves to true.
-var orSpec = core.add(SpecDXX("(form 'or' :plain? list bool)",
+var orSpec = core.add(SpecDXX("<form or plain?; bool>",
 	func(x CallCtx) (exp.El, error) {
 		args := x.Args(0)
 		for i, arg := range args {
@@ -44,7 +44,7 @@ var orSpec = core.add(SpecDXX("(form 'or' :plain? list bool)",
 // andSpec resolves the arguments as short-circuiting logical 'and' to a bool literal.
 // The arguments must be plain literals and are considered true if not a zero value.
 // An empty 'and' expression resolves to true.
-var andSpec = core.add(SpecDXX("(form 'and' :plain? list bool)", resolveAnd))
+var andSpec = core.add(SpecDXX("<form and plain?; bool>", resolveAnd))
 
 func resolveAnd(x CallCtx) (exp.El, error) {
 	args := x.Args(0)
@@ -83,7 +83,7 @@ var boolSpec *exp.Spec
 var notSpec *exp.Spec
 
 func init() {
-	boolSpec = core.add(SpecDXX("(form ':bool' :plain? list bool)",
+	boolSpec = core.add(SpecDXX("<form ok plain?; bool>",
 		func(x CallCtx) (exp.El, error) {
 			res, err := resolveAnd(x)
 			if err != nil {
@@ -98,7 +98,7 @@ func init() {
 			return a, nil
 		}))
 
-	notSpec = core.add(SpecDXX("(form 'not' :plain? list bool)",
+	notSpec = core.add(SpecDXX("<form not plain?; bool>",
 		func(x CallCtx) (exp.El, error) {
 			res, err := resolveAnd(x)
 			if err != nil {
@@ -137,8 +137,7 @@ func simplifyBool(e *exp.Call) {
 
 // ifSpec resolves the arguments as condition, action pairs as part of an if-else condition.
 // The odd end is the else action otherwise a zero value of the first action's type is used.
-var ifSpec = core.add(SpecRX("(form 'if' ~any ~any :plain? list @)",
-
+var ifSpec = core.add(SpecRX("<form if any any plain?; @>",
 	func(x CallCtx) (exp.El, error) {
 		// collect all possible action types in an alternative, then choose the common type
 		alt := typ.NewAlt()

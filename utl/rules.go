@@ -7,7 +7,7 @@ import (
 	"github.com/mb0/xelf/typ"
 )
 
-var layoutSig = exp.MustSig("(form '_' :args : void)")
+var layoutSig = exp.MustSig("<form _ args; any>")
 
 // ParseTags parses args as tags and sets them to v using rules or returns an error.
 func ParseTags(p *exp.Prog, env exp.Env, els []exp.El, v interface{}, rules TagRules) error {
@@ -26,12 +26,12 @@ type (
 	// IdxKeyer returns a key for an unnamed tag at idx.
 	IdxKeyer = func(n Node, idx int) string
 	// KeyPrepper resolves els and returns a literal for key or an error.
-	KeyPrepper = func(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error)
+	KeyPrepper = func(p *exp.Prog, env exp.Env, n *exp.Tag) (lit.Lit, error)
 	// KeySetter sets l to node with key or returns an error.
 	KeySetter = func(n Node, key string, l lit.Lit) error
 )
 
-// KeyRule is a configurable helper for assigning tags or decls to nodes.
+// KeyRule is a configurable helper for assigning tags to nodes.
 type KeyRule struct {
 	KeyPrepper
 	KeySetter
@@ -55,18 +55,18 @@ func (tr TagRules) WithOffset(off int) *TagRules {
 }
 
 // Resolve resolves tags using c and env and assigns them to node or returns an error
-func (tr *TagRules) Resolve(p *exp.Prog, env exp.Env, tags []*exp.Named, node Node) (err error) {
+func (tr *TagRules) Resolve(p *exp.Prog, env exp.Env, tags []*exp.Tag, node Node) (err error) {
 	for i, t := range tags {
 		err = tr.ResolveTag(p, env, t, i, node)
 		if err != nil {
-			return cor.Errorf("resolve tag %s for %T: %w", t.Name, node.Typ(), err)
+			return cor.Errorf("resolve tag %q %v for %T: %w", t.Name, t.El, node.Typ(), err)
 		}
 	}
 	return nil
 }
 
 // ResolveTag resolves tag using c and env and assigns them to node or returns an error
-func (tr *TagRules) ResolveTag(p *exp.Prog, env exp.Env, tag *exp.Named, idx int, node Node) (err error) {
+func (tr *TagRules) ResolveTag(p *exp.Prog, env exp.Env, tag *exp.Tag, idx int, node Node) (err error) {
 	var key string
 	if tag.Name != "" {
 		key = tag.Key()
@@ -79,7 +79,7 @@ func (tr *TagRules) ResolveTag(p *exp.Prog, env exp.Env, tag *exp.Named, idx int
 	r := tr.Rules[key]
 	l, err := tr.prepper(r)(p, env, tag)
 	if err != nil {
-		return err
+		return cor.Errorf("prepper %q err: %w", key, err)
 	}
 	return tr.setter(r)(node, key, l)
 }
@@ -99,7 +99,7 @@ func OffsetKeyer(offset int) IdxKeyer {
 }
 
 // ListPrepper resolves args using c and env and returns a list or an error.
-func ListPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
+func ListPrepper(p *exp.Prog, env exp.Env, n *exp.Tag) (lit.Lit, error) {
 	args, err := p.EvalAll(env, n.Args(), typ.Void)
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ func ListPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
 
 // DynPrepper resolves args using c and env and returns a literal or an error.
 // Empty args return a untyped null literal. Multiple args are resolved as dyn expression.
-func DynPrepper(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
+func DynPrepper(p *exp.Prog, env exp.Env, n *exp.Tag) (lit.Lit, error) {
 	args := n.Args()
 	if len(args) == 0 {
 		return lit.Nil, nil
@@ -165,20 +165,18 @@ func ExtraMapSetter(mapkey string) KeySetter {
 
 // BitsPrepper returns a key prepper that tries to resolve a bits constant.
 func BitsPrepper(consts []typ.Const) KeyPrepper {
-	return func(p *exp.Prog, env exp.Env, n *exp.Named) (lit.Lit, error) {
+	return func(p *exp.Prog, env exp.Env, n *exp.Tag) (lit.Lit, error) {
 		l, err := DynPrepper(p, env, n)
 		if err != nil {
 			return l, err
 		}
-		if l == lit.Nil {
-			k := n.Key()
-			for _, b := range consts {
-				if k == b.Key() {
-					return lit.Int(b.Val), nil
-				}
+		k := n.Key()
+		for _, b := range consts {
+			if k == b.Key() {
+				return lit.Int(b.Val), nil
 			}
-			return nil, cor.Errorf("no constant named %q", k)
 		}
+		return nil, cor.Errorf("no constant named %q", k)
 		num, ok := l.(lit.Numeric)
 		if !ok {
 			return nil, cor.Errorf("expect numer for %q got %T", n.Key(), l)

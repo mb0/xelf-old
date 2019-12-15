@@ -3,11 +3,10 @@ Package typ provides a restricted but combinable type system.
 
 There are five groups of types that share some behaviour: numeric, character, indexer, keyer and
 special types. Special types are void, any, the special typ type representing a type literals and
-type variables, alternatives and references, as well as the exp types dyn, form, func, tag and decl.
+type variables, alternatives and references, as well as the exp types dyn, form, func and tag.
 
 The other four groups each have a base type, which are num, char, idxr and keyr. Base types are
-usually only used as long as no specific type could be resolved. Their explicit use is discouraged
-and needs to use the schema prefix: ~num ~keyr.
+usually only used as long as no specific type could be resolved.
 
 There is a number of specific types for each base type:
     bool, int, real, time and span are numeric types
@@ -15,11 +14,9 @@ There is a number of specific types for each base type:
     list, rec and obj are indexer types
     dict, rec and obj are keyer types
 
-The character, numeric types and void type are represented by their name:
+The character, numeric types and special base type are represented by their name:
     bool, void, time
-
-The plain special types and base types use the schema prefix, as not to pollute the namespace.
-    ~any, ~num, ~keyr, ~dyn
+    any, num, keyr, dyn
 
 The time and span type represents a time or a time duration/interval/delta that can either be
 represented as numeric value in milliseconds since epoch and ms delta or in a character format
@@ -32,17 +29,16 @@ The list and dict type can have a type parameters and can be nested.
 
 The record types rec and obj have type parameters representing fields, that can be accessed by key
 or index, therefor a record type is both an indexer and keyer type. Records must have at least one
-parameter and must be enclosed in parenthesis. A parameter declaration consists of an optional name
-tag starting with a colon followed by a type definition. Optional fields have names ending with a
+parameter and must be enclosed in angle brackets. Optional fields have names ending with a
 question mark, otherwise a field is considered required.
 
-    (rec :x :y :z? int), (list|rec :name str :val any :extra? any)
+    <rec x:int y:int z?:int>, <list|rec name:str val; extra?;>
 
 Optional types are nullable type-variants. The any, list, dict and exp types are always optional and
 the void and typ and exp types never are. All the other primitive, record and reference types can be
 marked as optional by a question mark suffix.
 
-    (rec :top10 (list|rec? :name str :score int?) :err str?)
+    <rec top10:<list|rec? name:str score:int?> err:str?>
 
 The exp types form and func also use the type parameters syntax used as argument and result type
 signature. The last parameter signifies the result type and is usually unnamed. All other parameters
@@ -61,9 +57,9 @@ fields into the new type, while for all other references fields are named by the
 name part in the reference name.
 
     (let
-        +kind  int
-    	+named (rec +id uuid +name str?)
-	+cat   (rec + @named @kind? +prods list|@named)
+        kind:  int
+	named: <rec id:uuid name:str?>
+	cat:   <rec @named _:@kind? prods:list|@named>
     )
 
 Self references of the form '~1' are a special references to the current '~0' or the parent '~1' or
@@ -96,9 +92,28 @@ object field 'typ':
 
     {
     	"kind": {"typ": "int"},
-	"named":{"typ": "(rec +id uuid +name str?)"},
-	"cat":  {"typ": "(rec + @named + @kind? +prods list|@named)"}
+	"named":{"typ": "<rec id:uuid name:str?>"},
+	"cat":  {"typ": "<rec @named _:@kind? prods:list|@named>"}
     }
 
 */
 package typ
+
+/*
+digraph types {
+	void
+	any->{lit typ expr meta}
+	lit->{num char idxr keyr}
+	cont->{idxr keyr}
+	num->{int real}
+	int->{bits}
+	int->{time span}[constraint=false style=dashed]
+	char->{str raw uuid enum time span}
+	idxr->{list rec}
+	keyr->{dict rec}
+	rec->obj
+	expr->{sym dyn call}
+	meta->{ref var alt}
+}
+http://webgraphviz.com/
+*/

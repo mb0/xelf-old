@@ -14,7 +14,7 @@ var errConType = cor.StrError("the 'con' expression must start with a type")
 //    With one literal compatible to that type it returns the converted literal.
 //    For keyer types one or more declarations are set.
 //    For idxer types one ore more literals are appended.
-var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
+var conSpec = core.add(SpecRX("<form con typ plain?; tags?; @>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Resl(x.Prog, x.Env, x.Hint)
 		if a, ok := x.Arg(0).(*exp.Atom); ok {
@@ -23,7 +23,7 @@ var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
 				case typ.KindVoid:
 					return exp.Ignore(x.Call.Src)
 				case typ.KindBool:
-					return x.BuiltinCall(x.Env, ":bool", x.Args(1), x.Call.Src)
+					return x.BuiltinCall(x.Env, "ok", x.Args(1), x.Call.Src)
 				}
 				ct := x.Sig
 				r := &ct.Params[len(ct.Params)-1]
@@ -52,33 +52,33 @@ var conSpec = core.add(SpecRX("(form 'con' typ :plain? list :tags? dict @)",
 		case typ.KindVoid:
 			return exp.Ignore(x.Call.Src)
 		case typ.KindBool:
-			c, err := x.BuiltinCall(x.Env, ":bool", x.Args(1), x.Call.Src)
+			c, err := x.BuiltinCall(x.Env, "ok", x.Args(1), x.Call.Src)
 			if err != nil {
 				return c, err
 			}
 			return c.Spec.Eval(x.Prog, x.Env, c, x.Hint)
 		}
 		args := x.Args(1)
-		decls := x.Tags(2)
+		tags := x.Tags(2)
 		// first rule: return zero literal
-		if len(args) == 0 && len(decls) == 0 {
+		if len(args) == 0 && len(tags) == 0 {
 			return &exp.Atom{Lit: lit.Zero(t)}, nil
 		}
 		// second rule: convert compatible literals
-		if len(args) == 1 && len(decls) == 0 {
+		if len(args) == 1 && len(tags) == 0 {
 			fst := args[0].(*exp.Atom)
 			res, err := lit.Convert(fst.Lit, t, 0)
 			if err == nil {
 				return &exp.Atom{Lit: res}, nil
 			}
 		}
-		// third rule: set declarations
+		// third rule: set tags
 		if t.Kind&typ.KindKeyr != 0 {
 			res := deopt(lit.Zero(t)).(lit.Keyer)
-			for _, d := range decls {
+			for _, d := range tags {
 				el, ok := d.Arg().(*exp.Atom)
 				if !ok {
-					return nil, cor.Errorf("want literal in declaration got %s", d.El)
+					return nil, cor.Errorf("want literal in tag got %s", d.El)
 				}
 				_, err = res.SetKey(d.Key(), el.Lit)
 				if err != nil {

@@ -29,7 +29,7 @@ func (p *Prog) Resl(env Env, el El, h typ.Type) (_ El, err error) {
 		return p.reslAtom(env, v, h)
 	case *Sym:
 		return p.reslSym(env, v, h)
-	case *Named:
+	case *Tag:
 		x, err := p.Resl(env, v.El, h)
 		if err != nil {
 			return el, err

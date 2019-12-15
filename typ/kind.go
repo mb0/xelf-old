@@ -70,13 +70,13 @@ const (
 	KindEnum = KindCtx | KindStr // 0x142
 	KindObj  = KindCtx | KindRec // 0x34c
 
-	KindTyp   = KindExpr | KindBit1 // 0x110
-	KindFunc  = KindExpr | KindBit2 // 0x210
-	KindDyn   = KindExpr | KindBit3 // 0x410
-	KindNamed = KindExpr | KindBit4 // 0x810
-	KindForm  = KindCtx | KindFunc  // 0x250
-	KindCall  = KindCtx | KindDyn   // 0x450
-	KindSym   = KindCtx | KindNamed // 0x850
+	KindTyp  = KindExpr | KindBit1 // 0x110
+	KindFunc = KindExpr | KindBit2 // 0x210
+	KindDyn  = KindExpr | KindBit3 // 0x410
+	KindTag  = KindExpr | KindBit4 // 0x810
+	KindForm = KindCtx | KindFunc  // 0x250
+	KindCall = KindCtx | KindDyn   // 0x450
+	KindSym  = KindCtx | KindTag   // 0x850
 
 	KindVar = KindMeta | KindBit1 // 0x120
 	KindRef = KindMeta | KindBit2 // 0x220
@@ -129,7 +129,7 @@ func ParseKind(str string) (Kind, error) {
 	case "func":
 		return KindFunc, nil
 	case "named":
-		return KindNamed, nil
+		return KindTag, nil
 	case "alt":
 		return KindAlt, nil
 	}
@@ -225,7 +225,7 @@ func simpleStr(k Kind) string {
 		return "dyn"
 	case KindCall:
 		return "call"
-	case KindNamed:
+	case KindTag:
 		return "named"
 	case KindSym:
 		return "sym"
@@ -325,7 +325,7 @@ var kindConsts = map[string]int64{
 	"Form":  int64(KindForm),
 	"Dyn":   int64(KindDyn),
 	"Call":  int64(KindDyn),
-	"Named": int64(KindNamed),
+	"Named": int64(KindTag),
 	"Sym":   int64(KindSym),
 	"Var":   int64(KindVar),
 	"Ref":   int64(KindRef),

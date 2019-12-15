@@ -17,7 +17,7 @@ var (
 )
 
 // catSpec concatenates one or more arguments to a str, raw or idxer literal.
-var catSpec = core.add(SpecRX("(form 'cat' (@1:alt str raw idxr) :plain list @1)",
+var catSpec = core.add(SpecRX("<form cat <@1|alt str raw idxr> plain:list @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Resl(x.Prog, x.Env, x.Hint)
 		t := x.Sig
@@ -93,7 +93,7 @@ var catSpec = core.add(SpecRX("(form 'cat' (@1:alt str raw idxr) :plain list @1)
 	}))
 
 // apdSpec appends the rest literal arguments to the first literal appender argument.
-var apdSpec = core.add(SpecDX("(form 'apd' @1:list :plain list @1)",
+var apdSpec = core.add(SpecDX("<form apd @1|list plain:list @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {
@@ -118,7 +118,7 @@ var apdSpec = core.add(SpecDX("(form 'apd' @1:list :plain list @1)",
 	}))
 
 // setSpec sets the first keyer literal with the following tag arguments.
-var setSpec = core.add(SpecDX("(form 'set' @1:keyr :plain? list|keyr :tags? dict @1)",
+var setSpec = core.add(SpecDX("<form set @1|keyr plain?:list|keyr tags?:dict @1>",
 	func(x CallCtx) (exp.El, error) {
 		err := x.Layout.Eval(x.Prog, x.Env, x.Hint)
 		if err != nil {

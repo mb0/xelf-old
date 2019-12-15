@@ -13,7 +13,7 @@ import (
 // it is called for printing the body expressions.
 // Resolution handles reference and delegates expression resolution to the body.
 
-var funcSig = MustSig("(form '_' :args? : @)")
+var funcSig = MustSig("<form _ args?; @>")
 
 // FuncLayout matches arguments of x to the parameters of f and returns a layout or an error.
 func FuncLayout(sig typ.Type, els []El) (*Layout, error) {

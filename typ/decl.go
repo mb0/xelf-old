@@ -18,11 +18,11 @@ var (
 	Time = Type{Kind: KindTime}
 	Span = Type{Kind: KindSpan}
 
-	Expr  = Type{Kind: KindExpr}
-	Sym   = Type{Kind: KindSym}
-	Dyn   = Type{Kind: KindDyn}
-	Call  = Type{Kind: KindCall}
-	Named = Type{Kind: KindNamed}
+	Expr = Type{Kind: KindExpr}
+	Sym  = Type{Kind: KindSym}
+	Dyn  = Type{Kind: KindDyn}
+	Call = Type{Kind: KindCall}
+	Tag  = Type{Kind: KindTag}
 )
 
 func Opt(t Type) Type     { return Type{t.Kind | KindOpt, t.Info} }
@@ -79,7 +79,7 @@ func (t Type) Deopt() (_ Type, ok bool) {
 // Elem returns a generalized element type for container types and void otherwise.
 func (t Type) Elem() Type {
 	switch t.Kind & MaskElem {
-	case KindCont, KindIdxr, KindKeyr, KindList, KindDict:
+	case KindCont, KindIdxr, KindKeyr, KindList, KindDict, KindExpr:
 		if !t.HasParams() {
 			return Any
 		}

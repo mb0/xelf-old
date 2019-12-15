@@ -16,9 +16,7 @@ const (
 	String
 	// Symbol rune indicates a identifier symbol token.
 	Symbol
-
 	Tag
-	Decl
 )
 
 // TokStr returns a string representation of token rune t.
@@ -32,6 +30,8 @@ func TokStr(r rune) string {
 		return "String"
 	case Symbol:
 		return "Symbol"
+	case Tag:
+		return "Tag"
 	}
 	return fmt.Sprintf("%q", r)
 }
@@ -73,14 +73,13 @@ type Token struct {
 }
 
 func (t Token) String() string {
-	s := TokStr(t.Tok)
-	if len(t.Raw) == 0 {
-		return s
+	switch t.Tok {
+	case EOF:
+		return "EOF"
+	case Number, String, Symbol:
+		return t.Raw
 	}
-	if total := len(s) + len(t.Raw); total > 30 {
-		return s + ": " + t.Raw[:30-len(s)] + "…"
-	}
-	return s + ": " + t.Raw
+	return string(t.Tok)
 }
 
 // Tree represents either a single token or a sequence of trees starting with an open bracket.
@@ -97,22 +96,37 @@ func (t *Tree) Err(err error) error {
 }
 
 func (t *Tree) String() string { return bfr.String(t) }
-func (t *Tree) WriteBfr(b *bfr.Ctx) error {
+func (t *Tree) WriteBfr(b *bfr.Ctx) (err error) {
 	switch t.Tok {
-	case Number, String, Symbol, Tag, Decl:
-		b.WriteString(t.Raw)
-	case '(':
-		b.WriteByte('(')
+	case Number, String, Symbol:
+		_, err = b.WriteString(t.Raw)
+	case EOF:
+	case Tag:
+		for i, c := range t.Seq {
+			err = c.WriteBfr(b)
+			if err != nil {
+				break
+			}
+			if i == 0 {
+				b.WriteString(t.Raw)
+			}
+		}
+	default:
+		b.WriteRune(t.Tok)
+		end := end(t.Tok)
+		if end == 0 {
+			break
+		}
 		for i, c := range t.Seq {
 			if i > 0 {
 				b.WriteByte(' ')
 			}
-			err := c.WriteBfr(b)
+			err = c.WriteBfr(b)
 			if err != nil {
 				return err
 			}
 		}
-		return b.WriteByte(')')
+		_, err = b.WriteRune(end)
 	}
-	return nil
+	return err
 }

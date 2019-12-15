@@ -37,8 +37,7 @@ func New(r io.Reader) *Lexer {
 }
 
 // Token reads and returns the next token or an error.
-// If simple is true, symbols can only be ascii names.
-func (l *Lexer) Token(simple bool) (Token, error) {
+func (l *Lexer) Token() (Token, error) {
 	r := l.next()
 	for cor.Space(r) {
 		r = l.next()
@@ -47,31 +46,24 @@ func (l *Lexer) Token(simple bool) (Token, error) {
 	case EOF:
 		t := l.tok(r)
 		return t, ErrorAt(t, l.err)
-	case ',', ';', '(', ')', '[', ']', '{', '}':
+	case ':', ';', ',', '(', ')', '[', ']', '{', '}', '<', '>':
 		return l.tok(r), nil
 	case '"', '\'', '`':
 		return l.lexString()
 	}
-	if cor.NameStart(r) {
-		return l.lexSymbol(simple)
-	}
 	if cor.Digit(r) || r == '-' && cor.Digit(l.nxt) {
 		return l.lexNumber()
 	}
-	if cor.Punct(r) {
-		if simple {
-			return l.tok(r), nil
-		}
-		return l.lexSymbol(false)
+	if cor.NameStart(r) || cor.Punct(r) {
+		return l.lexSymbol()
 	}
 	t := l.tok(r)
 	return t, ErrorAt(t, ErrUnexpected)
 }
 
 // Tree scans and returns the next tree or an error.
-// Symbols nested in sequences with curly or square brackets are read as simple names.
 func (l *Lexer) Tree() (*Tree, error) {
-	t, err := l.Token(false)
+	t, err := l.Token()
 	if err != nil {
 		return nil, err
 	}
@@ -136,19 +128,11 @@ func (l *Lexer) lexString() (Token, error) {
 }
 
 // lexSymbol reads and returns a symbol token starting at the current offset.
-// If simple is true, it only accepts ascii letters and digits.
-func (l *Lexer) lexSymbol(simple bool) (t Token, _ error) {
+func (l *Lexer) lexSymbol() (t Token, _ error) {
 	var b strings.Builder
-	switch l.cur {
-	case ':':
-		t = l.tok(Tag)
-	case '+', '-':
-		t = l.tok(Decl)
-	default:
-		t = l.tok(Symbol)
-	}
+	t = l.tok(Symbol)
 	b.WriteRune(l.cur)
-	for cor.NamePart(l.nxt) || !simple && cor.Punct(l.nxt) {
+	for cor.NamePart(l.nxt) || cor.Punct(l.nxt) {
 		b.WriteRune(l.next())
 	}
 	return l.val(t, b.String())
@@ -208,34 +192,101 @@ func (l *Lexer) lexDigits(b *strings.Builder) bool {
 
 // scanTree returns a token tree constructed from t or an error.
 // If the token is an open paren trees are scanned until a matching closing paren.
-// Symbols are read with punctuation only inside round parenthesis.
+// Enclosed trees are separated by whitespaces or comma.
+// Colons and semicolons associate with neighboring trees to form tags.
+// Tags are a way to structure tree elements as named values.
+// 	{"name":"value"}
+// We allow tags starting with symbols in xelf object literals:
+// 	{name:"value"}
+// In call expressions we also allow short tags, where the leading symbol is only a name without value:
+// 	(spec name;) equals (spec name:,)
+// The underscore symbol is a special name by convention depending on the context.
+// 	(schema prod help:'product schema has sub models'
+// 		Cat:(help:'this is a model with a help tag and capitalized field tags'
+// 			ID:   uuid
+// 			Name: str
+// 		)
+// 		Prod:(
+// 			ID:   uuid
+// 			Name: str
+// 			help:'this is a tail tag of the prod model'
+// 		)
+// 	)
 func (l *Lexer) scanTree(t Token) (*Tree, error) {
 	res := &Tree{Token: t}
-	var end rune
-	switch t.Tok {
-	case '(':
-		end = ')'
-	case '{':
-		end = '}'
-	case '[':
-		end = ']'
-	default:
+	end := end(t.Tok)
+	if end == 0 {
 		return res, nil
 	}
-	simple := end != ')'
-	t, err := l.Token(simple)
+	t, err := l.Token()
 	if err != nil {
 		return res, err
 	}
 	for t.Tok != end && t.Tok != EOF {
+		switch t.Tok {
+		case ':', ';', ',':
+			return res, ErrorAt(t, ErrUnexpected)
+		}
 		a, err := l.scanTree(t)
 		if err != nil {
 			return a, err
 		}
-		res.Seq = append(res.Seq, a)
-		t, err = l.Token(simple)
+		t, err = l.Token()
 		if err != nil {
 			return res, err
+		}
+		switch t.Tok {
+		case ':':
+			switch a.Tok {
+			case Symbol, String:
+			default:
+				return res, ErrorWant(a.Token, ErrUnexpected, Symbol)
+			}
+			tt := &Tree{Token: Token{Tok: Tag, Raw: ":", Src: t.Src}}
+			tt.Pos = a.Pos
+			res.Seq = append(res.Seq, tt)
+			t, err = l.Token()
+			if err != nil {
+				return res, err
+			}
+			switch t.Tok {
+			case Number, String, Symbol, '[', '{', '<', '(':
+				b, err := l.scanTree(t)
+				if err != nil {
+					return res, err
+				}
+				tt.Seq = []*Tree{a, b}
+				tt.End = b.End
+				t, err = l.Token()
+				if err != nil {
+					return res, err
+				}
+			default:
+				tt.Seq = []*Tree{a}
+			}
+		case ';':
+			switch a.Tok {
+			case Symbol:
+			default:
+				return res, ErrorWant(a.Token, ErrUnexpected, Symbol)
+			}
+			tt := &Tree{Token: Token{Tok: Tag, Raw: ";", Src: t.Src}, Seq: []*Tree{a}}
+			tt.Pos = a.Pos
+			res.Seq = append(res.Seq, tt)
+			t, err = l.Token()
+			if err != nil {
+				return res, err
+			}
+			continue
+		default:
+			res.Seq = append(res.Seq, a)
+		}
+		switch t.Tok {
+		case ',':
+			t, err = l.Token()
+			if err != nil {
+				return res, err
+			}
 		}
 	}
 	res.End = t.End
@@ -243,4 +294,18 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 		return res, ErrorWant(t, ErrUnterminated, end)
 	}
 	return res, nil
+}
+
+func end(start rune) rune {
+	switch start {
+	case '(':
+		return ')'
+	case '<':
+		return '>'
+	case '{':
+		return '}'
+	case '[':
+		return ']'
+	}
+	return 0
 }

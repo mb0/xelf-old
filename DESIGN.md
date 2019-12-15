@@ -170,10 +170,10 @@ extensions. Built-in expression resolvers all use short ASCII names instead of p
 By using only the ASCII character set we can avoid any encoding issues or substitutions in
 environments without unicode identifier support.
 
-Xelf will need to work in environment that are case-sensitive and case-insensitive. To address that,
-cased names are usually used for declarations and are then automatically lowercased for all lookups
-in the resolution environment. This way we do not have to use configurable casing rules to generate
-idiomatic code for the go target.
+Xelf will need to work in environments that are case-sensitive and case-insensitive. To address
+that, cased tag symbols are usually automatically lowercased for all lookups in the resolution
+environment. This way we do not have to use configurable casing rules to generate idiomatic code for
+the go target.
 
 Compound names, that would use either CamelCase, `snake_case` or kebab-case depending on the
 environment, like ClientID, are instead used as cased name for the go target and simply lowercased
@@ -194,12 +194,6 @@ indicate a call to a function or form resolver.
 LISP languages are great. However, many key concepts of LISP-languages are not easily expressed in
 other environments. Xelf builds on JSON and adds a notation for types and expressions on top of it.
 
-Xelf has special handling for tag and declaration symbols within expressions. This is to avoid
-excessive nesting of expressions and to achieve a comfortable level of expressiveness in a variety
-of contexts. Tag symbols that start with a colon and can be used for named arguments, node
-properties or similar things. Declaration symbols starting with a plus sign are reserved to be used
-in language extensions.
-
 Predefined Symbols
 ------------------
 
@@ -218,7 +212,7 @@ start with reference prefix followed by a numeric id '@123'. The naked at-sign '
 represents a new type variable with any new id.
 
 Type variables can have one parameter acting as constraint, that is usually a base type or a type
-alternative. For example '@1:num' or '(@:alt str raw list)'.
+alternative. For example '@1|num' or '(@|alt str raw list)'.
 
 Schema types are a kind of reference and need to be resolved. The name of schema types refers to a
 global type schema and uses the schema prefix '~schema.model' for lookups from the environment.
@@ -243,7 +237,7 @@ selects the appropriate environment. The environments implement a simple method 
 they support one of the special prefixes.
 
 The tilde '~' prefix qualifies a type and must be followed by a symbol in an expression context.
-The type is either a basic type or a schema type, that needs to be looked up.
+The type is a schema type, that needs to be looked up.
 
 Starting dots '.' are used for data lookups. The dot starts a relative path to a data scope. One dot
 represents the immediate data scope's literal, each additional dot moves one data scope up. If the
@@ -265,8 +259,8 @@ Xelf language elements can be atoms, symbols, named elements or dynamic and call
 elements share a common interface, that includes a string and write bfr method as well as a traverse
 and type method. The returned type identifies the kind of the language element.
 
-Named elements start with a tag or declaration symbol and are handled by the parent's
-specification. They are formed automatically by the parser from tag and declaration tokens.
+Named elements start with a tag symbol and are handled by the parent's
+specification. They are formed automatically by the parser.
 
 Dynamic expressions are expressions, where the resolver is yet unknown and may start with a literal
 or sub expression. Dynamic expressions starting with a literal are resolved with the configurable
@@ -296,7 +290,7 @@ Forms and Functions
 Form and function types provide a signature that can be used to direct most aspects of the
 resolution process. The signature allows us to factor out the default type checking and inference
 and provide a more stable and comfortable user experience. Forms signatures accept special
-parameter names, that allow tags and declaration parsing.
+parameter names, that allow tags parsing.
 
 Form and function types have a reference name, primarily to be printable. This name is not meant to
 be resolved, but should match the definition.
@@ -330,6 +324,48 @@ and must handle the unification in the resolver.
 Resolvers are passed a type hint to unify with. Type hints can be of any kind, but are usually type
 variables created in the parent's resolver. Void hints indicates a lack of type expectations and
 means the resolver can disregard the hint completely.
+
+Syntax Changes
+--------------
+
+We could remove some ambiguity by using angle brackets for type literals. On the one hand these need
+escaping in html contexts, on the other hand there are no other ascii enclosures left, type literals
+should be mostly be avoidable in scripts.
+
+I'm starting to be annoyed by the difference of tags starting with a colon and keyer fields
+ending in a colon. Maybe tags should also end in a colon, because we cannot change literal parsing
+without straying away from the json base concept. The lexer would always handle the colon
+as special token creating a named pair with a name on its left and expression on the left side.
+
+To tags without value we use a semi-colon with a leading symbol or string a; -> a:,.
+
+I'm unsure whether the decls syntax is any good. It was eliminated for all forms except the daql dom
+and query packages. The main goal was to handle xml-style like structure writable without additional
+parenthesis. Decls are not used as declarations anymore and should therefor be at least
+renamed as a concept. The plus and minus sign is therefor not appropriate and sticks out visually.
+The only thing we use it for in the dom and qry packages is to collect a list of possibly named
+subexpressions that are resolved by the parent form. 
+
+I came to the conclusion to just use tags with some naming convention instead. My final idea is just
+to use a case based discriminator for attribute and child tags in the dom and qry packages.
+
+	(<rec a?:int>  $a)
+	(model Test help:'This is the help attribute'
+		ID:   (int pk;)
+		Help: (str help:'the help field uses uppercase')
+	)
+
+Type Changes
+------------
+
+Apart from the mentioned syntax changes for types, we also want introduce expression bits that
+allow to narrow down to what typed thing we expect. So we can express that we expect any list type,
+or a specifically a constant literal or an unevaluated expression that resolves to a certain type.
+
+One example is the qry packages where clause that is not evaluated but must evaluate to type bool.
+We can express that in the form signature now and do not need custom resolution.
+
+The other change is to better distribute the kind bitmask and clean up some ideas.
 
 Planed Tasks
 ------------

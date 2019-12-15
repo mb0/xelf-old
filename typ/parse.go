@@ -69,7 +69,7 @@ func ParseSym(s string, hist []Type) (res Type, err error) {
 			ref = ref[:len(ref)-1]
 		}
 		var cs []Type
-		if i := strings.IndexByte(ref, ':'); i >= 0 {
+		if i := strings.IndexByte(ref, '|'); i >= 0 {
 			c, err := ParseSym(ref[i+1:], nil)
 			if err != nil {
 				return Void, cor.Errorf("invalid type var constraint %s", s)
@@ -149,7 +149,7 @@ func parse(a *lex.Tree, hist []Type) (t Type, err error) {
 	switch a.Tok {
 	case lex.Symbol:
 		t, err = ParseSym(a.Raw, hist)
-	case '(':
+	case '<':
 		if len(a.Seq) == 0 { // empty expression is void
 			return
 		}
@@ -177,14 +177,12 @@ func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 	}
 	if needRef {
 		ref := args[0]
-		if ref.Tok != lex.String {
+		switch ref.Tok {
+		case lex.Symbol:
+			t.Ref = ref.Raw
+		default:
 			return t, ErrRefName
 		}
-		name, err := cor.Unquote(ref.Raw)
-		if err != nil {
-			return t, err
-		}
-		t.Ref = name
 		args = args[1:]
 	}
 	if !needParams {
@@ -194,33 +192,39 @@ func ParseInfo(args []*lex.Tree, t Type, hist []Type) (Type, error) {
 	}
 	dt, _ := t.Deopt()
 	hist = append(hist, dt)
-	group := dt.Kind != KindForm
 	res := make([]Param, 0, len(args))
-	var naked int
 	for len(args) > 0 {
 		a := args[0]
-		var name string
-		if a.Tok == lex.Tag {
-			name = a.Raw[1:]
-			args = args[1:]
-		} // else unnamed parameter
-		res = append(res, Param{Name: name})
-		if group {
-			naked++
-		} else {
-			naked = 1
+		args = args[1:]
+		var p Param
+		switch a.Tok {
+		case lex.Tag:
+			b := a.Seq[0]
+			switch b.Tok {
+			case lex.Symbol:
+				p.Name = b.Raw
+			case lex.String:
+				var err error
+				p.Name, err = cor.Unquote(b.Raw)
+				if err != nil {
+					return t, err
+				}
+			}
+			if len(a.Seq) > 1 {
+				a = a.Seq[1]
+			} else {
+				a = nil
+			}
+		default: // unnamed parameter
 		}
-		if len(args) > 0 && args[0].Tok != lex.Tag {
-			t, err := parse(args[0], hist)
-			args = args[1:]
+		if a != nil {
+			tt, err := parse(a, hist)
 			if err != nil {
 				return t, err
 			}
-			for naked > 0 {
-				res[len(res)-naked].Type = t
-				naked--
-			}
+			p.Type = tt
 		}
+		res = append(res, p)
 	}
 	if t.Kind == KindList || t.Kind == KindDict {
 		e := t.Elem()
