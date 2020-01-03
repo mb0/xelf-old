@@ -83,3 +83,16 @@ func TestAdapt(t *testing.T) {
 		}
 	}
 }
+
+type other struct {
+	myPOI
+}
+
+func TestAdaptMod(t *testing.T) {
+	obj := other{myPOI{myPoint{1,2,3}, "Name", "Text"}}
+	got, err := Adapt(obj)
+	if err != nil {
+		t.Fatalf("adapt obj err: %v", err)
+	}
+	t.Log(got.String())
+}

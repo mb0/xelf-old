@@ -185,7 +185,8 @@ func reflectFields(t reflect.Type, nfos infoMap) (*typ.Info, [][]int, error) {
 			return err
 		}
 		fs = append(fs, typ.Param{name, ft})
-		idx = append(idx, i)
+		var copy []int
+		idx = append(idx, append(copy, i...))
 		return nil
 	})
 	if err != nil {
@@ -204,7 +205,8 @@ type fidx struct {
 func fieldIndices(t reflect.Type, fs []typ.Param) ([][]int, error) {
 	m := make(map[string]fidx, len(fs)+8)
 	err := collectFields(t, nil, func(name, key string, _ reflect.Type, idx []int) error {
-		m[key] = fidx{name, idx}
+		var copy []int
+		m[key] = fidx{name, append(copy, idx...)}
 		return nil
 	})
 	if err != nil {
