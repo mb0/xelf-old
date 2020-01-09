@@ -104,5 +104,5 @@ func boolToFloat(b bool) float64 {
 	}
 	return 0
 }
-func floatToString(v float64) string { return strconv.FormatFloat(v, 'g', -1, 64) }
-func floatToBytes(v float64) []byte  { return strconv.AppendFloat(nil, v, 'g', -1, 64) }
+func floatToString(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
+func floatToBytes(v float64) []byte  { return strconv.AppendFloat(nil, v, 'f', -1, 64) }
