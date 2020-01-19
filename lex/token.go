@@ -16,6 +16,7 @@ const (
 	String
 	// Symbol rune indicates a identifier symbol token.
 	Symbol
+	// Tag rune indicates a tag token.
 	Tag
 )
 
@@ -36,7 +37,7 @@ func TokStr(r rune) string {
 	return fmt.Sprintf("%q", r)
 }
 
-// Pos represents a file position by line number and column in bytes.
+// Pos represents a file position by offset, line and column in bytes.
 type Pos struct {
 	Off  uint32
 	Line uint16
@@ -56,6 +57,7 @@ func (p Pos) add(col uint16) Pos {
 	return p
 }
 
+// Src represents a file span with a start and end position
 type Src struct {
 	Pos
 	End Pos

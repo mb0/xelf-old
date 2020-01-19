@@ -7,7 +7,7 @@ import (
 	"github.com/mb0/xelf/cor"
 )
 
-// PathSeg is one segment of a path it can either be a non-empty key or an index.
+// PathSeg is one segment of a path. It consists of a dot or slash, followed by a key or index.
 type PathSeg struct {
 	Key string
 	Idx int
@@ -21,9 +21,10 @@ func (s PathSeg) String() string {
 	return strconv.Itoa(s.Idx)
 }
 
-// Path consists of non-empty segments separated by dots '.'. Segments starting with a digit or
-// minus sign are idx segments that try to select into an idxer container literal, otherwise the
-// segment represents a key used to select into a keyer container literal.
+// Path consists of non-empty segments separated by dots '.' or slashes '/'. Segments starting with
+// a digit or minus sign are idx segments that try to select into an idxer literal,
+// otherwise the segment represents a key used to select into a keyer literal.
+// Segments starting with a slash signify a selection from a idxer literal.
 type Path []PathSeg
 
 func (p Path) String() string {

@@ -191,26 +191,23 @@ func (l *Lexer) lexDigits(b *strings.Builder) bool {
 }
 
 // scanTree returns a token tree constructed from t or an error.
-// If the token is an open paren trees are scanned until a matching closing paren.
-// Enclosed trees are separated by whitespaces or comma.
+// If the token is an open paren, trees are scanned until a matching closing paren.
+// Enclosed trees are separated by white-spaces or comma.
 // Colons and semicolons associate with neighboring trees to form tags.
 // Tags are a way to structure tree elements as named values.
 // 	{"name":"value"}
 // We allow tags starting with symbols in xelf object literals:
 // 	{name:"value"}
-// In call expressions we also allow short tags, where the leading symbol is only a name without value:
+// In call expressions we allow short tags, where the leading symbol is only a name without value:
 // 	(spec name;) equals (spec name:,)
-// The underscore symbol is a special name by convention depending on the context.
-// 	(schema prod help:'product schema has sub models'
-// 		Cat:(help:'this is a model with a help tag and capitalized field tags'
-// 			ID:   uuid
-// 			Name: str
+// We use capitalization of the tag name for declaration tags as convention.
+// 	(schema faq help:'faq schema has sub models'
+// 		Cat:(ID:uuid Name:str
+//			help:'this is a model with a help tag and capitalized field tags'
 // 		)
-// 		Prod:(
-// 			ID:   uuid
-// 			Name: str
-// 			help:'this is a tail tag of the prod model'
-// 		)
+// 		Help:(ID:uuid Name: str
+//			help:'this is a model with the same name as a schema field but capitalized'
+//		)
 // 	)
 func (l *Lexer) scanTree(t Token) (*Tree, error) {
 	res := &Tree{Token: t}

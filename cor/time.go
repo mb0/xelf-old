@@ -22,7 +22,7 @@ func FormatTime(v time.Time) string {
 	return v.Format("2006-01-02T15:04:05.999Z07:00")
 }
 
-// ParseTime parses s and return a time or error.It accepts variations of the RFC3339 format:
+// ParseTime parses s and return a time or error. It accepts variations of the RFC3339 format:
 //     2006-01-02([T ]15:04(:05:999999999)?)?(Z|[+-]07([:]?00)?)?
 // The returned time will be parsed in the local timezone if none is specified.
 func ParseTime(s string) (time.Time, error) {
@@ -50,6 +50,7 @@ func ParseTime(s string) (time.Time, error) {
 	return ParseTimeFormat(s, fmt)
 }
 
+// ParseTimeFormat parses s with go time fmt in the local timezone and returns a time or error.
 func ParseTimeFormat(s, fmt string) (time.Time, error) {
 	return time.ParseInLocation(fmt, s, time.Local)
 }

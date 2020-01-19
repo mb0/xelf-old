@@ -46,8 +46,8 @@ func (c *Ctx) Break() bool {
 	return true
 }
 
-// Quote writes the v as quoted string to the buffer or returns an error.
-// The quote used is depending on the json context flag.
+// Quote writes v as quoted string to the buffer or returns an error.
+// The quote used depends on the json context flag.
 func (c *Ctx) Quote(v string) (err error) {
 	if c.JSON {
 		v, err = cor.Quote(v, '"')
@@ -60,6 +60,8 @@ func (c *Ctx) Quote(v string) (err error) {
 	return c.Fmt(v)
 }
 
+// RecordKey writes key as quoted string followed by a colon to the buffer or returns an error.
+// The quote used depends on the json context flag.
 func (c *Ctx) RecordKey(key string) (err error) {
 	if c.JSON {
 		key, err = cor.Quote(key, '"')
@@ -73,6 +75,8 @@ func (c *Ctx) RecordKey(key string) (err error) {
 	return c.WriteByte(':')
 }
 
+// Sep writes a record field or list element separator to the buffer or returns an error.
+// The separator used depends on the json context flag.
 func (c *Ctx) Sep() error {
 	if c.JSON {
 		return c.WriteByte(',')
@@ -85,14 +89,14 @@ type Writer interface {
 	WriteBfr(*Ctx) error
 }
 
-// String writes w and returns the result as string ignoring any error
+// String writes w in xelf format and returns the result as string ignoring any error.
 func String(w Writer) string {
 	var b strings.Builder
 	_ = w.WriteBfr(&Ctx{B: &b})
 	return b.String()
 }
 
-// JSON writes w with the json flag and returns the result as bytes or an error
+// JSON writes w in json format and returns the result as bytes or an error.
 func JSON(w Writer) ([]byte, error) {
 	b := Get()
 	defer Put(b)

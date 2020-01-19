@@ -62,6 +62,8 @@ func LastName(s string) string {
 	return s[start:end]
 }
 
+// Cased returns n starting with uppercase letter.
+// This function is especially used for go code gen.
 func Cased(n string) (s string) {
 	s = LastName(n)
 	for _, c := range s {

@@ -28,7 +28,7 @@ type Error struct {
 // Error builds and returns an error string of e.
 func (e *Error) Error() string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("%d:%d: ", e.Line, e.Col))
+	fmt.Fprintf(&b, "%d:%d: ", e.Line, e.Col)
 	b.WriteString(e.err.Error())
 	if e.Want != 0 {
 		b.WriteString(" want token ")
