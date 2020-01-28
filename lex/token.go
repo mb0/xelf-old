@@ -115,7 +115,7 @@ func (t *Tree) WriteBfr(b *bfr.Ctx) (err error) {
 		}
 	default:
 		b.WriteRune(t.Tok)
-		end := end(t.Tok)
+		end := closing(t.Tok)
 		if end == 0 {
 			break
 		}

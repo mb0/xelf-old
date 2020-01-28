@@ -211,7 +211,7 @@ func (l *Lexer) lexDigits(b *strings.Builder) bool {
 // 	)
 func (l *Lexer) scanTree(t Token) (*Tree, error) {
 	res := &Tree{Token: t}
-	end := end(t.Tok)
+	end := closing(t.Tok)
 	if end == 0 {
 		return res, nil
 	}
@@ -232,19 +232,24 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 		if err != nil {
 			return res, err
 		}
-		switch t.Tok {
-		case ':':
+		switch tok := t.Tok; tok {
+		case ':', ';':
 			switch a.Tok {
 			case Symbol, String:
 			default:
 				return res, ErrorWant(a.Token, ErrUnexpected, Symbol)
 			}
-			tt := &Tree{Token: Token{Tok: Tag, Raw: ":", Src: t.Src}}
+			tt := &Tree{Token: Token{Tok: Tag, Raw: string(t.Tok), Src: t.Src}}
 			tt.Pos = a.Pos
 			res.Seq = append(res.Seq, tt)
 			t, err = l.Token()
 			if err != nil {
 				return res, err
+			}
+			if tok == ';' {
+				//log.Println("found short tag next tok is", t.Tok)
+				tt.Seq = []*Tree{a}
+				continue
 			}
 			switch t.Tok {
 			case Number, String, Symbol, '[', '{', '<', '(':
@@ -261,20 +266,6 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 			default:
 				tt.Seq = []*Tree{a}
 			}
-		case ';':
-			switch a.Tok {
-			case Symbol:
-			default:
-				return res, ErrorWant(a.Token, ErrUnexpected, Symbol)
-			}
-			tt := &Tree{Token: Token{Tok: Tag, Raw: ";", Src: t.Src}, Seq: []*Tree{a}}
-			tt.Pos = a.Pos
-			res.Seq = append(res.Seq, tt)
-			t, err = l.Token()
-			if err != nil {
-				return res, err
-			}
-			continue
 		default:
 			res.Seq = append(res.Seq, a)
 		}
@@ -293,16 +284,16 @@ func (l *Lexer) scanTree(t Token) (*Tree, error) {
 	return res, nil
 }
 
-func end(start rune) rune {
+func closing(start rune) rune {
 	switch start {
-	case '(':
-		return ')'
-	case '<':
-		return '>'
-	case '{':
-		return '}'
 	case '[':
 		return ']'
+	case '{':
+		return '}'
+	case '<':
+		return '>'
+	case '(':
+		return ')'
 	}
 	return 0
 }
