@@ -3,6 +3,7 @@ package cor
 import (
 	"strconv"
 	"strings"
+	"unicode/utf16"
 	"unicode/utf8"
 )
 
@@ -25,49 +26,51 @@ func Quote(s string, q byte) (string, error) {
 	var b strings.Builder
 	b.Grow(2 + 3*len(s)/2) // try to avoid more allocations.
 	b.WriteByte(q)
-	var runeTmp [utf8.UTFMax]byte
+	var last rune
+	const hex = "0123456789abcdef"
 	for w := 0; len(s) > 0; s = s[w:] {
 		r := rune(s[0])
 		w = 1
-		if r >= utf8.RuneSelf {
-			r, w = utf8.DecodeRuneInString(s)
-		}
-		if r == rune(q) || r == '\\' { // always backslashed
-			b.WriteByte('\\')
-			b.WriteByte(byte(r))
-			continue
-		}
-		if strconv.IsPrint(r) {
-			n := utf8.EncodeRune(runeTmp[:], r)
-			b.Write(runeTmp[:n])
-			continue
-		}
-		switch r {
-		case '\b':
-			b.WriteString(`\b`)
-		case '\f':
-			b.WriteString(`\f`)
-		case '\n':
-			b.WriteString(`\n`)
-		case '\r':
-			b.WriteString(`\r`)
-		case '\t':
-			b.WriteString(`\t`)
-		default:
-			switch {
-			case r > utf8.MaxRune:
-				r = 0xFFFD
-				fallthrough
-			case r < 0x10000:
-				b.WriteString(`\u`)
-				for s := 12; s >= 0; s -= 4 {
-					hex := "0123456789abcdef"[r>>uint(s)&0xF]
-					b.WriteByte(hex)
+		if r < utf8.RuneSelf {
+			switch r {
+			case rune(q):
+				b.WriteByte('\\')
+				b.WriteByte(q)
+			case '\\':
+				b.WriteString(`\\`)
+			case '\n':
+				b.WriteString(`\n`)
+			case '\r':
+				b.WriteString(`\r`)
+			case '\t':
+				b.WriteString(`\t`)
+			case '/':
+				if last == '<' {
+					b.WriteString(`\/`)
+				} else {
+					b.WriteRune(r)
 				}
 			default:
-				return "", strconv.ErrSyntax
+				if r >= 0x20 && r <= 0x7e {
+					b.WriteByte(byte(r))
+				} else {
+					b.WriteString(`\u00`)
+					b.WriteByte(hex[r>>4])
+					b.WriteByte(hex[r&0xf])
+				}
+			}
+		} else {
+			r, w = utf8.DecodeRuneInString(s)
+			if r == utf8.RuneError && w == 1 {
+				b.WriteString(`\ufffd`)
+			} else if r == '\u2028' || r == '\u2029' {
+				b.WriteString(`\u202`)
+				b.WriteByte(hex[r&0xf])
+			} else {
+				b.WriteRune(r)
 			}
 		}
+		last = r
 	}
 	b.WriteByte(q)
 	return b.String(), nil
@@ -91,37 +94,89 @@ func Unquote(s string) (string, error) {
 	if q == '`' {
 		return s, nil
 	}
-	if contains(s, '\n') {
-		return "", strconv.ErrSyntax
+	idx := -1
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; c == '\\' || c == q {
+			idx = i
+			break
+		} else if c == '\n' {
+			return "", strconv.ErrSyntax
+		}
 	}
-	// Is it trivial?  avoid allocation
-	if !contains(s, '\\') && !contains(s, q) {
+	if idx == -1 { // is trivial
 		return s, nil
 	}
 	var b strings.Builder
-	b.Grow(3 * len(s) / 2) // try to avoid more allocations.
-	var runeTmp [utf8.UTFMax]byte
+	b.Grow(len(s)) // try to avoid more allocations.
+	b.WriteString(s[:idx])
+	s = s[idx:]
 	for len(s) > 0 {
-		c, multibyte, ss, err := strconv.UnquoteChar(s, q)
-		if err != nil {
-			return "", err
+		c := s[0]
+		if c == q {
+			return "", strconv.ErrSyntax
 		}
-		s = ss
-		if c < utf8.RuneSelf || !multibyte {
-			b.WriteByte(byte(c))
-		} else {
-			n := utf8.EncodeRune(runeTmp[:], c)
-			b.Write(runeTmp[:n])
+		if c >= utf8.RuneSelf {
+			r, w := utf8.DecodeRuneInString(s)
+			b.WriteRune(r)
+			s = s[w:]
+			continue
+		}
+		if c != '\\' {
+			b.WriteByte(c)
+			s = s[1:]
+			continue
+		}
+		if len(s) < 2 {
+			return "", strconv.ErrSyntax
+		}
+		x := s[1]
+		s = s[2:]
+		switch x {
+		case q, '\\', '/':
+			b.WriteByte(x)
+		case 'b':
+			b.WriteByte('\b')
+		case 'f':
+			b.WriteByte('\f')
+		case 'n':
+			b.WriteByte('\n')
+		case 'r':
+			b.WriteByte('\r')
+		case 't':
+			b.WriteByte('\t')
+		case 'u':
+			r, err := u4(s)
+			if err != nil {
+				return "", err
+			}
+			s = s[4:]
+			if utf16.IsSurrogate(r) && len(s) > 5 && s[0] == '\\' && s[1] == 'u' {
+				r1, err := u4(s[2:])
+				if err != nil {
+					return "", err
+				}
+				r = utf16.DecodeRune(r, r1)
+				s = s[6:]
+			}
+			b.WriteRune(r)
+			continue
+		default:
+			return "", strconv.ErrSyntax
 		}
 	}
 	return b.String(), nil
 }
 
-func contains(s string, c byte) bool {
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			return true
-		}
+func u4(s string) (r rune, _ error) {
+	if len(s) < 4 {
+		return 0, strconv.ErrSyntax
 	}
-	return false
+	for i := 0; i < 4; i++ {
+		h, ok := fromHex(s[i])
+		if !ok {
+			return 0, strconv.ErrSyntax
+		}
+		r = r<<4 | rune(h)
+	}
+	return r, nil
 }
